@@ -1,0 +1,6 @@
+[submodule "tgcalls"]
+	path = tgcalls
+	url = https://github.com/tgcalls/tgcalls
+[submodule "webrtc"]
+	path = webrtc
+	url = https://github.com/tgcalls/WebRTC
