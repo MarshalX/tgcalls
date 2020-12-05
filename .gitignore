@@ -1,3 +1,6 @@
-.idea
-Libraries
-cmake-build-debug
+.idea/
+
+Libraries/
+
+build/
+cmake-build-debug/

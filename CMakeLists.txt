@@ -29,4 +29,6 @@ add_subdirectory(cmake/external/jpeg)
 add_subdirectory(cmake/external/opus)
 add_subdirectory(cmake/external/webrtc)
 
+add_subdirectory(${third_party_loc}/pybind11)
+
 add_subdirectory(tgcalls)

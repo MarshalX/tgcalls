@@ -4,3 +4,6 @@
 [submodule "tgcalls/third_party/lib_tgcalls"]
 	path = tgcalls/third_party/lib_tgcalls
 	url = https://github.com/tgcalls/lib_tgcalls
+[submodule "tgcalls/third_party/pybind11"]
+	path = tgcalls/third_party/pybind11
+	url = https://github.com/tgcalls/pybind11

@@ -1,14 +1,12 @@
-add_executable(tgcalls WIN32 MACOSX_BUNDLE)
-init_target(tgcalls)
+list(APPEND SOURCES
+    ${src_loc}/main.cpp
+)
+
+pybind11_add_module(tgcalls ${SOURCES})
 
 target_link_libraries(tgcalls
-        PRIVATE
-        lib_tgcalls
-        )
-
-nice_target_sources(tgcalls ${src_loc}
-        PRIVATE
-        main.cpp
-        )
+    PRIVATE
+    lib_tgcalls
+)
 
 include(cmake/lib_tgcalls.cmake)
