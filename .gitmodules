@@ -1,6 +1,6 @@
-[submodule "tgcalls"]
-	path = tgcalls
-	url = https://github.com/tgcalls/tgcalls
-[submodule "webrtc"]
-	path = webrtc
-	url = https://github.com/tgcalls/WebRTC
+[submodule "cmake"]
+	path = cmake
+	url = https://github.com/tgcalls/cmake_helpers
+[submodule "tgcalls/third_party/lib_tgcalls"]
+	path = tgcalls/third_party/lib_tgcalls
+	url = https://github.com/tgcalls/lib_tgcalls
