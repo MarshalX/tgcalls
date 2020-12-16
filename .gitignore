@@ -2,5 +2,16 @@
 
 Libraries/
 
+dist/
 build/
 cmake-build-debug/
+
+*.so
+
+*.session
+*.session-journal
+
+*.env
+
+tgcalls.txt
+tgcalls-stat.txt
