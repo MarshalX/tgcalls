@@ -1,21 +1,51 @@
 #include <rtc_base/ssl_adapter.h>
 #include <tgcalls/InstanceImpl.h>
+#include <tgcalls/group/GroupInstanceImpl.h>
 #include "NativeInstance.h"
 
 
-NativeInstance::NativeInstance(vector<RtcServer> servers, std::array<uint8_t, 256> authKey, bool isOutgoing, string logPath):
-    rtcServers(move(servers)), authKey(move(authKey)), isOutgoing(move(isOutgoing)), logPath(move(logPath))
-{
-    rtc::InitializeSSL();
-    tgcalls::Register<tgcalls::InstanceImpl>();
+NativeInstance::NativeInstance() {
+//    rtc::InitializeSSL();
+//    tgcalls::Register<tgcalls::InstanceImpl>();
 }
 
-void NativeInstance::start() {
+void NativeInstance::startGroupCall() {
+    tgcalls::GroupInstanceDescriptor descriptor {
+        .networkStateUpdated = [=](bool state) {},
+        .audioLevelsUpdated = [=](tgcalls::GroupLevelsUpdate const &update) {},
+    };
+
+    InstanceHolder holder = InstanceHolder();
+    holder.groupNativeInstance = std::make_unique<tgcalls::GroupInstanceImpl>(std::move(descriptor));
+    holder.groupNativeInstance->emitJoinPayload(emitJoinPayloadCallback);
+    instanceHolder = std::move(holder);
+};
+
+void NativeInstance::setEmitJoinPayloadCallback(const std::function<void(const tgcalls::GroupJoinPayload &payload)> &f) {
+    emitJoinPayloadCallback = f;
+}
+
+void NativeInstance::setJoinResponsePayload(tgcalls::GroupJoinResponsePayload payload) {
+    instanceHolder.groupNativeInstance->setJoinResponsePayload(payload);
+}
+
+void NativeInstance::setIsMuted(bool isMuted) {
+    instanceHolder.groupNativeInstance->setIsMuted(isMuted);
+}
+
+void NativeInstance::setAudioOutputDevice(std::string id) {
+    instanceHolder.groupNativeInstance->setAudioOutputDevice(id);
+}
+
+void NativeInstance::setAudioInputDevice(std::string id) {
+    instanceHolder.groupNativeInstance->setAudioInputDevice(id);
+}
+
+void NativeInstance::startCall(vector<RtcServer> servers, std::array<uint8_t, 256> authKey, bool isOutgoing, string logPath) {
     auto encryptionKeyValue = std::make_shared<std::array<uint8_t, 256>>();
     std::memcpy(encryptionKeyValue->data(), &authKey, 256);
 
     std::shared_ptr<tgcalls::VideoCaptureInterface> videoCapture = nullptr;
-    std::shared_ptr<tgcalls::PlatformContext> platformContext = std::make_shared<tgcalls::PlatformContext>();
 
     tgcalls::MediaDevicesConfig mediaConfig = {
             .audioInputId = "VB-Cable",
@@ -76,8 +106,8 @@ void NativeInstance::start() {
             },
     };
 
-    for (int i = 0, size = rtcServers.size(); i < size; ++i) {
-        RtcServer rtcServer = std::move(rtcServers.at(i));
+    for (int i = 0, size = servers.size(); i < size; ++i) {
+        RtcServer rtcServer = std::move(servers.at(i));
 
         const auto host = rtcServer.ip;
         const auto hostv6 = rtcServer.ipv6;
@@ -122,7 +152,6 @@ void NativeInstance::start() {
     InstanceHolder holder = InstanceHolder();
     holder.nativeInstance = tgcalls::Meta::Create("3.0.0", std::move(descriptor));
     holder._videoCapture = videoCapture;
-    holder._platformContext = platformContext;
     holder.nativeInstance.get()->setNetworkType(tgcalls::NetworkType::WiFi);
     holder.nativeInstance.get()->setRequestedVideoAspect(1);
     holder.nativeInstance.get()->setMuteMicrophone(false);

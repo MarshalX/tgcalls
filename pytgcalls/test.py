@@ -1,4 +1,5 @@
 import os
+import json
 import asyncio
 import hashlib
 from random import randint
@@ -385,14 +386,14 @@ async def start(client1, client2, make_out, make_inc):
                 print('Incoming call: ', call.auth_key_visualization)
                 print(rtc_servers(call.call.connections))
 
-                call.native_instance = tgcalls.NativeInstance(
+                call.native_instance = tgcalls.NativeInstance()
+                call.native_instance.setSignalingDataEmittedCallback(call.signalling_data_emitted_callback)
+                call.native_instance.startCall(
                     rtc_servers(call.call.connections),
                     [x for x in call.auth_key_bytes],
                     call.is_outgoing,
                     log_path2
                 )
-                call.native_instance.setSignalingDataEmittedCallback(call.signalling_data_emitted_callback)
-                call.native_instance.start()
 
                 # await asyncio.sleep(10)
                 # await call.received_call()
@@ -405,14 +406,14 @@ async def start(client1, client2, make_out, make_inc):
             print('Outgoing call: ', call.auth_key_visualization)
             print(rtc_servers(call.call.connections))
 
-            out_call.native_instance = tgcalls.NativeInstance(
+            out_call.native_instance = tgcalls.NativeInstance()
+            out_call.native_instance.setSignalingDataEmittedCallback(out_call.signalling_data_emitted_callback)
+            out_call.native_instance.startCall(
                 rtc_servers(call.call.connections),
                 [x for x in call.auth_key_bytes],
                 out_call.is_outgoing,
                 log_path1
             )
-            out_call.native_instance.setSignalingDataEmittedCallback(out_call.signalling_data_emitted_callback)
-            out_call.native_instance.start()
 
             # await asyncio.sleep(10)
             # await call.received_call()
@@ -420,10 +421,113 @@ async def start(client1, client2, make_out, make_inc):
             await call.discard_call()
 
 
+class GroupCall:
+
+    def __init__(self, client: pyrogram.Client):
+        if not client.is_connected:
+            raise RuntimeError('Client must be started first')
+
+        self.client = client
+        self.native_instance = None
+
+        self.group_call = None
+
+        self.chat_peer = None
+        self.my_ssrc = None
+
+        self._update_handler = RawUpdateHandler(self.process_update)
+        self.client.add_handler(self._update_handler, -1)
+
+    async def process_update(self, _, update, users, chats):
+        if not isinstance(update, types.UpdateGroupCall):
+            raise pyrogram.ContinuePropagation
+
+        if not self.group_call or not update.call or update.call.id != self.group_call.id:
+            raise pyrogram.ContinuePropagation
+        self.group_call = update.call
+
+        if update.call.params:
+            await self.set_join_response_payload(json.loads(update.call.params.data))
+
+    async def get_group_call(self, group: Union[str, int]):
+        self.chat_peer = await self.client.resolve_peer(group)
+        self.group_call = (await (self.client.send(functions.channels.GetFullChannel(
+            channel=self.chat_peer
+        )))).full_chat.call
+
+        return self.group_call
+
+    async def set_join_response_payload(self, params):
+        params = params['transport']
+
+        candidates = []
+        for row_candidates in params.get('candidates', []):
+            candidate = tgcalls.GroupJoinResponseCandidate()
+            for key, value in row_candidates.items():
+                setattr(candidate, key, value)
+
+            candidates.append(candidate)
+
+        fingerprints = []
+        for row_fingerprint in params.get('fingerprints', []):
+            fingerprint = tgcalls.GroupJoinPayloadFingerprint()
+            for key, value in row_fingerprint.items():
+                setattr(fingerprint, key, value)
+
+            fingerprints.append(fingerprint)
+
+        payload = tgcalls.GroupJoinResponsePayload()
+        payload.ufrag = params.get('ufrag')
+        payload.pwd = params.get('pwd')
+        payload.fingerprints = fingerprints
+        payload.candidates = candidates
+
+        self.native_instance.setJoinResponsePayload(payload)
+
+    def emit_join_payload_callback(self, payload):
+        self.my_ssrc = payload.ssrc
+
+        fingerprints = [{
+            'hash': f.hash,
+            'setup': f.setup,
+            'fingerprint': f.fingerprint
+        } for f in payload.fingerprints]
+
+        params = {
+            'ufrag': payload.ufrag,
+            'pwd': payload.pwd,
+            'fingerprints': fingerprints,
+            'ssrc': float(payload.ssrc)
+        }
+
+        async def _():
+            response = await self.client.send(functions.phone.JoinGroupCall(
+                    call=self.group_call,
+                    params=types.DataJSON(data=json.dumps(params)),
+                    muted=False
+            ))
+            await self.client.handle_updates(response)
+
+        asyncio.ensure_future(_(), loop=self.client.loop)
+
+
 async def main(client1, client2, make_out, make_inc):
-    await client1.start()
+    # await client1.start()
     await client2.start()
-    await start(client1, client2, make_out, make_inc)
+
+    while not client2.is_connected:
+        await asyncio.sleep(1)
+
+    group_call = GroupCall(client2)
+    await group_call.get_group_call('@MarshalCm')
+    group_call.native_instance = tgcalls.NativeInstance()
+    group_call.native_instance.setEmitJoinPayloadCallback(group_call.emit_join_payload_callback)
+    group_call.native_instance.startGroupCall()
+    group_call.native_instance.setIsMuted(False)
+    group_call.native_instance.setAudioInputDevice('VB-Cable')
+    group_call.native_instance.setAudioOutputDevice('default (Built-in Output)')
+
+    # await start(client1, client2, make_out, make_inc)
 
     await pyrogram.idle()
 

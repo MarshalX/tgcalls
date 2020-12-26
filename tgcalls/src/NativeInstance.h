@@ -10,17 +10,20 @@ class NativeInstance {
 public:
     InstanceHolder instanceHolder;
 
-    vector<RtcServer> rtcServers;
-    std::array<uint8_t, 256> authKey;
-    bool isOutgoing;
-    std::string logPath;
-
     std::function<void(const std::vector<uint8_t> &data)> signalingDataEmittedCallback;
+    std::function<void(const tgcalls::GroupJoinPayload &payload)> emitJoinPayloadCallback;
 
-    NativeInstance(vector<RtcServer> servers, std::array<uint8_t, 256> authKey, bool isOutgoing, std::string logPath);
+    NativeInstance();
 
-    void start();
+    void startCall(vector<RtcServer> servers, std::array<uint8_t, 256> authKey, bool isOutgoing, std::string logPath);
+    void startGroupCall();
+
+    void setIsMuted(bool isMuted);
+    void setAudioOutputDevice(std::string id);
+    void setAudioInputDevice(std::string id);
 
     void receiveSignalingData(std::vector<uint8_t> &data);
+    void setJoinResponsePayload(tgcalls::GroupJoinResponsePayload payload);
     void setSignalingDataEmittedCallback(const std::function<void(const std::vector<uint8_t> &data)> &f);
+    void setEmitJoinPayloadCallback(const std::function<void(const tgcalls::GroupJoinPayload &payload)> &f);
 };

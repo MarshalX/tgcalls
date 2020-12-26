@@ -48,9 +48,88 @@ PYBIND11_MODULE(tgcalls, m) {
                 return repr.str();
             });
 
+    py::class_<tgcalls::GroupJoinPayload>(m, "GroupJoinPayload")
+            .def(py::init<>())
+            .def_readwrite("ufrag", &tgcalls::GroupJoinPayload::ufrag)
+            .def_readwrite("pwd", &tgcalls::GroupJoinPayload::pwd)
+            .def_readwrite("fingerprints", &tgcalls::GroupJoinPayload::fingerprints)
+            .def_readwrite("ssrc", &tgcalls::GroupJoinPayload::ssrc)
+            .def("__repr__", [](const tgcalls::GroupJoinPayload &e) {
+                ostringstream repr;
+                repr << "<tgcalls.GroupJoinPayload ";
+                repr << "ufrag=\"" << e.ufrag << "\" ";
+                repr << "pwd=\"" << e.pwd << "\" ";
+                // TODO for each item to str
+//                repr << "fingerprints=\"" << e.fingerprints << "\" ";
+                repr << "ssrc=\"" << e.ssrc << "\"> ";
+                return repr.str();
+            });
+
+    py::class_<tgcalls::GroupJoinPayloadFingerprint>(m, "GroupJoinPayloadFingerprint")
+            .def(py::init<>())
+            .def_readwrite("hash", &tgcalls::GroupJoinPayloadFingerprint::hash)
+            .def_readwrite("setup", &tgcalls::GroupJoinPayloadFingerprint::setup)
+            .def_readwrite("fingerprint", &tgcalls::GroupJoinPayloadFingerprint::fingerprint)
+            .def("__repr__", [](const tgcalls::GroupJoinPayloadFingerprint &e) {
+                ostringstream repr;
+                repr << "<tgcalls.GroupJoinPayloadFingerprint ";
+                repr << "hash=\"" << e.hash << "\" ";
+                repr << "setup=\"" << e.setup << "\" ";
+                repr << "fingerprint=\"" << e.fingerprint << "\"> ";
+                return repr.str();
+            });
+
+    py::class_<tgcalls::GroupJoinResponsePayload>(m, "GroupJoinResponsePayload")
+            .def(py::init<>())
+            .def_readwrite("ufrag", &tgcalls::GroupJoinResponsePayload::ufrag)
+            .def_readwrite("pwd", &tgcalls::GroupJoinResponsePayload::pwd)
+            .def_readwrite("fingerprints", &tgcalls::GroupJoinResponsePayload::fingerprints)
+            .def_readwrite("candidates", &tgcalls::GroupJoinResponsePayload::candidates)
+            .def("__repr__", [](const tgcalls::GroupJoinResponsePayload &e) {
+                ostringstream repr;
+                repr << "<tgcalls.GroupJoinResponsePayload ";
+                repr << "ufrag=\"" << e.ufrag << "\" ";
+                repr << "pwd=\"" << e.pwd << "\" ";
+                // TODO for each item to str
+//                repr << "fingerprints=\"" << e.fingerprints << "\" ";
+//                repr << "candidates=\"" << e.candidates << "\"> ";
+                return repr.str();
+            });
+
+    py::class_<tgcalls::GroupJoinResponseCandidate>(m, "GroupJoinResponseCandidate")
+            .def(py::init<>())
+            .def_readwrite("port", &tgcalls::GroupJoinResponseCandidate::port)
+            .def_readwrite("protocol", &tgcalls::GroupJoinResponseCandidate::protocol)
+            .def_readwrite("network", &tgcalls::GroupJoinResponseCandidate::network)
+            .def_readwrite("generation", &tgcalls::GroupJoinResponseCandidate::generation)
+            .def_readwrite("id", &tgcalls::GroupJoinResponseCandidate::id)
+            .def_readwrite("component", &tgcalls::GroupJoinResponseCandidate::component)
+            .def_readwrite("foundation", &tgcalls::GroupJoinResponseCandidate::foundation)
+            .def_readwrite("priority", &tgcalls::GroupJoinResponseCandidate::priority)
+            .def_readwrite("ip", &tgcalls::GroupJoinResponseCandidate::ip)
+            .def_readwrite("type", &tgcalls::GroupJoinResponseCandidate::type)
+
+            .def_readwrite("tcpType", &tgcalls::GroupJoinResponseCandidate::tcpType)
+            .def_readwrite("relAddr", &tgcalls::GroupJoinResponseCandidate::relAddr)
+            .def_readwrite("relPort", &tgcalls::GroupJoinResponseCandidate::relPort)
+            .def("__repr__", [](const tgcalls::GroupJoinResponseCandidate &e) {
+                ostringstream repr;
+                repr << "<tgcalls.GroupJoinResponseCandidate ";
+                repr << "port=\"" << e.port << "\" ";
+                // TODO add all fields
+//                repr << "candidates=\"" << e.candidates << "\"> ";
+                return repr.str();
+            });
+
     py::class_<NativeInstance>(m, "NativeInstance")
-            .def(py::init<vector<RtcServer>, std::array<uint8_t, 256>, bool, string>())
-            .def("start", &NativeInstance::start)
+            .def(py::init<>())
+            .def("startCall", &NativeInstance::startCall)
+            .def("startGroupCall", &NativeInstance::startGroupCall)
+            .def("setIsMuted", &NativeInstance::setIsMuted)
+            .def("setAudioOutputDevice", &NativeInstance::setAudioOutputDevice)
+            .def("setAudioInputDevice", &NativeInstance::setAudioInputDevice)
+            .def("setJoinResponsePayload", &NativeInstance::setJoinResponsePayload)
             .def("receiveSignalingData", &NativeInstance::receiveSignalingData)
-            .def("setSignalingDataEmittedCallback", &NativeInstance::setSignalingDataEmittedCallback);
+            .def("setSignalingDataEmittedCallback", &NativeInstance::setSignalingDataEmittedCallback)
+            .def("setEmitJoinPayloadCallback", &NativeInstance::setEmitJoinPayloadCallback);
 }
