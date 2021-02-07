@@ -1,5 +1,0 @@
-specific_include_rules = {
-  ".*\.h": [
-    "+third_party/absl/types/optional.h",
-  ],
-}
