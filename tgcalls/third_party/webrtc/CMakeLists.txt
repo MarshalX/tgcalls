@@ -1,0 +1,1921 @@
+cmake_minimum_required(VERSION 3.16)
+cmake_policy(SET CMP0076 NEW)
+cmake_policy(SET CMP0091 NEW)
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+set(TG_OWT_SPECIAL_TARGET "" CACHE STRING "Use special platform target, like 'macstore' for Mac App Store.")
+
+if (NOT TG_OWT_SPECIAL_TARGET STREQUAL "osx")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET 10.12 CACHE STRING "Minimum OS X deployment version" FORCE)
+else()
+    set(CMAKE_OSX_DEPLOYMENT_TARGET 10.10 CACHE STRING "Minimum OS X deployment version" FORCE)
+endif()
+
+if (NOT TG_OWT_SPECIAL_TARGET STREQUAL "")
+    set(TG_OWT_PACKAGED_BUILD 0)
+else()
+    set(TG_OWT_PACKAGED_BUILD 1)
+endif()
+
+option(BUILD_SHARED_LIBS "Builds shared libraries instead of static." ${TG_OWT_PACKAGED_BUILD})
+option(TG_OWT_USE_PROTOBUF "Use protobuf to generate additional headers. Useful for packaged build." ${BUILD_SHARED_LIBS})
+
+project(tg_owt
+    LANGUAGES C CXX ASM
+    DESCRIPTION "WebRTC build for Telegram"
+    HOMEPAGE_URL "https://github.com/desktop-app/tg_owt.git"
+)
+set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT tg_owt)
+
+get_filename_component(webrtc_loc "src" REALPATH)
+set(third_party_loc ${webrtc_loc}/third_party)
+
+include(GNUInstallDirs)
+set(webrtc_includedir ${CMAKE_INSTALL_INCLUDEDIR}/tg_owt)
+
+include(cmake/arch.cmake)
+include(cmake/nice_target_sources.cmake)
+include(cmake/init_target.cmake)
+include(cmake/target_yasm_sources.cmake)
+include(cmake/external.cmake)
+include(cmake/libabsl.cmake)
+include(cmake/libopenh264.cmake)
+include(cmake/libpffft.cmake)
+include(cmake/librnnoise.cmake)
+include(cmake/libsrtp.cmake)
+include(cmake/libusrsctp.cmake)
+include(cmake/libvpx.cmake)
+include(cmake/libwebrtcbuild.cmake)
+include(cmake/libyuv.cmake)
+if (NOT WIN32 AND NOT APPLE)
+    include(cmake/libevent.cmake)
+endif()
+if (APPLE)
+    include(cmake/libsdkmacos.cmake)
+endif()
+
+# Use a separate subdirectory, because it will be exported as an INTERFACE
+# for the generated sources and headers.
+if (TG_OWT_USE_PROTOBUF)
+    add_subdirectory(cmake/protobuf)
+endif()
+
+add_library(tg_owt)
+init_target(tg_owt)
+
+set_target_properties(tg_owt PROPERTIES SOVERSION 0 VERSION 0.0.0)
+
+if (is_x86 OR is_x64)
+    target_link_libraries(tg_owt
+    PUBLIC
+        tg_owt::libwebrtcbuild
+    PRIVATE
+        tg_owt::libabsl
+        tg_owt::libopenh264
+        tg_owt::libpffft
+        tg_owt::librnnoise
+        tg_owt::libsrtp
+        tg_owt::libusrsctp
+        tg_owt::libvpx
+        tg_owt::libvpx_mmx
+        tg_owt::libvpx_sse2
+        tg_owt::libvpx_ssse3
+        tg_owt::libvpx_sse4
+        tg_owt::libvpx_avx
+        tg_owt::libvpx_avx2
+        tg_owt::libyuv
+    )
+else()
+    target_link_libraries(tg_owt
+    PUBLIC
+        tg_owt::libwebrtcbuild
+    PRIVATE
+        tg_owt::libabsl
+        tg_owt::libopenh264
+        tg_owt::libpffft
+        tg_owt::librnnoise
+        tg_owt::libsrtp
+        tg_owt::libusrsctp
+        tg_owt::libvpx
+        tg_owt::libyuv
+    )
+endif()
+
+if (TG_OWT_USE_PROTOBUF)
+    target_link_libraries(tg_owt
+    PRIVATE
+        tg_owt::proto
+    )
+endif()
+
+target_sources(tg_owt
+PRIVATE
+    ${libvpx_yasm_objects}
+    ${libopenh264_yasm_objects}
+)
+
+if (NOT WIN32 AND NOT APPLE)
+    target_link_libraries(tg_owt PRIVATE tg_owt::libevent)
+endif()
+if (APPLE)
+    target_link_libraries(tg_owt PUBLIC tg_owt::libsdkmacos)
+endif()
+
+link_openssl(tg_owt)
+link_ffmpeg(tg_owt)
+link_opus(tg_owt)
+
+if (UNIX AND NOT APPLE)
+    link_libalsa(tg_owt)
+    link_libpulse(tg_owt)
+    link_dl(tg_owt)
+endif()
+
+nice_target_sources(tg_owt ${webrtc_loc}
+PRIVATE
+    rtc_base/async_invoker.cc
+    rtc_base/async_invoker.h
+    rtc_base/async_invoker_inl.h
+    rtc_base/async_packet_socket.cc
+    rtc_base/async_packet_socket.h
+    rtc_base/async_resolver_interface.cc
+    rtc_base/async_resolver_interface.h
+    rtc_base/async_socket.cc
+    rtc_base/async_socket.h
+    rtc_base/async_tcp_socket.cc
+    rtc_base/async_tcp_socket.h
+    rtc_base/async_udp_socket.cc
+    rtc_base/async_udp_socket.h
+    rtc_base/crc32.cc
+    rtc_base/crc32.h
+    rtc_base/crypt_string.cc
+    rtc_base/crypt_string.h
+    rtc_base/checks.cc
+    rtc_base/checks.h
+    rtc_base/critical_section.cc
+    rtc_base/critical_section.h
+    rtc_base/data_rate_limiter.cc
+    rtc_base/data_rate_limiter.h
+    rtc_base/dscp.h
+    rtc_base/file_rotating_stream.cc
+    rtc_base/file_rotating_stream.h
+    rtc_base/helpers.cc
+    rtc_base/helpers.h
+    rtc_base/http_common.cc
+    rtc_base/http_common.h
+    rtc_base/ip_address.cc
+    rtc_base/ip_address.h
+    rtc_base/logging.cc
+    rtc_base/logging.h
+    rtc_base/keep_ref_until_done.h
+    rtc_base/mdns_responder_interface.h
+    rtc_base/memory/aligned_malloc.cc
+    rtc_base/memory/aligned_malloc.h
+    rtc_base/memory/fifo_buffer.cc
+    rtc_base/memory/fifo_buffer.h
+    rtc_base/message_digest.cc
+    rtc_base/message_digest.h
+    rtc_base/message_handler.cc
+    rtc_base/message_handler.h
+    rtc_base/net_helper.cc
+    rtc_base/net_helper.h
+    rtc_base/net_helpers.cc
+    rtc_base/net_helpers.h
+    rtc_base/network/sent_packet.cc
+    rtc_base/network/sent_packet.h
+    rtc_base/network.cc
+    rtc_base/network_route.cc
+    rtc_base/network.h
+    rtc_base/network_constants.cc
+    rtc_base/network_constants.h
+    rtc_base/network_monitor.cc
+    rtc_base/network_monitor.h
+    rtc_base/network_route.h
+    rtc_base/null_socket_server.cc
+    rtc_base/null_socket_server.h
+    rtc_base/platform_thread.cc
+    rtc_base/platform_thread.h
+    rtc_base/platform_thread_types.cc
+    rtc_base/platform_thread_types.h
+    rtc_base/operations_chain.cc
+    rtc_base/operations_chain.h
+    rtc_base/openssl.h
+    rtc_base/openssl_adapter.cc
+    rtc_base/openssl_adapter.h
+    rtc_base/openssl_certificate.cc
+    rtc_base/openssl_certificate.h
+    rtc_base/openssl_digest.cc
+    rtc_base/openssl_digest.h
+    rtc_base/openssl_identity.cc
+    rtc_base/openssl_identity.h
+    rtc_base/openssl_session_cache.cc
+    rtc_base/openssl_session_cache.h
+    rtc_base/openssl_stream_adapter.cc
+    rtc_base/openssl_stream_adapter.h
+    rtc_base/openssl_utility.cc
+    rtc_base/openssl_utility.h
+    rtc_base/physical_socket_server.cc
+    rtc_base/physical_socket_server.h
+    rtc_base/proxy_info.cc
+    rtc_base/proxy_info.h
+    rtc_base/rtc_certificate.cc
+    rtc_base/rtc_certificate.h
+    rtc_base/rtc_certificate_generator.cc
+    rtc_base/rtc_certificate_generator.h
+    rtc_base/rate_limiter.cc
+    rtc_base/rate_limiter.h
+    rtc_base/signal_thread.cc
+    rtc_base/signal_thread.h
+    rtc_base/sigslot_repeater.h
+    rtc_base/socket.cc
+    rtc_base/socket.h
+    rtc_base/socket_adapters.cc
+    rtc_base/socket_adapters.h
+    rtc_base/socket_address.cc
+    rtc_base/socket_address.h
+    rtc_base/socket_address_pair.cc
+    rtc_base/socket_address_pair.h
+    rtc_base/socket_factory.h
+    rtc_base/socket_server.h
+    rtc_base/ssl_adapter.cc
+    rtc_base/ssl_adapter.h
+    rtc_base/ssl_certificate.cc
+    rtc_base/ssl_certificate.h
+    rtc_base/ssl_fingerprint.cc
+    rtc_base/ssl_fingerprint.h
+    rtc_base/ssl_identity.cc
+    rtc_base/ssl_identity.h
+    rtc_base/ssl_stream_adapter.cc
+    rtc_base/ssl_stream_adapter.h
+    rtc_base/stream.cc
+    rtc_base/stream.h
+    rtc_base/time_utils.cc
+    rtc_base/time_utils.h
+    rtc_base/thread.cc
+    rtc_base/thread.h
+    rtc_base/thread_message.h
+    rtc_base/unique_id_generator.cc
+    rtc_base/unique_id_generator.h
+    rtc_base/bind.h
+    rtc_base/bit_buffer.cc
+    rtc_base/bit_buffer.h
+    rtc_base/buffer.h
+    rtc_base/buffer_queue.cc
+    rtc_base/buffer_queue.h
+    rtc_base/byte_buffer.cc
+    rtc_base/byte_buffer.h
+    rtc_base/byte_order.h
+    rtc_base/copy_on_write_buffer.cc
+    rtc_base/copy_on_write_buffer.h
+    rtc_base/event.cc
+    rtc_base/event.h
+    rtc_base/event_tracer.cc
+    rtc_base/event_tracer.h
+    rtc_base/location.cc
+    rtc_base/location.h
+    rtc_base/message_buffer_reader.h
+    rtc_base/numerics/histogram_percentile_counter.cc
+    rtc_base/numerics/histogram_percentile_counter.h
+    rtc_base/numerics/mod_ops.h
+    rtc_base/numerics/moving_max_counter.h
+    rtc_base/numerics/sample_counter.cc
+    rtc_base/numerics/sample_counter.h
+    rtc_base/one_time_event.h
+    rtc_base/race_checker.cc
+    rtc_base/race_checker.h
+    rtc_base/random.cc
+    rtc_base/random.h
+    rtc_base/rate_statistics.cc
+    rtc_base/rate_statistics.h
+    rtc_base/rate_tracker.cc
+    rtc_base/rate_tracker.h
+    rtc_base/swap_queue.h
+    rtc_base/timestamp_aligner.cc
+    rtc_base/timestamp_aligner.h
+    rtc_base/trace_event.h
+    rtc_base/zero_memory.cc
+    rtc_base/zero_memory.h
+    rtc_base/string_encode.cc
+    rtc_base/string_encode.h
+    rtc_base/string_to_number.cc
+    rtc_base/string_to_number.h
+    rtc_base/string_utils.cc
+    rtc_base/string_utils.h
+    rtc_base/weak_ptr.cc
+    rtc_base/weak_ptr.h
+    rtc_base/win32.cc
+    rtc_base/win32.h
+    rtc_base/win32_window.cc
+    rtc_base/win32_window.h
+    rtc_base/strings/string_builder.cc
+    rtc_base/strings/string_builder.h
+    rtc_base/experiments/experimental_screenshare_settings.cc
+    rtc_base/experiments/experimental_screenshare_settings.h
+    rtc_base/experiments/alr_experiment.cc
+    rtc_base/experiments/balanced_degradation_settings.cc
+    rtc_base/experiments/cpu_speed_experiment.cc
+    rtc_base/experiments/field_trial_list.cc
+    rtc_base/experiments/field_trial_parser.cc
+    rtc_base/experiments/field_trial_units.cc
+    rtc_base/experiments/jitter_upper_bound_experiment.cc
+    rtc_base/experiments/keyframe_interval_settings.cc
+    rtc_base/experiments/min_video_bitrate_experiment.cc
+    rtc_base/experiments/normalize_simulcast_size_experiment.cc
+    rtc_base/experiments/quality_rampup_experiment.cc
+    rtc_base/experiments/quality_scaler_settings.cc
+    rtc_base/experiments/quality_scaling_experiment.cc
+    rtc_base/experiments/rate_control_settings.cc
+    rtc_base/experiments/rtt_mult_experiment.cc
+    rtc_base/experiments/stable_target_rate_experiment.cc
+    rtc_base/experiments/struct_parameters_parser.cc
+    rtc_base/numerics/event_based_exponential_moving_average.cc
+    rtc_base/numerics/event_rate_counter.cc
+    rtc_base/numerics/exp_filter.cc
+    rtc_base/numerics/histogram_percentile_counter.cc
+    rtc_base/numerics/moving_average.cc
+    rtc_base/numerics/sample_counter.cc
+    rtc_base/numerics/sample_stats.cc
+    rtc_base/numerics/samples_stats_counter.cc
+    rtc_base/strings/audio_format_to_string.cc
+    rtc_base/strings/string_builder.cc
+    rtc_base/synchronization/rw_lock_posix.cc
+    rtc_base/synchronization/rw_lock_posix.h
+    rtc_base/synchronization/rw_lock_win.cc
+    rtc_base/synchronization/rw_lock_win.h
+    rtc_base/synchronization/rw_lock_wrapper.cc
+    rtc_base/synchronization/rw_lock_wrapper.h
+    rtc_base/synchronization/sequence_checker.cc
+    rtc_base/synchronization/sequence_checker.h
+    rtc_base/synchronization/yield_policy.cc
+    rtc_base/synchronization/yield_policy.h
+    rtc_base/system/file_wrapper.cc
+    # rtc_base/system/thread_registry.cc
+    # rtc_base/system/warn_current_thread_is_deadlocked.cc
+    rtc_base/system/cocoa_threading.h
+    rtc_base/system/cocoa_threading.mm
+    rtc_base/system/gcd_helpers.h
+    rtc_base/system/gcd_helpers.m
+    rtc_base/task_queue.cc
+    rtc_base/task_queue_gcd.cc
+    rtc_base/task_queue_gcd.h
+    rtc_base/task_queue_libevent.cc
+    rtc_base/task_queue_libevent.h
+    rtc_base/task_queue_win.cc
+    rtc_base/task_queue_win.h
+    rtc_base/ifaddrs_converter.cc
+    rtc_base/ifaddrs_converter.h
+    rtc_base/mac_ifaddrs_converter.cc
+    rtc_base/task_utils/repeating_task.cc
+    rtc_base/task_utils/repeating_task.h
+    rtc_base/third_party/base64/base64.cc
+    rtc_base/third_party/sigslot/sigslot.cc
+    rtc_base/time/timestamp_extrapolator.cc
+    api/audio/audio_frame.cc
+    api/audio/channel_layout.cc
+    api/audio/echo_canceller3_config.cc
+    api/audio/echo_canceller3_factory.cc
+    api/audio_codecs/L16/audio_decoder_L16.cc
+    api/audio_codecs/L16/audio_encoder_L16.cc
+    api/audio_codecs/audio_codec_pair_id.cc
+    api/audio_codecs/audio_decoder.cc
+    api/audio_codecs/audio_encoder.cc
+    api/audio_codecs/audio_format.cc
+    api/audio_codecs/builtin_audio_decoder_factory.cc
+    api/audio_codecs/builtin_audio_encoder_factory.cc
+    api/audio_codecs/g711/audio_decoder_g711.cc
+    api/audio_codecs/g711/audio_encoder_g711.cc
+    api/audio_codecs/g722/audio_decoder_g722.cc
+    api/audio_codecs/g722/audio_encoder_g722.cc
+    api/audio_codecs/ilbc/audio_decoder_ilbc.cc
+    api/audio_codecs/ilbc/audio_encoder_ilbc.cc
+    api/audio_codecs/isac/audio_decoder_isac_fix.cc
+    api/audio_codecs/isac/audio_decoder_isac_float.cc
+    api/audio_codecs/isac/audio_encoder_isac_fix.cc
+    api/audio_codecs/isac/audio_encoder_isac_float.cc
+    api/audio_codecs/opus/audio_decoder_multi_channel_opus.cc
+    api/audio_codecs/opus/audio_decoder_opus.cc
+    api/audio_codecs/opus/audio_encoder_multi_channel_opus.cc
+    api/audio_codecs/opus/audio_encoder_multi_channel_opus_config.cc
+    api/audio_codecs/opus/audio_encoder_opus.cc
+    api/audio_codecs/opus/audio_encoder_opus_config.cc
+    api/audio_codecs/opus_audio_decoder_factory.cc
+    api/audio_codecs/opus_audio_encoder_factory.cc
+    api/audio_options.cc
+    api/call/transport.cc
+    api/candidate.cc
+    api/create_peerconnection_factory.cc
+    api/crypto/crypto_options.cc
+    api/data_channel_interface.cc
+    api/dtls_transport_interface.cc
+    api/ice_transport_factory.cc
+    api/jsep.cc
+    api/jsep_ice_candidate.cc
+    api/media_stream_interface.cc
+    api/media_types.cc
+    api/neteq/custom_neteq_factory.cc
+    api/neteq/default_neteq_controller_factory.cc
+    api/neteq/neteq.cc
+    api/neteq/tick_timer.cc
+    api/peer_connection_interface.cc
+    api/proxy.cc
+    api/rtc_error.cc
+    api/rtc_event_log/rtc_event.cc
+    api/rtc_event_log/rtc_event_log.cc
+    api/rtc_event_log/rtc_event_log_factory.cc
+    api/rtc_event_log_output_file.cc
+    api/rtp_headers.cc
+    api/rtp_packet_info.cc
+    api/rtp_parameters.cc
+    api/rtp_receiver_interface.cc
+    api/rtp_sender_interface.cc
+    api/rtp_transceiver_interface.cc
+    api/sctp_transport_interface.cc
+    api/stats_types.cc
+    api/task_queue/default_task_queue_factory.h
+    api/task_queue/default_task_queue_factory_gcd.cc
+    api/task_queue/default_task_queue_factory_libevent.cc
+    api/task_queue/default_task_queue_factory_win.cc
+    api/task_queue/task_queue_base.cc
+    api/transport/bitrate_settings.cc
+    api/transport/field_trial_based_config.cc
+    api/transport/goog_cc_factory.cc
+    api/transport/network_types.cc
+    api/transport/stun.cc
+    api/transport/rtp/dependency_descriptor.h
+    api/transport/rtp/rtp_source.h
+    api/transport/media/media_transport_config.cc
+    api/transport/media/media_transport_config.h
+    api/transport/media/media_transport_interface.cc
+    api/transport/media/media_transport_interface.h
+    call/adaptation/encoder_settings.cc
+    call/adaptation/encoder_settings.h
+    call/adaptation/new_resource_adaptation_processor_poc.cc
+    call/adaptation/new_resource_adaptation_processor_poc.h
+    call/adaptation/resource.cc
+    call/adaptation/resource.h
+    call/adaptation/resource_adaptation_processor_interface.cc
+    call/adaptation/resource_adaptation_processor_interface.h
+    call/adaptation/resource_consumer.cc
+    call/adaptation/resource_consumer.h
+    call/adaptation/resource_consumer_configuration.cc
+    call/adaptation/resource_consumer_configuration.h
+    call/adaptation/video_source_restrictions.cc
+    call/adaptation/video_source_restrictions.h
+    audio/voip/audio_egress.cc
+    audio/voip/audio_egress.h
+    api/units/data_rate.cc
+    api/units/data_size.cc
+    api/units/frequency.cc
+    api/units/time_delta.cc
+    api/units/timestamp.cc
+    api/video/builtin_video_bitrate_allocator_factory.cc
+    api/video/color_space.cc
+    api/video/encoded_frame.cc
+    api/video/encoded_image.cc
+    api/video/hdr_metadata.cc
+    api/video/i010_buffer.cc
+    api/video/i420_buffer.cc
+    api/video/video_bitrate_allocation.cc
+    api/video/video_bitrate_allocator.cc
+    api/video/video_content_type.cc
+    api/video/video_frame.cc
+    api/video/video_frame_buffer.cc
+    api/video/video_source_interface.cc
+    api/video/video_stream_decoder_create.cc
+    api/video/video_stream_encoder_create.cc
+    api/video/video_timing.cc
+    api/video/video_stream_encoder_interface.h
+    api/video/video_stream_encoder_observer.cc
+    api/video/video_stream_encoder_observer.h
+    api/video/video_stream_encoder_settings.h
+    api/video_codecs/builtin_video_decoder_factory.cc
+    api/video_codecs/builtin_video_encoder_factory.cc
+    api/video_codecs/sdp_video_format.cc
+    api/video_codecs/video_codec.cc
+    api/video_codecs/video_decoder.cc
+    api/video_codecs/video_decoder_factory.cc
+    api/video_codecs/video_decoder_software_fallback_wrapper.cc
+    api/video_codecs/video_encoder.cc
+    api/video_codecs/video_encoder_config.cc
+    api/video_codecs/video_encoder_software_fallback_wrapper.cc
+    api/video_codecs/vp8_frame_config.cc
+    api/video_codecs/vp8_temporal_layers.cc
+    api/video_codecs/vp8_temporal_layers_factory.cc
+    pc/channel.cc
+    pc/channel.h
+    pc/channel_interface.h
+    pc/channel_manager.cc
+    pc/channel_manager.h
+    pc/composite_data_channel_transport.cc
+    pc/composite_data_channel_transport.h
+    pc/composite_rtp_transport.cc
+    pc/composite_rtp_transport.h
+    pc/datagram_rtp_transport.cc
+    pc/datagram_rtp_transport.h
+    pc/dtls_srtp_transport.cc
+    pc/dtls_srtp_transport.h
+    pc/dtls_transport.cc
+    pc/dtls_transport.h
+    pc/external_hmac.cc
+    pc/external_hmac.h
+    pc/ice_transport.cc
+    pc/ice_transport.h
+    pc/jsep_ice_candidate.cc
+    pc/jsep_transport.cc
+    pc/jsep_transport.h
+    pc/jsep_transport_controller.cc
+    pc/jsep_transport_controller.h
+    pc/media_protocol_names.cc
+    pc/media_protocol_names.h
+    pc/media_session.cc
+    pc/media_session.h
+    pc/rtcp_mux_filter.cc
+    pc/rtcp_mux_filter.h
+    pc/rtp_media_utils.cc
+    pc/rtp_media_utils.h
+    pc/rtp_sender.cc
+    pc/rtp_sender.h
+    pc/rtp_transport.cc
+    pc/rtp_transport.h
+    pc/rtp_transport_internal.h
+    pc/sctp_data_channel_transport.cc
+    pc/sctp_data_channel_transport.h
+    pc/sctp_transport.cc
+    pc/sctp_transport.h
+    pc/sctp_utils.cc
+    pc/sctp_utils.h
+    pc/session_description.cc
+    pc/session_description.h
+    pc/simulcast_description.cc
+    pc/simulcast_description.h
+    pc/srtp_filter.cc
+    pc/srtp_filter.h
+    pc/srtp_session.cc
+    pc/srtp_session.h
+    pc/srtp_transport.cc
+    pc/srtp_transport.h
+    pc/transport_stats.cc
+    pc/transport_stats.h
+    pc/video_track_source.cc
+    pc/video_track_source.h
+    pc/webrtc_sdp.cc
+    pc/webrtc_sdp.h
+    pc/used_ids.h
+    pc/audio_rtp_receiver.cc
+    pc/audio_rtp_receiver.h
+    pc/audio_track.cc
+    pc/audio_track.h
+    pc/data_channel.cc
+    pc/data_channel.h
+    pc/data_channel_controller.cc
+    pc/data_channel_controller.h
+    pc/dtmf_sender.cc
+    pc/dtmf_sender.h
+    pc/ice_server_parsing.cc
+    pc/ice_server_parsing.h
+    pc/jitter_buffer_delay.cc
+    pc/jitter_buffer_delay.h
+    pc/jitter_buffer_delay_interface.h
+    pc/jitter_buffer_delay_proxy.h
+    pc/jsep_ice_candidate.cc
+    pc/jsep_session_description.cc
+    pc/local_audio_source.cc
+    pc/local_audio_source.h
+    pc/media_stream.cc
+    pc/media_stream.h
+    pc/media_stream_observer.cc
+    pc/media_stream_observer.h
+    pc/media_stream_track.h
+    pc/peer_connection.cc
+    pc/peer_connection.h
+    pc/peer_connection_factory.cc
+    pc/peer_connection_factory.h
+    pc/peer_connection_internal.h
+    pc/remote_audio_source.cc
+    pc/remote_audio_source.h
+    pc/rtc_stats_collector.cc
+    pc/rtc_stats_collector.h
+    pc/rtc_stats_traversal.cc
+    pc/rtc_stats_traversal.h
+    pc/rtp_parameters_conversion.cc
+    pc/rtp_parameters_conversion.h
+    pc/rtp_receiver.cc
+    pc/rtp_receiver.h
+    pc/rtp_sender.cc
+    pc/rtp_sender.h
+    pc/rtp_transceiver.cc
+    pc/rtp_transceiver.h
+    pc/sdp_serializer.cc
+    pc/sdp_serializer.h
+    pc/sdp_utils.cc
+    pc/sdp_utils.h
+    pc/stats_collector.cc
+    pc/stats_collector.h
+    pc/stream_collection.h
+    pc/track_media_info_map.cc
+    pc/track_media_info_map.h
+    pc/video_rtp_receiver.cc
+    pc/video_rtp_receiver.h
+    pc/video_rtp_track_source.cc
+    pc/video_rtp_track_source.h
+    pc/video_track.cc
+    pc/video_track.h
+    pc/video_track_source.cc
+    pc/video_track_source.h
+    pc/webrtc_sdp.cc
+    pc/webrtc_sdp.h
+    pc/webrtc_session_description_factory.cc
+    pc/webrtc_session_description_factory.h
+    media/base/adapted_video_track_source.cc
+    media/base/codec.cc
+    media/base/h264_profile_level_id.cc
+    media/base/media_channel.cc
+    media/base/media_constants.cc
+    media/base/media_engine.cc
+    media/base/rid_description.cc
+    media/base/rtp_data_engine.cc
+    media/base/rtp_utils.cc
+    media/base/sdp_fmtp_utils.cc
+    media/base/stream_params.cc
+    media/base/turn_utils.cc
+    media/base/video_adapter.cc
+    media/base/video_broadcaster.cc
+    media/base/video_common.cc
+    media/base/video_source_base.cc
+    media/base/vp9_profile.cc
+    media/engine/adm_helpers.cc
+    media/engine/constants.cc
+    media/engine/encoder_simulcast_proxy.cc
+    media/engine/internal_decoder_factory.cc
+    media/engine/internal_encoder_factory.cc
+    media/engine/multiplex_codec_factory.cc
+    media/engine/payload_type_mapper.cc
+    media/engine/simulcast.cc
+    media/engine/simulcast_encoder_adapter.cc
+    media/engine/unhandled_packets_buffer.cc
+    media/engine/webrtc_media_engine.cc
+    media/engine/webrtc_media_engine_defaults.cc
+    media/engine/webrtc_video_engine.cc
+    media/engine/webrtc_voice_engine.cc
+    media/sctp/noop.cc
+    media/sctp/sctp_transport.cc
+    system_wrappers/source/clock.cc
+    system_wrappers/source/cpu_features.cc
+    system_wrappers/source/cpu_info.cc
+    system_wrappers/source/field_trial.cc
+    system_wrappers/source/metrics.cc
+    system_wrappers/source/rtp_to_ntp_estimator.cc
+    system_wrappers/source/sleep.cc
+    modules/audio_coding/acm2/acm_receiver.cc
+    modules/audio_coding/acm2/acm_remixing.cc
+    modules/audio_coding/acm2/acm_resampler.cc
+    modules/audio_coding/acm2/audio_coding_module.cc
+    modules/audio_coding/acm2/call_statistics.cc
+    modules/audio_coding/audio_network_adaptor/audio_network_adaptor_config.cc
+    modules/audio_coding/audio_network_adaptor/audio_network_adaptor_impl.cc
+    modules/audio_coding/audio_network_adaptor/bitrate_controller.cc
+    modules/audio_coding/audio_network_adaptor/channel_controller.cc
+    modules/audio_coding/audio_network_adaptor/controller.cc
+    modules/audio_coding/audio_network_adaptor/controller_manager.cc
+    modules/audio_coding/audio_network_adaptor/debug_dump_writer.cc
+    modules/audio_coding/audio_network_adaptor/dtx_controller.cc
+    modules/audio_coding/audio_network_adaptor/event_log_writer.cc
+    modules/audio_coding/audio_network_adaptor/fec_controller_plr_based.cc
+    modules/audio_coding/audio_network_adaptor/frame_length_controller.cc
+    modules/audio_coding/codecs/cng/audio_encoder_cng.cc
+    modules/audio_coding/codecs/cng/webrtc_cng.cc
+    modules/audio_coding/codecs/g711/g711_interface.c
+    modules/audio_coding/codecs/g711/audio_decoder_pcm.cc
+    modules/audio_coding/codecs/g711/audio_encoder_pcm.cc
+    modules/audio_coding/codecs/g722/audio_decoder_g722.cc
+    modules/audio_coding/codecs/g722/audio_encoder_g722.cc
+    modules/audio_coding/codecs/g722/g722_interface.c
+    modules/audio_coding/codecs/pcm16b/pcm16b.c
+    modules/third_party/g711/g711.c
+    modules/third_party/g722/g722_decode.c
+    modules/third_party/g722/g722_encode.c
+    modules/third_party/fft/fft.c
+    modules/third_party/portaudio/pa_ringbuffer.c
+    modules/audio_coding/codecs/ilbc/audio_decoder_ilbc.cc
+    modules/audio_coding/codecs/ilbc/audio_encoder_ilbc.cc
+    modules/audio_coding/codecs/isac/empty.cc
+    modules/audio_coding/codecs/isac/fix/source/audio_decoder_isacfix.cc
+    modules/audio_coding/codecs/isac/fix/source/audio_encoder_isacfix.cc
+    modules/audio_coding/codecs/isac/fix/source/arith_routines.c
+    modules/audio_coding/codecs/isac/fix/source/arith_routines_hist.c
+    modules/audio_coding/codecs/isac/fix/source/arith_routines_logist.c
+    modules/audio_coding/codecs/isac/fix/source/bandwidth_estimator.c
+    modules/audio_coding/codecs/isac/fix/source/decode.c
+    modules/audio_coding/codecs/isac/fix/source/decode_bwe.c
+    modules/audio_coding/codecs/isac/fix/source/decode_plc.c
+    modules/audio_coding/codecs/isac/fix/source/encode.c
+    modules/audio_coding/codecs/isac/fix/source/entropy_coding.c
+    modules/audio_coding/codecs/isac/fix/source/entropy_coding_neon.c
+    modules/audio_coding/codecs/isac/fix/source/filterbanks_neon.c
+    modules/audio_coding/codecs/isac/fix/source/filters_neon.c
+    modules/audio_coding/codecs/isac/fix/source/fft.c
+    modules/audio_coding/codecs/isac/fix/source/filterbank_tables.c
+    modules/audio_coding/codecs/isac/fix/source/filterbanks.c
+    modules/audio_coding/codecs/isac/fix/source/filters.c
+    modules/audio_coding/codecs/isac/fix/source/initialize.c
+    modules/audio_coding/codecs/isac/fix/source/isacfix.c
+    modules/audio_coding/codecs/isac/fix/source/lattice.c
+    modules/audio_coding/codecs/isac/fix/source/lattice_c.c
+    modules/audio_coding/codecs/isac/fix/source/lattice_neon.c
+    modules/audio_coding/codecs/isac/fix/source/lpc_masking_model.c
+    modules/audio_coding/codecs/isac/fix/source/lpc_tables.c
+    modules/audio_coding/codecs/isac/fix/source/pitch_estimator.c
+    modules/audio_coding/codecs/isac/fix/source/pitch_estimator_c.c
+    modules/audio_coding/codecs/isac/fix/source/pitch_filter.c
+    modules/audio_coding/codecs/isac/fix/source/pitch_filter_c.c
+    modules/audio_coding/codecs/isac/fix/source/pitch_gain_tables.c
+    modules/audio_coding/codecs/isac/fix/source/pitch_lag_tables.c
+    modules/audio_coding/codecs/isac/fix/source/spectrum_ar_model_tables.c
+    modules/audio_coding/codecs/isac/fix/source/transform.c
+    modules/audio_coding/codecs/isac/fix/source/transform_neon.c
+    modules/audio_coding/codecs/isac/fix/source/transform_tables.c
+    modules/audio_coding/codecs/isac/main/source/audio_decoder_isac.cc
+    modules/audio_coding/codecs/isac/main/source/audio_encoder_isac.cc
+    modules/audio_coding/codecs/isac/main/source/arith_routines.c
+    modules/audio_coding/codecs/isac/main/source/arith_routines_hist.c
+    modules/audio_coding/codecs/isac/main/source/arith_routines_logist.c
+    modules/audio_coding/codecs/isac/main/source/bandwidth_estimator.c
+    modules/audio_coding/codecs/isac/main/source/crc.c
+    modules/audio_coding/codecs/isac/main/source/decode.c
+    modules/audio_coding/codecs/isac/main/source/decode_bwe.c
+    modules/audio_coding/codecs/isac/main/source/encode.c
+    modules/audio_coding/codecs/isac/main/source/encode_lpc_swb.c
+    modules/audio_coding/codecs/isac/main/source/entropy_coding.c
+    modules/audio_coding/codecs/isac/main/source/filter_functions.c
+    modules/audio_coding/codecs/isac/main/source/filterbanks.c
+    modules/audio_coding/codecs/isac/main/source/intialize.c
+    modules/audio_coding/codecs/isac/main/source/isac.c
+    modules/audio_coding/codecs/isac/main/source/isac_vad.c
+    modules/audio_coding/codecs/isac/main/source/lattice.c
+    modules/audio_coding/codecs/isac/main/source/lpc_analysis.c
+    modules/audio_coding/codecs/isac/main/source/lpc_gain_swb_tables.c
+    modules/audio_coding/codecs/isac/main/source/lpc_shape_swb12_tables.c
+    modules/audio_coding/codecs/isac/main/source/lpc_shape_swb16_tables.c
+    modules/audio_coding/codecs/isac/main/source/lpc_tables.c
+    modules/audio_coding/codecs/isac/main/source/pitch_estimator.c
+    modules/audio_coding/codecs/isac/main/source/pitch_filter.c
+    modules/audio_coding/codecs/isac/main/source/pitch_gain_tables.c
+    modules/audio_coding/codecs/isac/main/source/pitch_lag_tables.c
+    modules/audio_coding/codecs/isac/main/source/spectrum_ar_model_tables.c
+    modules/audio_coding/codecs/isac/main/source/transform.c
+    modules/audio_coding/codecs/isac/main/util/utility.c
+    modules/audio_coding/codecs/legacy_encoded_audio_frame.cc
+    modules/audio_coding/codecs/opus/audio_coder_opus_common.cc
+    modules/audio_coding/codecs/opus/audio_decoder_multi_channel_opus_impl.cc
+    modules/audio_coding/codecs/opus/audio_decoder_opus.cc
+    modules/audio_coding/codecs/opus/audio_encoder_multi_channel_opus_impl.cc
+    modules/audio_coding/codecs/opus/audio_encoder_opus.cc
+    modules/audio_coding/codecs/opus/opus_interface.cc
+    modules/audio_coding/codecs/opus/test/audio_ring_buffer.cc
+    modules/audio_coding/codecs/opus/test/blocker.cc
+    modules/audio_coding/codecs/opus/test/lapped_transform.cc
+    modules/audio_coding/codecs/pcm16b/audio_decoder_pcm16b.cc
+    modules/audio_coding/codecs/pcm16b/audio_encoder_pcm16b.cc
+    modules/audio_coding/codecs/pcm16b/pcm16b_common.cc
+    modules/audio_coding/codecs/red/audio_encoder_copy_red.cc
+    modules/audio_coding/codecs/ilbc/abs_quant.c
+    modules/audio_coding/codecs/ilbc/abs_quant_loop.c
+    modules/audio_coding/codecs/ilbc/augmented_cb_corr.c
+    modules/audio_coding/codecs/ilbc/bw_expand.c
+    modules/audio_coding/codecs/ilbc/cb_construct.c
+    modules/audio_coding/codecs/ilbc/cb_mem_energy.c
+    modules/audio_coding/codecs/ilbc/cb_mem_energy_augmentation.c
+    modules/audio_coding/codecs/ilbc/cb_mem_energy_calc.c
+    modules/audio_coding/codecs/ilbc/cb_search.c
+    modules/audio_coding/codecs/ilbc/cb_search_core.c
+    modules/audio_coding/codecs/ilbc/cb_update_best_index.c
+    modules/audio_coding/codecs/ilbc/chebyshev.c
+    modules/audio_coding/codecs/ilbc/comp_corr.c
+    modules/audio_coding/codecs/ilbc/constants.c
+    modules/audio_coding/codecs/ilbc/create_augmented_vec.c
+    modules/audio_coding/codecs/ilbc/decode.c
+    modules/audio_coding/codecs/ilbc/decode_residual.c
+    modules/audio_coding/codecs/ilbc/decoder_interpolate_lsf.c
+    modules/audio_coding/codecs/ilbc/do_plc.c
+    modules/audio_coding/codecs/ilbc/encode.c
+    modules/audio_coding/codecs/ilbc/energy_inverse.c
+    modules/audio_coding/codecs/ilbc/enh_upsample.c
+    modules/audio_coding/codecs/ilbc/enhancer.c
+    modules/audio_coding/codecs/ilbc/enhancer_interface.c
+    modules/audio_coding/codecs/ilbc/filtered_cb_vecs.c
+    modules/audio_coding/codecs/ilbc/frame_classify.c
+    modules/audio_coding/codecs/ilbc/gain_dequant.c
+    modules/audio_coding/codecs/ilbc/gain_quant.c
+    modules/audio_coding/codecs/ilbc/get_cd_vec.c
+    modules/audio_coding/codecs/ilbc/get_lsp_poly.c
+    modules/audio_coding/codecs/ilbc/get_sync_seq.c
+    modules/audio_coding/codecs/ilbc/hp_input.c
+    modules/audio_coding/codecs/ilbc/hp_output.c
+    modules/audio_coding/codecs/ilbc/ilbc.c
+    modules/audio_coding/codecs/ilbc/index_conv_dec.c
+    modules/audio_coding/codecs/ilbc/index_conv_enc.c
+    modules/audio_coding/codecs/ilbc/init_decode.c
+    modules/audio_coding/codecs/ilbc/init_encode.c
+    modules/audio_coding/codecs/ilbc/interpolate.c
+    modules/audio_coding/codecs/ilbc/interpolate_samples.c
+    modules/audio_coding/codecs/ilbc/lpc_encode.c
+    modules/audio_coding/codecs/ilbc/lsf_check.c
+    modules/audio_coding/codecs/ilbc/lsf_interpolate_to_poly_dec.c
+    modules/audio_coding/codecs/ilbc/lsf_interpolate_to_poly_enc.c
+    modules/audio_coding/codecs/ilbc/lsf_to_lsp.c
+    modules/audio_coding/codecs/ilbc/lsf_to_poly.c
+    modules/audio_coding/codecs/ilbc/lsp_to_lsf.c
+    modules/audio_coding/codecs/ilbc/my_corr.c
+    modules/audio_coding/codecs/ilbc/nearest_neighbor.c
+    modules/audio_coding/codecs/ilbc/pack_bits.c
+    modules/audio_coding/codecs/ilbc/poly_to_lsf.c
+    modules/audio_coding/codecs/ilbc/poly_to_lsp.c
+    modules/audio_coding/codecs/ilbc/refiner.c
+    modules/audio_coding/codecs/ilbc/simple_interpolate_lsf.c
+    modules/audio_coding/codecs/ilbc/simple_lpc_analysis.c
+    modules/audio_coding/codecs/ilbc/simple_lsf_dequant.c
+    modules/audio_coding/codecs/ilbc/simple_lsf_quant.c
+    modules/audio_coding/codecs/ilbc/smooth.c
+    modules/audio_coding/codecs/ilbc/smooth_out_data.c
+    modules/audio_coding/codecs/ilbc/sort_sq.c
+    modules/audio_coding/codecs/ilbc/split_vq.c
+    modules/audio_coding/codecs/ilbc/state_construct.c
+    modules/audio_coding/codecs/ilbc/state_search.c
+    modules/audio_coding/codecs/ilbc/swap_bytes.c
+    modules/audio_coding/codecs/ilbc/unpack_bits.c
+    modules/audio_coding/codecs/ilbc/vq3.c
+    modules/audio_coding/codecs/ilbc/vq4.c
+    modules/audio_coding/codecs/ilbc/window32_w32.c
+    modules/audio_coding/codecs/ilbc/xcorr_coef.c
+    modules/audio_coding/neteq/accelerate.cc
+    modules/audio_coding/neteq/audio_multi_vector.cc
+    modules/audio_coding/neteq/audio_vector.cc
+    modules/audio_coding/neteq/background_noise.cc
+    modules/audio_coding/neteq/buffer_level_filter.cc
+    modules/audio_coding/neteq/comfort_noise.cc
+    modules/audio_coding/neteq/cross_correlation.cc
+    modules/audio_coding/neteq/decision_logic.cc
+    modules/audio_coding/neteq/decoder_database.cc
+    modules/audio_coding/neteq/default_neteq_factory.cc
+    modules/audio_coding/neteq/delay_manager.cc
+    modules/audio_coding/neteq/dsp_helper.cc
+    modules/audio_coding/neteq/dtmf_buffer.cc
+    modules/audio_coding/neteq/dtmf_tone_generator.cc
+    modules/audio_coding/neteq/expand.cc
+    modules/audio_coding/neteq/expand_uma_logger.cc
+    modules/audio_coding/neteq/histogram.cc
+    modules/audio_coding/neteq/merge.cc
+    modules/audio_coding/neteq/nack_tracker.cc
+    modules/audio_coding/neteq/neteq_impl.cc
+    modules/audio_coding/neteq/normal.cc
+    modules/audio_coding/neteq/packet.cc
+    modules/audio_coding/neteq/packet_buffer.cc
+    modules/audio_coding/neteq/post_decode_vad.cc
+    modules/audio_coding/neteq/preemptive_expand.cc
+    modules/audio_coding/neteq/random_vector.cc
+    modules/audio_coding/neteq/red_payload_splitter.cc
+    modules/audio_coding/neteq/statistics_calculator.cc
+    modules/audio_coding/neteq/sync_buffer.cc
+    modules/audio_coding/neteq/time_stretch.cc
+    modules/audio_coding/neteq/timestamp_scaler.cc
+    # modules/audio_device/android/audio_manager.cc
+    # modules/audio_device/android/audio_record_jni.cc
+    # modules/audio_device/android/audio_track_jni.cc
+    # modules/audio_device/android/build_info.cc
+    # modules/audio_device/android/opensles_common.cc
+    # modules/audio_device/android/opensles_player.cc
+    # modules/audio_device/android/opensles_recorder.cc
+    modules/audio_device/linux/alsasymboltable_linux.cc
+    modules/audio_device/linux/alsasymboltable_linux.h
+    modules/audio_device/linux/audio_device_alsa_linux.cc
+    modules/audio_device/linux/audio_device_alsa_linux.h
+    modules/audio_device/linux/audio_mixer_manager_alsa_linux.cc
+    modules/audio_device/linux/audio_mixer_manager_alsa_linux.h
+    modules/audio_device/linux/latebindingsymboltable_linux.cc
+    modules/audio_device/linux/latebindingsymboltable_linux.h
+    modules/audio_device/linux/audio_device_pulse_linux.cc
+    modules/audio_device/linux/audio_device_pulse_linux.h
+    modules/audio_device/linux/audio_mixer_manager_pulse_linux.cc
+    modules/audio_device/linux/audio_mixer_manager_pulse_linux.h
+    modules/audio_device/linux/pulseaudiosymboltable_linux.cc
+    modules/audio_device/linux/pulseaudiosymboltable_linux.h
+    modules/audio_device/mac/audio_device_mac.cc
+    modules/audio_device/mac/audio_device_mac.h
+    modules/audio_device/mac/audio_mixer_manager_mac.cc
+    modules/audio_device/mac/audio_mixer_manager_mac.h
+    modules/audio_device/win/audio_device_core_win.cc
+    modules/audio_device/win/audio_device_core_win.h
+    modules/audio_device/audio_device_buffer.cc
+    modules/audio_device/audio_device_data_observer.cc
+    modules/audio_device/audio_device_generic.cc
+    modules/audio_device/audio_device_impl.cc
+    modules/audio_device/audio_device_name.cc
+    modules/audio_device/dummy/audio_device_dummy.cc
+    modules/audio_device/dummy/file_audio_device.cc
+    modules/audio_device/dummy/file_audio_device_factory.cc
+    modules/audio_device/fine_audio_buffer.cc
+    modules/audio_device/include/test_audio_device.cc
+    modules/audio_mixer/audio_frame_manipulator.cc
+    modules/audio_mixer/audio_mixer_impl.cc
+    modules/audio_mixer/default_output_rate_calculator.cc
+    modules/audio_mixer/frame_combiner.cc
+    modules/audio_mixer/gain_change_calculator.cc
+    modules/audio_mixer/sine_wave_generator.cc
+    modules/audio_processing/aec3/adaptive_fir_filter.cc
+    modules/audio_processing/aec3/adaptive_fir_filter_erl.cc
+    modules/audio_processing/aec3/aec3_common.cc
+    modules/audio_processing/aec3/aec3_fft.cc
+    modules/audio_processing/aec3/aec_state.cc
+    modules/audio_processing/aec3/alignment_mixer.cc
+    modules/audio_processing/aec3/api_call_jitter_metrics.cc
+    modules/audio_processing/aec3/block_buffer.cc
+    modules/audio_processing/aec3/block_delay_buffer.cc
+    modules/audio_processing/aec3/block_framer.cc
+    modules/audio_processing/aec3/block_processor.cc
+    modules/audio_processing/aec3/block_processor_metrics.cc
+    modules/audio_processing/aec3/clockdrift_detector.cc
+    modules/audio_processing/aec3/coarse_filter_update_gain.cc
+    modules/audio_processing/aec3/comfort_noise_generator.cc
+    modules/audio_processing/aec3/decimator.cc
+    modules/audio_processing/aec3/dominant_nearend_detector.cc
+    modules/audio_processing/aec3/downsampled_render_buffer.cc
+    modules/audio_processing/aec3/echo_audibility.cc
+    modules/audio_processing/aec3/echo_canceller3.cc
+    modules/audio_processing/aec3/echo_path_delay_estimator.cc
+    modules/audio_processing/aec3/echo_path_variability.cc
+    modules/audio_processing/aec3/echo_remover.cc
+    modules/audio_processing/aec3/echo_remover_metrics.cc
+    modules/audio_processing/aec3/erl_estimator.cc
+    modules/audio_processing/aec3/erle_estimator.cc
+    modules/audio_processing/aec3/fft_buffer.cc
+    modules/audio_processing/aec3/filter_analyzer.cc
+    modules/audio_processing/aec3/frame_blocker.cc
+    modules/audio_processing/aec3/fullband_erle_estimator.cc
+    modules/audio_processing/aec3/matched_filter.cc
+    modules/audio_processing/aec3/matched_filter_lag_aggregator.cc
+    modules/audio_processing/aec3/moving_average.cc
+    modules/audio_processing/aec3/refined_filter_update_gain.cc
+    modules/audio_processing/aec3/render_buffer.cc
+    modules/audio_processing/aec3/render_delay_buffer.cc
+    modules/audio_processing/aec3/render_delay_controller.cc
+    modules/audio_processing/aec3/render_delay_controller_metrics.cc
+    modules/audio_processing/aec3/render_signal_analyzer.cc
+    modules/audio_processing/aec3/residual_echo_estimator.cc
+    modules/audio_processing/aec3/reverb_decay_estimator.cc
+    modules/audio_processing/aec3/reverb_frequency_response.cc
+    modules/audio_processing/aec3/reverb_model.cc
+    modules/audio_processing/aec3/reverb_model_estimator.cc
+    modules/audio_processing/aec3/signal_dependent_erle_estimator.cc
+    modules/audio_processing/aec3/spectrum_buffer.cc
+    modules/audio_processing/aec3/stationarity_estimator.cc
+    modules/audio_processing/aec3/subband_erle_estimator.cc
+    modules/audio_processing/aec3/subband_nearend_detector.cc
+    modules/audio_processing/aec3/subtractor.cc
+    modules/audio_processing/aec3/subtractor_output.cc
+    modules/audio_processing/aec3/subtractor_output_analyzer.cc
+    modules/audio_processing/aec3/suppression_filter.cc
+    modules/audio_processing/aec3/suppression_gain.cc
+    modules/audio_processing/aec_dump/null_aec_dump_factory.cc
+    modules/audio_processing/aecm/aecm_core.cc
+    modules/audio_processing/aecm/aecm_core_c.cc
+    modules/audio_processing/aecm/aecm_core_neon.cc
+    modules/audio_processing/aecm/echo_control_mobile.cc
+    modules/audio_processing/agc/agc.cc
+    modules/audio_processing/agc/agc_manager_direct.cc
+    modules/audio_processing/agc/legacy/analog_agc.cc
+    modules/audio_processing/agc/legacy/digital_agc.cc
+    modules/audio_processing/agc/loudness_histogram.cc
+    modules/audio_processing/agc/utility.cc
+    modules/audio_processing/agc2/adaptive_agc.cc
+    modules/audio_processing/agc2/adaptive_digital_gain_applier.cc
+    modules/audio_processing/agc2/adaptive_mode_level_estimator.cc
+    modules/audio_processing/agc2/adaptive_mode_level_estimator_agc.cc
+    modules/audio_processing/agc2/agc2_common.cc
+    modules/audio_processing/agc2/agc2_testing_common.cc
+    modules/audio_processing/agc2/biquad_filter.cc
+    modules/audio_processing/agc2/compute_interpolated_gain_curve.cc
+    modules/audio_processing/agc2/down_sampler.cc
+    modules/audio_processing/agc2/fixed_digital_level_estimator.cc
+    modules/audio_processing/agc2/gain_applier.cc
+    modules/audio_processing/agc2/interpolated_gain_curve.cc
+    modules/audio_processing/agc2/limiter.cc
+    modules/audio_processing/agc2/limiter_db_gain_curve.cc
+    modules/audio_processing/agc2/noise_level_estimator.cc
+    modules/audio_processing/agc2/noise_spectrum_estimator.cc
+    modules/audio_processing/agc2/saturation_protector.cc
+    modules/audio_processing/agc2/signal_classifier.cc
+    modules/audio_processing/agc2/vad_with_level.cc
+    modules/audio_processing/agc2/vector_float_frame.cc
+    modules/audio_processing/agc2/rnn_vad/auto_correlation.cc
+    modules/audio_processing/agc2/rnn_vad/common.cc
+    modules/audio_processing/agc2/rnn_vad/features_extraction.cc
+    modules/audio_processing/agc2/rnn_vad/lp_residual.cc
+    modules/audio_processing/agc2/rnn_vad/pitch_search.cc
+    modules/audio_processing/agc2/rnn_vad/pitch_search_internal.cc
+    modules/audio_processing/agc2/rnn_vad/rnn.cc
+    modules/audio_processing/agc2/rnn_vad/spectral_features.cc
+    modules/audio_processing/agc2/rnn_vad/spectral_features_internal.cc
+    modules/audio_processing/audio_processing_impl.cc
+    modules/audio_processing/audio_processing_impl.h
+    modules/audio_processing/common.h
+    modules/audio_processing/echo_control_mobile_impl.cc
+    modules/audio_processing/echo_control_mobile_impl.h
+    modules/audio_processing/echo_detector/circular_buffer.cc
+    modules/audio_processing/echo_detector/circular_buffer.h
+    modules/audio_processing/echo_detector/mean_variance_estimator.cc
+    modules/audio_processing/echo_detector/mean_variance_estimator.h
+    modules/audio_processing/echo_detector/moving_max.cc
+    modules/audio_processing/echo_detector/moving_max.h
+    modules/audio_processing/echo_detector/normalized_covariance_estimator.cc
+    modules/audio_processing/echo_detector/normalized_covariance_estimator.h
+    modules/audio_processing/logging/apm_data_dumper.cc
+    modules/audio_processing/logging/apm_data_dumper.h
+    modules/audio_processing/audio_buffer.cc
+    modules/audio_processing/audio_buffer.h
+    modules/audio_processing/splitting_filter.cc
+    modules/audio_processing/splitting_filter.h
+    modules/audio_processing/three_band_filter_bank.cc
+    modules/audio_processing/three_band_filter_bank.h
+    modules/audio_processing/gain_control_impl.cc
+    modules/audio_processing/gain_control_impl.h
+    modules/audio_processing/gain_controller2.cc
+    modules/audio_processing/gain_controller2.h
+    modules/audio_processing/high_pass_filter.cc
+    modules/audio_processing/high_pass_filter.h
+    modules/audio_processing/include/aec_dump.cc
+    modules/audio_processing/include/aec_dump.h
+    modules/audio_processing/include/audio_frame_proxies.cc
+    modules/audio_processing/include/audio_frame_proxies.h
+    modules/audio_processing/include/audio_processing.cc
+    modules/audio_processing/include/audio_processing.h
+    modules/audio_processing/include/audio_processing_statistics.cc
+    modules/audio_processing/include/audio_processing_statistics.h
+    modules/audio_processing/include/config.cc
+    modules/audio_processing/include/config.h
+    modules/audio_processing/level_estimator.cc
+    modules/audio_processing/level_estimator.h
+    modules/audio_processing/render_queue_item_verifier.h
+    modules/audio_processing/residual_echo_detector.cc
+    modules/audio_processing/residual_echo_detector.h
+    modules/audio_processing/typing_detection.cc
+    modules/audio_processing/typing_detection.h
+    modules/audio_processing/voice_detection.cc
+    modules/audio_processing/voice_detection.h
+    modules/audio_processing/ns/fast_math.cc
+    modules/audio_processing/ns/histograms.cc
+    modules/audio_processing/ns/noise_estimator.cc
+    modules/audio_processing/ns/noise_suppressor.cc
+    modules/audio_processing/ns/ns_fft.cc
+    modules/audio_processing/ns/prior_signal_model.cc
+    modules/audio_processing/ns/prior_signal_model_estimator.cc
+    modules/audio_processing/ns/quantile_noise_estimator.cc
+    modules/audio_processing/ns/signal_model.cc
+    modules/audio_processing/ns/signal_model_estimator.cc
+    modules/audio_processing/ns/speech_probability_estimator.cc
+    modules/audio_processing/ns/suppression_params.cc
+    modules/audio_processing/ns/wiener_filter.cc
+    modules/audio_processing/residual_echo_detector.cc
+    modules/audio_processing/rms_level.cc
+    modules/audio_processing/splitting_filter.cc
+    modules/audio_processing/three_band_filter_bank.cc
+    modules/audio_processing/transient/file_utils.cc
+    modules/audio_processing/transient/moving_moments.cc
+    modules/audio_processing/transient/transient_detector.cc
+    modules/audio_processing/transient/transient_suppressor_impl.cc
+    modules/audio_processing/transient/transient_suppressor_creator.cc
+    modules/audio_processing/transient/transient_suppressor_creator.h
+    modules/audio_processing/transient/wpd_node.cc
+    modules/audio_processing/transient/wpd_tree.cc
+    modules/audio_processing/utility/cascaded_biquad_filter.cc
+    modules/audio_processing/utility/delay_estimator.cc
+    modules/audio_processing/utility/delay_estimator_wrapper.cc
+    modules/audio_processing/utility/pffft_wrapper.cc
+    modules/audio_processing/utility/ooura_fft.cc
+    modules/audio_processing/utility/ooura_fft.h
+    modules/audio_processing/utility/ooura_fft_tables_common.h
+    modules/audio_processing/utility/ooura_fft_neon.cc
+    modules/audio_processing/utility/ooura_fft_sse2.cc
+    modules/audio_processing/utility/ooura_fft_tables_neon_sse2.h
+    modules/audio_processing/vad/gmm.cc
+    modules/audio_processing/vad/pitch_based_vad.cc
+    modules/audio_processing/vad/pitch_internal.cc
+    modules/audio_processing/vad/pole_zero_filter.cc
+    modules/audio_processing/vad/standalone_vad.cc
+    modules/audio_processing/vad/vad_audio_proc.cc
+    modules/audio_processing/vad/vad_circular_buffer.cc
+    modules/audio_processing/vad/voice_activity_detector.cc
+    modules/congestion_controller/pcc/bitrate_controller.cc
+    modules/congestion_controller/pcc/monitor_interval.cc
+    modules/congestion_controller/pcc/pcc_factory.cc
+    modules/congestion_controller/pcc/pcc_network_controller.cc
+    modules/congestion_controller/pcc/rtt_tracker.cc
+    modules/congestion_controller/pcc/utility_function.cc
+    modules/congestion_controller/receive_side_congestion_controller.cc
+    modules/congestion_controller/rtp/control_handler.cc
+    modules/congestion_controller/rtp/transport_feedback_adapter.cc
+    modules/congestion_controller/rtp/transport_feedback_demuxer.cc
+    modules/congestion_controller/goog_cc/acknowledged_bitrate_estimator.cc
+    modules/congestion_controller/goog_cc/acknowledged_bitrate_estimator_interface.cc
+    modules/congestion_controller/goog_cc/alr_detector.cc
+    modules/congestion_controller/goog_cc/bitrate_estimator.cc
+    modules/congestion_controller/goog_cc/congestion_window_pushback_controller.cc
+    modules/congestion_controller/goog_cc/delay_based_bwe.cc
+    modules/congestion_controller/goog_cc/goog_cc_network_control.cc
+    modules/congestion_controller/goog_cc/link_capacity_estimator.cc
+    modules/congestion_controller/goog_cc/loss_based_bandwidth_estimation.cc
+    modules/congestion_controller/goog_cc/probe_bitrate_estimator.cc
+    modules/congestion_controller/goog_cc/probe_controller.cc
+    modules/congestion_controller/goog_cc/robust_throughput_estimator.cc
+    modules/congestion_controller/goog_cc/send_side_bandwidth_estimation.cc
+    modules/congestion_controller/goog_cc/trendline_estimator.cc
+    modules/include/module_common_types.cc
+    modules/pacing/bitrate_prober.cc
+    modules/pacing/interval_budget.cc
+    modules/pacing/paced_sender.cc
+    modules/pacing/pacing_controller.cc
+    modules/pacing/packet_router.cc
+    modules/pacing/round_robin_packet_queue.cc
+    modules/pacing/task_queue_paced_sender.cc
+    modules/rtp_rtcp/include/flexfec_receiver.h
+    modules/rtp_rtcp/include/flexfec_sender.h
+    modules/rtp_rtcp/include/receive_statistics.h
+    modules/rtp_rtcp/include/remote_ntp_time_estimator.h
+    modules/rtp_rtcp/include/rtp_rtcp.h
+    modules/rtp_rtcp/include/ulpfec_receiver.h
+    modules/rtp_rtcp/source/absolute_capture_time_receiver.cc
+    modules/rtp_rtcp/source/absolute_capture_time_receiver.h
+    modules/rtp_rtcp/source/absolute_capture_time_sender.cc
+    modules/rtp_rtcp/source/absolute_capture_time_sender.h
+    modules/rtp_rtcp/source/create_video_rtp_depacketizer.cc
+    modules/rtp_rtcp/source/create_video_rtp_depacketizer.h
+    modules/rtp_rtcp/source/dtmf_queue.cc
+    modules/rtp_rtcp/source/dtmf_queue.h
+    modules/rtp_rtcp/source/fec_private_tables_bursty.cc
+    modules/rtp_rtcp/source/fec_private_tables_bursty.h
+    modules/rtp_rtcp/source/fec_private_tables_random.cc
+    modules/rtp_rtcp/source/fec_private_tables_random.h
+    modules/rtp_rtcp/source/flexfec_header_reader_writer.cc
+    modules/rtp_rtcp/source/flexfec_header_reader_writer.h
+    modules/rtp_rtcp/source/flexfec_receiver.cc
+    modules/rtp_rtcp/source/flexfec_sender.cc
+    modules/rtp_rtcp/source/forward_error_correction.cc
+    modules/rtp_rtcp/source/forward_error_correction.h
+    modules/rtp_rtcp/source/forward_error_correction_internal.cc
+    modules/rtp_rtcp/source/forward_error_correction_internal.h
+    modules/rtp_rtcp/source/packet_loss_stats.cc
+    modules/rtp_rtcp/source/packet_loss_stats.h
+    modules/rtp_rtcp/source/receive_statistics_impl.cc
+    modules/rtp_rtcp/source/receive_statistics_impl.h
+    modules/rtp_rtcp/source/remote_ntp_time_estimator.cc
+    modules/rtp_rtcp/source/rtcp_nack_stats.cc
+    modules/rtp_rtcp/source/rtcp_nack_stats.h
+    modules/rtp_rtcp/source/rtcp_receiver.cc
+    modules/rtp_rtcp/source/rtcp_receiver.h
+    modules/rtp_rtcp/source/rtcp_sender.cc
+    modules/rtp_rtcp/source/rtcp_sender.h
+    modules/rtp_rtcp/source/rtp_descriptor_authentication.cc
+    modules/rtp_rtcp/source/rtp_descriptor_authentication.h
+    modules/rtp_rtcp/source/rtp_format.cc
+    modules/rtp_rtcp/source/rtp_format.h
+    modules/rtp_rtcp/source/rtp_format_h264.cc
+    modules/rtp_rtcp/source/rtp_format_h264.h
+    modules/rtp_rtcp/source/rtp_format_h265.cc
+    modules/rtp_rtcp/source/rtp_format_h265.h
+    modules/rtp_rtcp/source/video_rtp_depacketizer_h265.cc
+    modules/rtp_rtcp/source/video_rtp_depacketizer_h265.h
+    modules/rtp_rtcp/source/rtp_format_video_generic.cc
+    modules/rtp_rtcp/source/rtp_format_video_generic.h
+    modules/rtp_rtcp/source/rtp_format_vp8.cc
+    modules/rtp_rtcp/source/rtp_format_vp8.h
+    modules/rtp_rtcp/source/rtp_format_vp9.cc
+    modules/rtp_rtcp/source/rtp_format_vp9.h
+    modules/rtp_rtcp/source/rtp_header_extension_size.cc
+    modules/rtp_rtcp/source/rtp_header_extension_size.h
+    modules/rtp_rtcp/source/rtp_packet_history.cc
+    modules/rtp_rtcp/source/rtp_packet_history.h
+    modules/rtp_rtcp/source/rtp_packetizer_av1.cc
+    modules/rtp_rtcp/source/rtp_packetizer_av1.h
+    modules/rtp_rtcp/source/rtp_rtcp_config.h
+    modules/rtp_rtcp/source/rtp_rtcp_impl.cc
+    modules/rtp_rtcp/source/rtp_rtcp_impl.h
+    modules/rtp_rtcp/source/rtp_sender.cc
+    modules/rtp_rtcp/source/rtp_sender.h
+    modules/rtp_rtcp/source/rtp_sender_audio.cc
+    modules/rtp_rtcp/source/rtp_sender_audio.h
+    modules/rtp_rtcp/source/rtp_sender_egress.cc
+    modules/rtp_rtcp/source/rtp_sender_egress.h
+    modules/rtp_rtcp/source/rtp_sender_video.cc
+    modules/rtp_rtcp/source/rtp_sender_video.h
+    modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.cc
+    modules/rtp_rtcp/source/rtp_sender_video_frame_transformer_delegate.h
+    modules/rtp_rtcp/source/rtp_sequence_number_map.cc
+    modules/rtp_rtcp/source/rtp_sequence_number_map.h
+    modules/rtp_rtcp/source/rtp_utility.cc
+    modules/rtp_rtcp/source/rtp_utility.h
+    modules/rtp_rtcp/source/source_tracker.cc
+    modules/rtp_rtcp/source/source_tracker.h
+    modules/rtp_rtcp/source/time_util.cc
+    modules/rtp_rtcp/source/time_util.h
+    modules/rtp_rtcp/source/tmmbr_help.cc
+    modules/rtp_rtcp/source/tmmbr_help.h
+    modules/rtp_rtcp/source/transformable_encoded_frame.cc
+    modules/rtp_rtcp/source/transformable_encoded_frame.h
+    modules/rtp_rtcp/source/ulpfec_generator.cc
+    modules/rtp_rtcp/source/ulpfec_generator.h
+    modules/rtp_rtcp/source/ulpfec_header_reader_writer.cc
+    modules/rtp_rtcp/source/ulpfec_header_reader_writer.h
+    modules/rtp_rtcp/source/ulpfec_receiver_impl.cc
+    modules/rtp_rtcp/source/ulpfec_receiver_impl.h
+    modules/rtp_rtcp/source/video_fec_generator.h
+    modules/rtp_rtcp/source/video_rtp_depacketizer.cc
+    modules/rtp_rtcp/source/video_rtp_depacketizer.h
+    modules/rtp_rtcp/source/video_rtp_depacketizer_av1.cc
+    modules/rtp_rtcp/source/video_rtp_depacketizer_av1.h
+    modules/rtp_rtcp/source/video_rtp_depacketizer_generic.cc
+    modules/rtp_rtcp/source/video_rtp_depacketizer_generic.h
+    modules/rtp_rtcp/source/video_rtp_depacketizer_h264.cc
+    modules/rtp_rtcp/source/video_rtp_depacketizer_h264.h
+    modules/rtp_rtcp/source/video_rtp_depacketizer_raw.cc
+    modules/rtp_rtcp/source/video_rtp_depacketizer_raw.h
+    modules/rtp_rtcp/source/video_rtp_depacketizer_vp8.cc
+    modules/rtp_rtcp/source/video_rtp_depacketizer_vp8.h
+    modules/rtp_rtcp/source/video_rtp_depacketizer_vp9.cc
+    modules/rtp_rtcp/source/video_rtp_depacketizer_vp9.h
+    modules/rtp_rtcp/include/report_block_data.cc
+    modules/rtp_rtcp/include/rtp_rtcp_defines.cc
+    modules/rtp_rtcp/source/rtcp_packet.cc
+    modules/rtp_rtcp/source/rtcp_packet/app.cc
+    modules/rtp_rtcp/source/rtcp_packet/bye.cc
+    modules/rtp_rtcp/source/rtcp_packet/common_header.cc
+    modules/rtp_rtcp/source/rtcp_packet/compound_packet.cc
+    modules/rtp_rtcp/source/rtcp_packet/dlrr.cc
+    modules/rtp_rtcp/source/rtcp_packet/extended_jitter_report.cc
+    modules/rtp_rtcp/source/rtcp_packet/extended_reports.cc
+    modules/rtp_rtcp/source/rtcp_packet/fir.cc
+    modules/rtp_rtcp/source/rtcp_packet/loss_notification.cc
+    modules/rtp_rtcp/source/rtcp_packet/nack.cc
+    modules/rtp_rtcp/source/rtcp_packet/pli.cc
+    modules/rtp_rtcp/source/rtcp_packet/psfb.cc
+    modules/rtp_rtcp/source/rtcp_packet/rapid_resync_request.cc
+    modules/rtp_rtcp/source/rtcp_packet/receiver_report.cc
+    modules/rtp_rtcp/source/rtcp_packet/remb.cc
+    modules/rtp_rtcp/source/rtcp_packet/remote_estimate.cc
+    modules/rtp_rtcp/source/rtcp_packet/report_block.cc
+    modules/rtp_rtcp/source/rtcp_packet/rrtr.cc
+    modules/rtp_rtcp/source/rtcp_packet/rtpfb.cc
+    modules/rtp_rtcp/source/rtcp_packet/sdes.cc
+    modules/rtp_rtcp/source/rtcp_packet/sender_report.cc
+    modules/rtp_rtcp/source/rtcp_packet/target_bitrate.cc
+    modules/rtp_rtcp/source/rtcp_packet/tmmb_item.cc
+    modules/rtp_rtcp/source/rtcp_packet/tmmbn.cc
+    modules/rtp_rtcp/source/rtcp_packet/tmmbr.cc
+    modules/rtp_rtcp/source/rtcp_packet/transport_feedback.cc
+    modules/rtp_rtcp/source/rtp_dependency_descriptor_extension.cc
+    modules/rtp_rtcp/source/rtp_dependency_descriptor_reader.cc
+    modules/rtp_rtcp/source/rtp_dependency_descriptor_reader.h
+    modules/rtp_rtcp/source/rtp_dependency_descriptor_writer.cc
+    modules/rtp_rtcp/source/rtp_dependency_descriptor_writer.h
+    modules/rtp_rtcp/source/rtp_generic_frame_descriptor.cc
+    modules/rtp_rtcp/source/rtp_generic_frame_descriptor_extension.cc
+    modules/rtp_rtcp/source/rtp_header_extension_map.cc
+    modules/rtp_rtcp/source/rtp_header_extensions.cc
+    modules/rtp_rtcp/source/rtp_packet.cc
+    modules/rtp_rtcp/source/rtp_packet_received.cc
+    modules/rtp_rtcp/source/rtp_packet_to_send.cc
+    modules/rtp_rtcp/source/rtp_video_header.cc
+    modules/rtp_rtcp/source/rtp_video_header.h
+    # modules/utility/source/helpers_android.cc
+    # modules/utility/source/jvm_android.cc
+    modules/utility/source/process_thread_impl.cc
+    modules/video_capture/device_info_impl.cc
+    modules/video_capture/linux/device_info_linux.cc
+    modules/video_capture/linux/video_capture_linux.cc
+    modules/video_capture/windows/device_info_ds.cc
+    modules/video_capture/windows/device_info_ds.h
+    modules/video_capture/windows/help_functions_ds.cc
+    modules/video_capture/windows/help_functions_ds.h
+    modules/video_capture/windows/sink_filter_ds.cc
+    modules/video_capture/windows/sink_filter_ds.h
+    modules/video_capture/windows/video_capture_ds.cc
+    modules/video_capture/windows/video_capture_ds.h
+    modules/video_capture/windows/video_capture_factory_windows.cc
+    modules/video_capture/video_capture_factory.cc
+    modules/video_capture/video_capture_impl.cc
+    modules/video_coding/codec_timer.cc
+    modules/video_coding/codec_timer.h
+    modules/video_coding/decoder_database.cc
+    modules/video_coding/decoder_database.h
+    modules/video_coding/fec_controller_default.cc
+    modules/video_coding/fec_controller_default.h
+    modules/video_coding/fec_rate_table.h
+    modules/video_coding/frame_buffer2.cc
+    modules/video_coding/frame_buffer2.h
+    modules/video_coding/frame_object.cc
+    modules/video_coding/frame_object.h
+    modules/video_coding/generic_decoder.cc
+    modules/video_coding/generic_decoder.h
+    modules/video_coding/h264_sprop_parameter_sets.cc
+    modules/video_coding/h264_sprop_parameter_sets.h
+    modules/video_coding/h264_sps_pps_tracker.cc
+    modules/video_coding/h264_sps_pps_tracker.h
+    modules/video_coding/h265_vps_sps_pps_tracker.cc
+    modules/video_coding/h265_vps_sps_pps_tracker.h
+    modules/video_coding/include/video_codec_initializer.h
+    modules/video_coding/include/video_codec_interface.cc
+    modules/video_coding/include/video_codec_interface.h
+    modules/video_coding/include/video_coding_defines.h
+    modules/video_coding/include/video_error_codes.h
+    modules/video_coding/video_coding_defines.cc
+    modules/video_coding/inter_frame_delay.cc
+    modules/video_coding/inter_frame_delay.h
+    modules/video_coding/internal_defines.h
+    modules/video_coding/jitter_estimator.cc
+    modules/video_coding/jitter_estimator.h
+    modules/video_coding/loss_notification_controller.cc
+    modules/video_coding/loss_notification_controller.h
+    modules/video_coding/media_opt_util.cc
+    modules/video_coding/media_opt_util.h
+    modules/video_coding/histogram.cc
+    modules/video_coding/histogram.h
+    modules/video_coding/nack_module.cc
+    modules/video_coding/nack_module.h
+    modules/video_coding/encoded_frame.cc
+    modules/video_coding/encoded_frame.h
+    modules/video_coding/packet_buffer.cc
+    modules/video_coding/packet_buffer.h
+    modules/video_coding/rtp_frame_reference_finder.cc
+    modules/video_coding/rtp_frame_reference_finder.h
+    modules/video_coding/rtt_filter.cc
+    modules/video_coding/rtt_filter.h
+    modules/video_coding/timestamp_map.cc
+    modules/video_coding/timestamp_map.h
+    modules/video_coding/timing.cc
+    modules/video_coding/timing.h
+    modules/video_coding/unique_timestamp_counter.cc
+    modules/video_coding/unique_timestamp_counter.h
+    modules/video_coding/video_codec_initializer.cc
+    modules/video_coding/video_receiver2.cc
+    modules/video_coding/video_receiver2.h
+    modules/video_coding/frame_dependencies_calculator.cc
+    modules/video_coding/frame_dependencies_calculator.h
+    modules/video_coding/codecs/av1/libaom_av1_decoder_absent.cc
+    modules/video_coding/codecs/av1/libaom_av1_encoder_absent.cc
+    modules/video_coding/codecs/h264/h264.cc
+    modules/video_coding/codecs/h264/h264_color_space.cc
+    modules/video_coding/codecs/h264/h264_decoder_impl.cc
+    modules/video_coding/codecs/h264/h264_encoder_impl.cc
+    modules/video_coding/codecs/multiplex/augmented_video_frame_buffer.cc
+    modules/video_coding/codecs/multiplex/multiplex_decoder_adapter.cc
+    modules/video_coding/codecs/multiplex/multiplex_encoded_image_packer.cc
+    modules/video_coding/codecs/multiplex/multiplex_encoder_adapter.cc
+    modules/video_coding/utility/decoded_frames_history.cc
+    modules/video_coding/utility/frame_dropper.cc
+    modules/video_coding/utility/framerate_controller.cc
+    modules/video_coding/utility/ivf_file_reader.cc
+    modules/video_coding/utility/ivf_file_writer.cc
+    modules/video_coding/utility/quality_scaler.cc
+    modules/video_coding/utility/simulcast_rate_allocator.cc
+    modules/video_coding/utility/simulcast_utility.cc
+    modules/video_coding/utility/vp8_header_parser.cc
+    modules/video_coding/utility/vp9_uncompressed_header_parser.cc
+    modules/video_coding/codecs/vp8/default_temporal_layers.cc
+    modules/video_coding/codecs/vp8/libvpx_interface.cc
+    modules/video_coding/codecs/vp8/libvpx_vp8_decoder.cc
+    modules/video_coding/codecs/vp8/libvpx_vp8_encoder.cc
+    modules/video_coding/codecs/vp8/screenshare_layers.cc
+    modules/video_coding/codecs/vp8/temporal_layers_checker.cc
+    modules/video_coding/codecs/vp9/svc_config.cc
+    modules/video_coding/codecs/vp9/svc_rate_allocator.cc
+    modules/video_coding/codecs/vp9/vp9.cc
+    modules/video_coding/codecs/vp9/vp9_frame_buffer_pool.cc
+    modules/video_coding/codecs/vp9/vp9_impl.cc
+    modules/video_processing/util/denoiser_filter.cc
+    modules/video_processing/util/denoiser_filter_c.cc
+    modules/video_processing/util/denoiser_filter_neon.cc
+    modules/video_processing/util/denoiser_filter_sse2.cc
+    modules/video_processing/util/noise_estimation.cc
+    modules/video_processing/util/skin_detection.cc
+    modules/video_processing/video_denoiser.cc
+    call/adaptation/resource_adaptation_processor_interface.cc
+    call/adaptation/video_source_restrictions.cc
+    call/audio_receive_stream.cc
+    call/audio_send_stream.cc
+    call/audio_state.cc
+    call/bitrate_allocator.cc
+    call/call.cc
+    call/call_config.cc
+    call/call_factory.cc
+    call/degraded_call.cc
+    call/fake_network_pipe.cc
+    call/flexfec_receive_stream.cc
+    call/flexfec_receive_stream_impl.cc
+    call/receive_time_calculator.cc
+    call/rtp_bitrate_configurator.cc
+    call/rtp_config.cc
+    call/rtp_demuxer.cc
+    call/rtp_payload_params.cc
+    call/rtp_stream_receiver_controller.cc
+    call/rtp_transport_controller_send.cc
+    call/rtp_video_sender.cc
+    call/rtx_receive_stream.cc
+    call/simulated_network.cc
+    call/syncable.cc
+    call/video_receive_stream.cc
+    call/video_send_stream.cc
+    common_audio/audio_converter.cc
+    common_audio/audio_util.cc
+    common_audio/channel_buffer.cc
+    common_audio/fir_filter_factory.cc
+    common_audio/fir_filter_c.cc
+    common_audio/fir_filter_neon.cc
+    common_audio/fir_filter_neon.h
+    common_audio/fir_filter_sse.cc
+    common_audio/fir_filter_sse.h
+    common_audio/real_fourier.cc
+    common_audio/real_fourier_ooura.cc
+    common_audio/resampler/push_resampler.cc
+    common_audio/resampler/push_sinc_resampler.cc
+    common_audio/resampler/resampler.cc
+    common_audio/resampler/sinc_resampler_neon.cc
+    common_audio/resampler/sinc_resampler_sse.cc
+    common_audio/resampler/sinc_resampler.cc
+    common_audio/resampler/sinusoidal_linear_chirp_source.cc
+    common_audio/signal_processing/dot_product_with_scale.cc
+    common_audio/smoothing_filter.cc
+    common_audio/vad/vad.cc
+    common_audio/wav_file.cc
+    common_audio/wav_header.cc
+    common_audio/window_generator.cc
+    common_audio/ring_buffer.c
+    common_audio/signal_processing/auto_corr_to_refl_coef.c
+    common_audio/signal_processing/auto_correlation.c
+    common_audio/signal_processing/complex_fft.c
+    common_audio/signal_processing/complex_bit_reverse.c
+    common_audio/signal_processing/filter_ar_fast_q12.c
+    common_audio/signal_processing/copy_set_operations.c
+    common_audio/signal_processing/cross_correlation.c
+    common_audio/signal_processing/cross_correlation_neon.c
+    common_audio/signal_processing/division_operations.c
+    common_audio/signal_processing/downsample_fast.c
+    common_audio/signal_processing/downsample_fast_neon.c
+    common_audio/signal_processing/energy.c
+    common_audio/signal_processing/filter_ar.c
+    common_audio/signal_processing/filter_ma_fast_q12.c
+    common_audio/signal_processing/get_hanning_window.c
+    common_audio/signal_processing/get_scaling_square.c
+    common_audio/signal_processing/ilbc_specific_functions.c
+    common_audio/signal_processing/levinson_durbin.c
+    common_audio/signal_processing/lpc_to_refl_coef.c
+    common_audio/signal_processing/min_max_operations.c
+    common_audio/signal_processing/min_max_operations_neon.c
+    common_audio/signal_processing/randomization_functions.c
+    common_audio/signal_processing/real_fft.c
+    common_audio/signal_processing/refl_coef_to_lpc.c
+    common_audio/signal_processing/resample.c
+    common_audio/signal_processing/resample_48khz.c
+    common_audio/signal_processing/resample_by_2.c
+    common_audio/signal_processing/resample_by_2_internal.c
+    common_audio/signal_processing/resample_fractional.c
+    common_audio/signal_processing/spl_init.c
+    common_audio/signal_processing/spl_inl.c
+    common_audio/signal_processing/spl_sqrt.c
+    common_audio/signal_processing/splitting_filter.c
+    common_audio/signal_processing/sqrt_of_one_minus_x_squared.c
+    common_audio/signal_processing/vector_scaling_operations.c
+    common_audio/third_party/spl_sqrt_floor/spl_sqrt_floor.c
+    common_audio/third_party/fft4g/fft4g.cc
+    common_audio/third_party/fft4g/fft4g.h
+    common_audio/vad/vad_core.c
+    common_audio/vad/vad_filterbank.c
+    common_audio/vad/vad_gmm.c
+    common_audio/vad/vad_sp.c
+    common_audio/vad/webrtc_vad.c
+    common_video/bitrate_adjuster.cc
+    common_video/frame_rate_estimator.cc
+    common_video/frame_rate_estimator.h
+    common_video/h264/h264_bitstream_parser.cc
+    common_video/h264/h264_bitstream_parser.h
+    common_video/h264/h264_common.cc
+    common_video/h264/h264_common.h
+    common_video/h264/pps_parser.cc
+    common_video/h264/pps_parser.h
+    common_video/h264/prefix_parser.cc
+    common_video/h264/prefix_parser.h
+    common_video/h264/profile_level_id.h
+    common_video/h264/sps_parser.cc
+    common_video/h264/sps_parser.h
+    common_video/h264/sps_vui_rewriter.cc
+    common_video/h264/sps_vui_rewriter.h
+    common_video/i420_buffer_pool.cc
+    common_video/include/bitrate_adjuster.h
+    common_video/include/i420_buffer_pool.h
+    common_video/include/incoming_video_stream.h
+    common_video/include/quality_limitation_reason.h
+    common_video/include/video_frame.h
+    common_video/include/video_frame_buffer.h
+    common_video/incoming_video_stream.cc
+    common_video/libyuv/include/webrtc_libyuv.h
+    common_video/libyuv/webrtc_libyuv.cc
+    common_video/video_frame_buffer.cc
+    common_video/video_render_frames.cc
+    common_video/video_render_frames.h
+    common_video/h265/h265_bitstream_parser.cc
+    common_video/h265/h265_bitstream_parser.h
+    common_video/h265/h265_common.cc
+    common_video/h265/h265_common.h
+    common_video/h265/h265_pps_parser.cc
+    common_video/h265/h265_pps_parser.h
+    common_video/h265/h265_sps_parser.cc
+    common_video/h265/h265_sps_parser.h
+    common_video/h265/h265_vps_parser.cc
+    common_video/h265/h265_vps_parser.h
+    common_video/generic_frame_descriptor/generic_frame_info.cc
+    common_video/generic_frame_descriptor/generic_frame_info.h
+    p2p/base/async_stun_tcp_socket.cc
+    p2p/base/basic_async_resolver_factory.cc
+    p2p/base/basic_ice_controller.cc
+    p2p/base/basic_packet_socket_factory.cc
+    p2p/base/connection.cc
+    p2p/base/connection_info.cc
+    p2p/base/default_ice_transport_factory.cc
+    p2p/base/dtls_transport.cc
+    p2p/base/dtls_transport_internal.cc
+    p2p/base/ice_controller_interface.cc
+    p2p/base/ice_credentials_iterator.cc
+    p2p/base/ice_transport_internal.cc
+    p2p/base/mdns_message.cc
+    p2p/base/p2p_constants.cc
+    p2p/base/p2p_transport_channel.cc
+    p2p/base/packet_transport_internal.cc
+    p2p/base/port.cc
+    p2p/base/port_allocator.cc
+    p2p/base/port_interface.cc
+    p2p/base/pseudo_tcp.cc
+    p2p/base/regathering_controller.cc
+    p2p/base/stun_port.cc
+    p2p/base/stun_request.cc
+    p2p/base/stun_server.cc
+    p2p/base/tcp_port.cc
+    p2p/base/test_stun_server.cc
+    p2p/base/transport_description.cc
+    p2p/base/transport_description_factory.cc
+    p2p/base/turn_port.cc
+    p2p/base/turn_server.cc
+    p2p/client/basic_port_allocator.cc
+    p2p/client/turn_port_factory.cc
+    p2p/stunprober/stun_prober.cc
+    logging/rtc_event_log/encoder/blob_encoding.cc
+    logging/rtc_event_log/encoder/delta_encoding.cc
+    logging/rtc_event_log/encoder/rtc_event_log_encoder_common.cc
+    logging/rtc_event_log/encoder/rtc_event_log_encoder_legacy.cc
+    logging/rtc_event_log/encoder/rtc_event_log_encoder_new_format.cc
+    logging/rtc_event_log/encoder/var_int.cc
+    logging/rtc_event_log/events/rtc_event_alr_state.cc
+    logging/rtc_event_log/events/rtc_event_audio_network_adaptation.cc
+    logging/rtc_event_log/events/rtc_event_audio_playout.cc
+    logging/rtc_event_log/events/rtc_event_audio_receive_stream_config.cc
+    logging/rtc_event_log/events/rtc_event_audio_send_stream_config.cc
+    logging/rtc_event_log/events/rtc_event_bwe_update_delay_based.cc
+    logging/rtc_event_log/events/rtc_event_bwe_update_loss_based.cc
+    logging/rtc_event_log/events/rtc_event_dtls_transport_state.cc
+    logging/rtc_event_log/events/rtc_event_dtls_writable_state.cc
+    logging/rtc_event_log/events/rtc_event_generic_ack_received.cc
+    logging/rtc_event_log/events/rtc_event_generic_packet_received.cc
+    logging/rtc_event_log/events/rtc_event_generic_packet_sent.cc
+    logging/rtc_event_log/events/rtc_event_ice_candidate_pair.cc
+    logging/rtc_event_log/events/rtc_event_ice_candidate_pair_config.cc
+    logging/rtc_event_log/events/rtc_event_probe_cluster_created.cc
+    logging/rtc_event_log/events/rtc_event_probe_result_failure.cc
+    logging/rtc_event_log/events/rtc_event_probe_result_success.cc
+    logging/rtc_event_log/events/rtc_event_route_change.cc
+    logging/rtc_event_log/events/rtc_event_rtcp_packet_incoming.cc
+    logging/rtc_event_log/events/rtc_event_rtcp_packet_outgoing.cc
+    logging/rtc_event_log/events/rtc_event_rtp_packet_incoming.cc
+    logging/rtc_event_log/events/rtc_event_rtp_packet_outgoing.cc
+    logging/rtc_event_log/events/rtc_event_video_receive_stream_config.cc
+    logging/rtc_event_log/events/rtc_event_video_send_stream_config.cc
+    logging/rtc_event_log/fake_rtc_event_log.cc
+    logging/rtc_event_log/fake_rtc_event_log_factory.cc
+    logging/rtc_event_log/ice_logger.cc
+    logging/rtc_event_log/rtc_event_log_impl.cc
+    logging/rtc_event_log/rtc_stream_config.cc
+    video/adaptation/adaptation_counters.cc
+    video/adaptation/adaptation_counters.h
+    video/adaptation/encode_usage_resource.cc
+    video/adaptation/encode_usage_resource.h
+    video/adaptation/overuse_frame_detector.cc
+    video/adaptation/overuse_frame_detector.h
+    video/adaptation/quality_scaler_resource.cc
+    video/adaptation/quality_scaler_resource.h
+    video/adaptation/resource_adaptation_processor.cc
+    video/adaptation/resource_adaptation_processor.h
+    video/adaptation/video_stream_adapter.cc
+    video/adaptation/video_stream_adapter.h
+    video/buffered_frame_decryptor.cc
+    video/call_stats.cc
+    video/encoder_bitrate_adjuster.cc
+    video/encoder_overshoot_detector.cc
+    video/encoder_rtcp_feedback.cc
+    video/frame_dumping_decoder.cc
+    video/frame_encode_metadata_writer.cc
+    video/quality_limitation_reason_tracker.cc
+    video/quality_threshold.cc
+    video/receive_statistics_proxy.cc
+    video/report_block_stats.cc
+    video/rtp_streams_synchronizer.cc
+    video/rtp_video_stream_receiver.cc
+    video/rtp_video_stream_receiver_frame_transformer_delegate.cc
+    video/send_delay_stats.cc
+    video/send_statistics_proxy.cc
+    video/stats_counter.cc
+    video/stream_synchronization.cc
+    video/transport_adapter.cc
+    video/video_quality_observer.cc
+    video/video_receive_stream.cc
+    video/video_send_stream.cc
+    video/video_send_stream_impl.cc
+    video/video_source_sink_controller.cc
+    video/video_stream_decoder.cc
+    video/video_stream_decoder_impl.cc
+    video/video_stream_encoder.cc
+    audio/audio_level.cc
+    audio/audio_receive_stream.cc
+    audio/audio_send_stream.cc
+    audio/audio_state.cc
+    audio/audio_transport_impl.cc
+    audio/channel_receive.cc
+    audio/channel_receive_frame_transformer_delegate.cc
+    audio/channel_send.cc
+    audio/channel_send_frame_transformer_delegate.cc
+    audio/null_audio_poller.cc
+    audio/remix_resample.cc
+    audio/utility/audio_frame_operations.cc
+    audio/utility/channel_mixer.cc
+    audio/utility/channel_mixing_matrix.cc
+    audio/voip/audio_egress.cc
+    modules/remote_bitrate_estimator/aimd_rate_control.cc
+    modules/remote_bitrate_estimator/bwe_defines.cc
+    modules/remote_bitrate_estimator/inter_arrival.cc
+    modules/remote_bitrate_estimator/overuse_detector.cc
+    modules/remote_bitrate_estimator/overuse_estimator.cc
+    modules/remote_bitrate_estimator/remote_bitrate_estimator_abs_send_time.cc
+    modules/remote_bitrate_estimator/remote_bitrate_estimator_single_stream.cc
+    modules/remote_bitrate_estimator/test/bwe_test_logging.cc
+    modules/remote_bitrate_estimator/remote_estimator_proxy.cc
+    sdk/media_constraints.cc
+
+    # sdk/android/native_api/audio_device_module/audio_device_android.cc
+    # sdk/android/native_api/base/init.cc
+    # sdk/android/native_api/codecs/wrapper.cc
+    # sdk/android/native_api/jni/class_loader.cc
+    # sdk/android/native_api/jni/java_types.cc
+    # sdk/android/native_api/jni/jvm.cc
+    # sdk/android/native_api/peerconnection/peer_connection_factory.cc
+    # sdk/android/native_api/stacktrace/stacktrace.cc
+    # sdk/android/native_api/video/video_source.cc
+    # sdk/android/native_api/video/wrapper.cc
+    # sdk/android/native_api/network_monitor/network_monitor.cc
+    # sdk/android/src/jni/android_histogram.cc
+    # sdk/android/src/jni/android_metrics.cc
+    # sdk/android/src/jni/android_network_monitor.cc
+    # sdk/android/src/jni/android_video_track_source.cc
+    # sdk/android/src/jni/audio_device/audio_device_module.cc
+    # sdk/android/src/jni/audio_device/audio_record_jni.cc
+    # sdk/android/src/jni/audio_device/audio_track_jni.cc
+    # sdk/android/src/jni/audio_device/java_audio_device_module.cc
+    # sdk/android/src/jni/audio_device/opensles_common.cc
+    # sdk/android/src/jni/audio_device/opensles_player.cc
+    # sdk/android/src/jni/audio_device/opensles_recorder.cc
+    # sdk/android/src/jni/builtin_audio_decoder_factory_factory.cc
+    # sdk/android/src/jni/builtin_audio_encoder_factory_factory.cc
+    # sdk/android/src/jni/encoded_image.cc
+    # sdk/android/src/jni/h264_utils.cc
+    # sdk/android/src/jni/java_i420_buffer.cc
+    # sdk/android/src/jni/jni_common.cc
+    # sdk/android/src/jni/jni_generator_helper.cc
+    # sdk/android/src/jni/jni_helpers.cc
+    # sdk/android/src/jni/jvm.cc
+    # sdk/android/src/jni/logging/log_sink.cc
+    # sdk/android/src/jni/native_capturer_observer.cc
+    # sdk/android/src/jni/nv12_buffer.cc
+    # sdk/android/src/jni/nv21_buffer.cc
+    # sdk/android/src/jni/pc/audio.cc
+    # sdk/android/src/jni/pc/audio_track.cc
+    # sdk/android/src/jni/pc/call_session_file_rotating_log_sink.cc
+    # sdk/android/src/jni/pc/crypto_options.cc
+    # sdk/android/src/jni/pc/data_channel.cc
+    # sdk/android/src/jni/pc/dtmf_sender.cc
+    # sdk/android/src/jni/pc/ice_candidate.cc
+    # sdk/android/src/jni/pc/logging.cc
+    # sdk/android/src/jni/pc/media_constraints.cc
+    # sdk/android/src/jni/pc/media_source.cc
+    # sdk/android/src/jni/pc/media_stream.cc
+    # sdk/android/src/jni/pc/media_stream_track.cc
+    # sdk/android/src/jni/pc/owned_factory_and_threads.cc
+    # sdk/android/src/jni/pc/peer_connection.cc
+    # sdk/android/src/jni/pc/peer_connection_factory.cc
+    # sdk/android/src/jni/pc/rtc_certificate.cc
+    # sdk/android/src/jni/pc/rtc_stats_collector_callback_wrapper.cc
+    # sdk/android/src/jni/pc/rtp_parameters.cc
+    # sdk/android/src/jni/pc/rtp_receiver.cc
+    # sdk/android/src/jni/pc/rtp_sender.cc
+    # sdk/android/src/jni/pc/rtp_transceiver.cc
+    # sdk/android/src/jni/pc/sdp_observer.cc
+    # sdk/android/src/jni/pc/session_description.cc
+    # sdk/android/src/jni/pc/ssl_certificate_verifier_wrapper.cc
+    # sdk/android/src/jni/pc/stats_observer.cc
+    # sdk/android/src/jni/pc/turn_customizer.cc
+    # sdk/android/src/jni/pc/video.cc
+    # sdk/android/src/jni/scoped_java_ref_counted.cc
+    # sdk/android/src/jni/timestamp_aligner.cc
+    # sdk/android/src/jni/video_codec_info.cc
+    # sdk/android/src/jni/video_codec_status.cc
+    # sdk/android/src/jni/video_decoder_factory_wrapper.cc
+    # sdk/android/src/jni/video_decoder_fallback.cc
+    # sdk/android/src/jni/video_decoder_wrapper.cc
+    # sdk/android/src/jni/video_encoder_factory_wrapper.cc
+    # sdk/android/src/jni/video_encoder_fallback.cc
+    # sdk/android/src/jni/video_encoder_wrapper.cc
+    # sdk/android/src/jni/video_frame.cc
+    # sdk/android/src/jni/video_sink.cc
+    # sdk/android/src/jni/video_track.cc
+    # sdk/android/src/jni/vp8_codec.cc
+    # sdk/android/src/jni/vp9_codec.cc
+    # sdk/android/src/jni/wrapped_native_i420_buffer.cc
+    # sdk/android/src/jni/yuv_helper.cc
+
+    stats/rtc_stats_report.cc
+    stats/rtc_stats.cc
+    stats/rtcstats_objects.cc
+)
+
+if (NOT TG_OWT_USE_PROTOBUF)
+    remove_target_sources(tg_owt ${webrtc_loc}
+        logging/rtc_event_log/encoder/rtc_event_log_encoder_legacy.cc
+        logging/rtc_event_log/encoder/rtc_event_log_encoder_new_format.cc
+    )
+endif()
+
+if (NOT WIN32)
+    remove_target_sources(tg_owt ${webrtc_loc}
+        rtc_base/win32.cc
+        rtc_base/win32.h
+        rtc_base/win32_window.cc
+        rtc_base/win32_window.h
+        rtc_base/task_queue_win.cc
+        rtc_base/task_queue_win.h
+        api/task_queue/default_task_queue_factory_win.cc
+    )
+endif()
+
+if ((NOT is_x86) AND (NOT is_x64))
+    remove_target_sources(tg_owt ${webrtc_loc}
+        common_audio/fir_filter_sse.cc
+        common_audio/fir_filter_sse.h
+        common_audio/resampler/sinc_resampler_sse.cc
+        modules/audio_processing/utility/ooura_fft_sse2.cc
+        modules/video_processing/util/denoiser_filter_sse2.cc
+    )
+endif()
+
+if (arm_use_neon)
+    target_compile_definitions(tg_owt
+    PRIVATE
+        WEBRTC_HAS_NEON
+    )
+else()
+    remove_target_sources(tg_owt ${webrtc_loc}
+        common_audio/fir_filter_neon.cc
+        common_audio/fir_filter_neon.h
+        common_audio/resampler/sinc_resampler_neon.cc
+        common_audio/signal_processing/cross_correlation_neon.c
+        common_audio/signal_processing/downsample_fast_neon.c
+        common_audio/signal_processing/min_max_operations_neon.c
+        modules/audio_coding/codecs/isac/fix/source/entropy_coding_neon.c
+        modules/audio_coding/codecs/isac/fix/source/filterbanks_neon.c
+        modules/audio_coding/codecs/isac/fix/source/filters_neon.c
+        modules/audio_coding/codecs/isac/fix/source/lattice_neon.c
+        modules/audio_coding/codecs/isac/fix/source/transform_neon.c
+        modules/audio_processing/utility/ooura_fft_neon.cc
+        modules/video_processing/util/denoiser_filter_neon.cc
+        modules/audio_processing/aecm/aecm_core_neon.cc
+    )
+endif()
+
+if (APPLE)
+    remove_target_sources(tg_owt ${webrtc_loc}
+        rtc_base/socket.cc
+        rtc_base/socket.h
+        media/sctp/noop.cc
+        modules/audio_coding/codecs/isac/empty.cc
+        modules/remote_bitrate_estimator/test/bwe_test_logging.cc
+    )
+else()
+    remove_target_sources(tg_owt ${webrtc_loc}
+        rtc_base/task_queue_gcd.cc
+        rtc_base/task_queue_gcd.h
+        rtc_base/mac_ifaddrs_converter.cc
+        rtc_base/system/cocoa_threading.h
+        rtc_base/system/cocoa_threading.mm
+        rtc_base/system/gcd_helpers.h
+        rtc_base/system/gcd_helpers.m
+        modules/third_party/portaudio/pa_ringbuffer.c
+        api/task_queue/default_task_queue_factory_gcd.cc
+    )
+endif()
+
+if (WIN32 OR APPLE)
+    remove_target_sources(tg_owt ${webrtc_loc}
+        rtc_base/task_queue_libevent.cc
+        rtc_base/task_queue_libevent.h
+        api/task_queue/default_task_queue_factory_libevent.cc
+    )
+endif()
+
+if (WIN32)
+    remove_target_sources(tg_owt ${webrtc_loc}
+        rtc_base/ifaddrs_converter.cc
+    )
+else()
+endif()
+
+set(platform_export)
+if (NOT WIN32 AND NOT APPLE)
+    set(platform_export
+        libevent
+    )
+elseif (APPLE)
+    set(platform_export
+        libsdkmacos
+    )
+endif()
+
+set(vpx_export)
+if (is_x86 OR is_x64)
+    set(vpx_export
+        libvpx_mmx
+        libvpx_sse2
+        libvpx_ssse3
+        libvpx_sse4
+        libvpx_avx
+        libvpx_avx2
+    )
+endif()
+
+set(export_targets
+    tg_owt
+    libabsl
+    libopenh264
+    libpffft
+    librnnoise
+    libsrtp
+    libusrsctp
+    libvpx
+    ${vpx_export}
+    libwebrtcbuild
+    libyuv
+    ${platform_export}
+)
+
+export(
+    TARGETS ${export_targets}
+    NAMESPACE tg_owt::
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/tg_owtTargets.cmake"
+)
+
+configure_file(
+    "cmake/tg_owtConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/tg_owtConfig.cmake"
+    COPYONLY
+)
+
+target_include_directories(tg_owt
+PUBLIC
+    $<BUILD_INTERFACE:${webrtc_loc}>
+    $<INSTALL_INTERFACE:${webrtc_includedir}>
+)
+
+install(
+    TARGETS ${export_targets}
+    EXPORT tg_owtTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+)
+
+install(
+    DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/src/
+    DESTINATION ${webrtc_includedir}
+    FILES_MATCHING PATTERN "*.h"
+)
+
+install(
+    EXPORT tg_owtTargets
+    NAMESPACE tg_owt::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/tg_owt
+)
+
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/tg_owtConfig.cmake
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/tg_owt
+)
