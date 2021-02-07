@@ -17,6 +17,7 @@ public:
 
     void startCall(vector<RtcServer> servers, std::array<uint8_t, 256> authKey, bool isOutgoing, std::string logPath);
     void startGroupCall();
+    void stopGroupCall();
 
     void setIsMuted(bool isMuted);
     void setAudioOutputDevice(std::string id);

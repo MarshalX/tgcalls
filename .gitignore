@@ -6,6 +6,9 @@ dist/
 build/
 cmake-build-debug/
 
+__pycache__/
+*.egg-info/
+
 *.so
 
 *.session
@@ -13,5 +16,11 @@ cmake-build-debug/
 
 *.env
 
-tgcalls.txt
-tgcalls-stat.txt
+# test stuff
+
+TODO/
+
+*.mp3
+*.raw
+*.flac
+*.txt

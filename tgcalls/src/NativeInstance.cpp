@@ -21,6 +21,10 @@ void NativeInstance::startGroupCall() {
     instanceHolder = std::move(holder);
 };
 
+void NativeInstance::stopGroupCall() {
+    instanceHolder.groupNativeInstance->stop();
+}
+
 void NativeInstance::setEmitJoinPayloadCallback(const std::function<void(const tgcalls::GroupJoinPayload &payload)> &f) {
     emitJoinPayloadCallback = f;
 }

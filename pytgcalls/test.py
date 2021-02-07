@@ -485,6 +485,9 @@ class GroupCall:
         self.native_instance.setJoinResponsePayload(payload)
 
     def emit_join_payload_callback(self, payload):
+        if self.group_call is None:
+            return
+
         self.my_ssrc = payload.ssrc
 
         fingerprints = [{
@@ -518,14 +521,21 @@ async def main(client1, client2, make_out, make_inc):
     while not client2.is_connected:
         await asyncio.sleep(1)
 
-    group_call = GroupCall(client2)
-    await group_call.get_group_call('@MarshalCm')
-    group_call.native_instance = tgcalls.NativeInstance()
-    group_call.native_instance.setEmitJoinPayloadCallback(group_call.emit_join_payload_callback)
-    group_call.native_instance.startGroupCall()
-    group_call.native_instance.setIsMuted(False)
-    group_call.native_instance.setAudioInputDevice('VB-Cable')
-    group_call.native_instance.setAudioOutputDevice('default (Built-in Output)')
+    calls = []
+    chats = ['@wallstreetbets']
+    for chat in chats:
+        group_call = GroupCall(client2)
+        await group_call.get_group_call(chat)
+        group_call.native_instance = tgcalls.NativeInstance()
+        group_call.native_instance.setEmitJoinPayloadCallback(group_call.emit_join_payload_callback)
+        group_call.native_instance.startGroupCall()
+        group_call.native_instance.setIsMuted(True)
+
+        calls.append(group_call)
+        # group_call.native_instance.setAudioInputDevice('VB-Cable')
+        group_call.native_instance.setAudioOutputDevice('default (Built-in Output)')
+    # await asyncio.sleep(60)
+    # group_call.native_instance.stopGroupCall()
 
     # await start(client1, client2, make_out, make_inc)
 
@@ -550,7 +560,7 @@ if __name__ == '__main__':
     make_out = False
     make_inc = True
 
-    c1, c2 = c2, c1
+    # c1, c2 = c2, c1
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main(c1, c2, make_out, make_inc))

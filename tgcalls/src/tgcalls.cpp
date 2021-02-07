@@ -125,6 +125,7 @@ PYBIND11_MODULE(tgcalls, m) {
             .def(py::init<>())
             .def("startCall", &NativeInstance::startCall)
             .def("startGroupCall", &NativeInstance::startGroupCall)
+            .def("stopGroupCall", &NativeInstance::stopGroupCall)
             .def("setIsMuted", &NativeInstance::setIsMuted)
             .def("setAudioOutputDevice", &NativeInstance::setAudioOutputDevice)
             .def("setAudioInputDevice", &NativeInstance::setAudioInputDevice)
