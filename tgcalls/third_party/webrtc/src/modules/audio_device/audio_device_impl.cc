@@ -943,6 +943,10 @@ AudioDeviceModuleImpl::PlatformType AudioDeviceModuleImpl::Platform() const {
   return platform_type_;
 }
 
+void AudioDeviceModuleImpl::ResetAudioDevice(AudioDeviceGeneric *p) {
+    audio_device_.reset(p);
+}
+
 AudioDeviceModule::AudioLayer AudioDeviceModuleImpl::PlatformAudioLayer()
     const {
   RTC_LOG(INFO) << __FUNCTION__;
