@@ -3,7 +3,6 @@
 Libraries/
 
 dist/
-build/
 cmake-build-debug/
 
 __pycache__/

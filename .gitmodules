@@ -4,3 +4,9 @@
 [submodule "tgcalls/third_party/pybind11"]
 	path = tgcalls/third_party/pybind11
 	url = https://github.com/tgcalls/pybind11
+[submodule "tgcalls/third_party/webrtc/src/third_party/libyuv"]
+    path = tgcalls/third_party/webrtc/src/third_party/libyuv
+    url = https://chromium.googlesource.com/libyuv/libyuv
+[submodule "tgcalls/third_party/webrtc/src/third_party/libvpx/source/libvpx"]
+    path = tgcalls/third_party/webrtc/src/third_party/libvpx/source/libvpx
+    url = https://chromium.googlesource.com/webm/libvpx
