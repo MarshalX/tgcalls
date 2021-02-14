@@ -14,9 +14,8 @@ set(tgcalls_loc ${tgcalls_dir}/tgcalls)
 
 nice_target_sources(lib_tgcalls ${tgcalls_loc}
 PRIVATE
-    Instance.cpp
-    Instance.h
-
+    AudioDeviceHelper.cpp
+    AudioDeviceHelper.h
     CodecSelectHelper.cpp
     CodecSelectHelper.h
     CryptoHelper.cpp
