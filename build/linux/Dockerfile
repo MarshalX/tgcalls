@@ -1,46 +1,50 @@
-FROM centos:7 AS builder
+FROM ubuntu:latest AS builder
 
+ENV DEBIAN_FRONTEND=noninteractive
 ENV GIT https://github.com
+ENV PKG_CONFIG_PATH /usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig
 ENV OPENSSL_VER 1_1_1
 ENV OPENSSL_PREFIX /usr/local/desktop-app/openssl-1.1.1
 
-RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-RUN yum -y install https://packages.endpoint.com/rhel/7/os/x86_64/endpoint-repo-1.7-1.x86_64.rpm
-RUN yum -y install centos-release-scl
-
-RUN yum -y install git cmake3 meson ninja-build autoconf automake libtool \
-	zlib-devel gtk2-devel gtk3-devel libdrm-devel fontconfig-devel \
-	freetype-devel libX11-devel at-spi2-core-devel alsa-lib-devel \
-	pulseaudio-libs-devel mesa-libGL-devel mesa-libEGL-devel \
-	pkgconfig bison yasm file which xorg-x11-util-macros \
-	devtoolset-8-make devtoolset-8-gcc devtoolset-8-gcc-c++ \
-	devtoolset-8-binutils
-
-SHELL [ "scl", "enable", "devtoolset-8", "--", "bash", "-c" ]
-RUN ln -s cmake3 /usr/bin/cmake
+RUN apt-get update \
+    && apt-get install -y \
+    wget \
+    pkg-config \
+    git \
+    build-essential \
+    cmake \
+    autoconf \
+    libtool \
+    yasm \
+    libasound2-dev \
+    libpulse-dev \
+    ninja-build \
+    python-dev-is-python3
 
 ENV LibrariesPath /usr/src/Libraries
 WORKDIR $LibrariesPath
 
+RUN wget https://bootstrap.pypa.io/get-pip.py
+RUN python3 get-pip.py
+RUN rm get-pip.py
+
 FROM builder AS patches
-ADD https://api.github.com/repos/desktop-app/patches/git/refs/heads/master patches-version.json
 RUN git clone --depth=1 $GIT/desktop-app/patches.git
 
 FROM builder AS mozjpeg
 RUN git clone -b v4.0.1-rc2 --depth=1 $GIT/mozilla/mozjpeg.git
 
 WORKDIR mozjpeg
-RUN cmake3 -B build . \
+RUN cmake -B build . \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DCMAKE_INSTALL_PREFIX=/usr/local \
 	-DWITH_JPEG8=ON \
 	-DPNG_SUPPORTED=OFF
 
-RUN cmake3 --build build -j$(nproc)
-RUN DESTDIR="$LibrariesPath/mozjpeg-cache" cmake3 --install build
+RUN cmake --build build -j$(nproc)
+RUN DESTDIR="$LibrariesPath/mozjpeg-cache" cmake --install build
 
 WORKDIR ..
-RUN rm -rf mozjpeg
 
 FROM builder AS opus
 RUN git clone -b v1.3 --depth=1 $GIT/xiph/opus.git
@@ -50,9 +54,6 @@ RUN ./autogen.sh
 RUN ./configure
 RUN make -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/opus-cache" install
-
-WORKDIR ..
-RUN rm -rf opus
 
 FROM builder AS openssl
 ENV opensslDir openssl_${OPENSSL_VER}
@@ -70,13 +71,9 @@ RUN make -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/openssl-cache" install_sw
 
 WORKDIR ..
-RUN rm -rf $opensslDir
-
 
 FROM builder AS ffmpeg
-
 COPY --from=opus ${LibrariesPath}/opus-cache /
-
 RUN git clone -b release/4.2 --depth=1 $GIT/FFmpeg/FFmpeg.git ffmpeg
 
 WORKDIR ffmpeg
@@ -90,10 +87,6 @@ RUN ./configure \
 	--disable-alsa \
 	--disable-iconv \
 	--enable-libopus \
-	#--enable-vaapi \
-	#--enable-vdpau \
-	#--enable-xlib \
-	#--enable-libdrm \
 	--enable-protocol=file \
 	--enable-hwaccel=h264_vaapi \
 	--enable-hwaccel=h264_vdpau \
@@ -187,16 +180,50 @@ RUN ./configure \
 RUN make -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/ffmpeg-cache" install
 
-COPY tgcalls /usr/src/tgcalls
+WORKDIR ..
 
-WORKDIR /usr/src/tgcalls/third_party/webrtc
+FROM builder AS webrtc
 
-RUN cmake3 -B out/Release . \
+COPY --from=mozjpeg ${LibrariesPath}/mozjpeg-cache /
+COPY --from=opus ${LibrariesPath}/opus-cache /
+COPY --from=ffmpeg ${LibrariesPath}/ffmpeg-cache /
+COPY --from=openssl ${LibrariesPath}/openssl-cache /
+
+COPY tgcalls/third_party/webrtc ${LibrariesPath}/webrtc
+
+WORKDIR webrtc
+
+RUN cmake -B out/Release . \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DTG_OWT_SPECIAL_TARGET=linux \
 	-DTG_OWT_LIBJPEG_INCLUDE_PATH=/usr/local/include \
 	-DTG_OWT_OPENSSL_INCLUDE_PATH=$OPENSSL_PREFIX/include \
 	-DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \
 	-DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include
+RUN cmake --build out/Release -- -j8
 
-RUN cmake3 --build out/Release -- -j8
+RUN cmake -B out/Debug . \
+	-DCMAKE_BUILD_TYPE=Debug \
+	-DTG_OWT_SPECIAL_TARGET=linux \
+	-DTG_OWT_LIBJPEG_INCLUDE_PATH=/usr/local/include \
+	-DTG_OWT_OPENSSL_INCLUDE_PATH=$OPENSSL_PREFIX/include \
+	-DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \
+	-DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include
+RUN cmake --build out/Debug -- -j8
+
+WORKDIR ..
+
+FROM builder
+
+COPY --from=mozjpeg ${LibrariesPath}/mozjpeg-cache /
+COPY --from=opus ${LibrariesPath}/opus-cache /
+COPY --from=ffmpeg ${LibrariesPath}/ffmpeg ffmpeg
+COPY --from=ffmpeg ${LibrariesPath}/ffmpeg-cache /
+COPY --from=openssl ${LibrariesPath}/openssl-cache /
+COPY --from=webrtc ${LibrariesPath}/webrtc tg_owt
+
+WORKDIR ..
+COPY ./ tgcalls
+WORKDIR tgcalls
+
+RUN python3 setup.py build --debug
