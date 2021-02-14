@@ -8,9 +8,14 @@ else()
     init_target(lib_tgcalls cxx_std_14) # Can't use std::optional::value on macOS.
 endif()
 
-
 set(tgcalls_dir ${third_party_loc}/lib_tgcalls)
 set(tgcalls_loc ${tgcalls_dir}/tgcalls)
+
+nice_target_sources(lib_tgcalls ${tgcalls_loc}
+PRIVATE
+    Instance.cpp
+    Instance.h
+)
 
 nice_target_sources(lib_tgcalls ${tgcalls_loc}
 PRIVATE
@@ -107,7 +112,6 @@ target_link_libraries(lib_tgcalls
 PRIVATE
     external_webrtc
 )
-
 
 target_compile_definitions(lib_tgcalls
 PRIVATE

@@ -16,6 +16,7 @@ RUN apt-get update \
     autoconf \
     libtool \
     yasm \
+    libdrm-dev \
     libasound2-dev \
     libpulse-dev \
     ninja-build \
@@ -87,6 +88,7 @@ RUN ./configure \
 	--disable-alsa \
 	--disable-iconv \
 	--enable-libopus \
+    --enable-libdrm \
 	--enable-protocol=file \
 	--enable-hwaccel=h264_vaapi \
 	--enable-hwaccel=h264_vdpau \
@@ -200,7 +202,7 @@ RUN cmake -B out/Release . \
 	-DTG_OWT_OPENSSL_INCLUDE_PATH=$OPENSSL_PREFIX/include \
 	-DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \
 	-DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include
-RUN cmake --build out/Release -- -j8
+RUN cmake --build out/Release -- -j$(nproc)
 
 RUN cmake -B out/Debug . \
 	-DCMAKE_BUILD_TYPE=Debug \
@@ -209,7 +211,7 @@ RUN cmake -B out/Debug . \
 	-DTG_OWT_OPENSSL_INCLUDE_PATH=$OPENSSL_PREFIX/include \
 	-DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \
 	-DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include
-RUN cmake --build out/Debug -- -j8
+RUN cmake --build out/Debug -- -j$(nproc)
 
 WORKDIR ..
 
