@@ -4,11 +4,6 @@
 #include "api/scoped_refptr.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/logging.h"
-#include "rtc_base/platform_thread.h"
-#include "rtc_base/critical_section.h"
-#include "rtc_base/system/file_wrapper.h"
-#include "rtc_base/time_utils.h"
-
 #include "api/peer_connection_interface.h"
 #include "api/task_queue/default_task_queue_factory.h"
 #include "media/engine/webrtc_media_engine.h"
@@ -24,15 +19,10 @@
 #include "system_wrappers/include/field_trial.h"
 #include "api/stats/rtcstats_objects.h"
 #include "modules/audio_processing/audio_buffer.h"
-#include "modules/audio_device/audio_device_impl.h"
-#include "modules/audio_device/audio_device_generic.h"
 #include "modules/audio_device/include/audio_device_factory.h"
-#include "modules/audio_device/include/audio_device.h"
-#include "modules/audio_device/dummy/file_audio_device_factory.h"
 #include "common_audio/include/audio_util.h"
 #include "common_audio/vad/include/webrtc_vad.h"
 #include "modules/audio_processing/agc2/vad_with_level.h"
-#include "system_wrappers/include/sleep.h"
 
 #include "ThreadLocalObject.h"
 #include "Manager.h"
@@ -169,8 +159,7 @@ static void appendSdp(std::vector<std::string> &lines, std::string const &line) 
     lines.push_back(line);
 }
 
-static std::string createSdp(uint32_t sessionId, GroupJoinResponsePayload const &payload, bool isAnswer,
-                             std::vector<StreamSpec> const &bundleStreams) {
+static std::string createSdp(uint32_t sessionId, GroupJoinResponsePayload const &payload, bool isAnswer, std::vector<StreamSpec> const &bundleStreams) {
     std::vector<std::string> sdp;
 
     appendSdp(sdp, "v=0");
@@ -362,10 +351,7 @@ static std::string createSdp(uint32_t sessionId, GroupJoinResponsePayload const 
     return result.str();
 }
 
-static std::string
-parseJoinResponseIntoSdp(uint32_t sessionId, uint32_t mainStreamAudioSsrc, GroupJoinResponsePayload const &payload,
-                         bool isAnswer, std::vector<uint32_t> const &allOtherSsrcs,
-                         std::set<uint32_t> const &activeOtherSsrcs) {
+static std::string parseJoinResponseIntoSdp(uint32_t sessionId, uint32_t mainStreamAudioSsrc, GroupJoinResponsePayload const &payload, bool isAnswer, std::vector<uint32_t> const &allOtherSsrcs, std::set<uint32_t> const &activeOtherSsrcs) {
 
     std::vector<StreamSpec> bundleStreams;
 
@@ -376,7 +362,7 @@ parseJoinResponseIntoSdp(uint32_t sessionId, uint32_t mainStreamAudioSsrc, Group
     mainStream.isRemoved = false;
     bundleStreams.push_back(mainStream);
 
-    uint32_t numStreamsToAllocate = (uint32_t) allOtherSsrcs.size();
+    uint32_t numStreamsToAllocate = (uint32_t)allOtherSsrcs.size();
     /*if (numStreamsToAllocate < 10) {
         numStreamsToAllocate = 10;
     }*/
@@ -392,7 +378,7 @@ parseJoinResponseIntoSdp(uint32_t sessionId, uint32_t mainStreamAudioSsrc, Group
         } else {
             stream.audioSsrcOrZero = 0;
             stream.isRemoved = true;
-            stream.streamId = 1 + (uint32_t) i;
+            stream.streamId = 1 + (uint32_t)i;
         }
         bundleStreams.push_back(stream);
     }
@@ -442,7 +428,7 @@ public:
                         rtc::ArrayView<const uint8_t> additional_data,
                         rtc::ArrayView<const uint8_t> frame,
                         rtc::ArrayView<uint8_t> encrypted_frame,
-                        size_t *bytes_written) override {
+                        size_t* bytes_written) override {
         memcpy(encrypted_frame.data(), frame.data(), frame.size());
         for (auto it = encrypted_frame.begin(); it != encrypted_frame.end(); it++) {
             *it ^= 123;
@@ -463,16 +449,15 @@ public:
     }
 
     virtual webrtc::FrameDecryptorInterface::Result Decrypt(cricket::MediaType media_type,
-                                                            const std::vector<uint32_t> &csrcs,
-                                                            rtc::ArrayView<const uint8_t> additional_data,
-                                                            rtc::ArrayView<const uint8_t> encrypted_frame,
-                                                            rtc::ArrayView<uint8_t> frame) override {
+                           const std::vector<uint32_t>& csrcs,
+                           rtc::ArrayView<const uint8_t> additional_data,
+                           rtc::ArrayView<const uint8_t> encrypted_frame,
+                           rtc::ArrayView<uint8_t> frame) override {
         memcpy(frame.data(), encrypted_frame.data(), encrypted_frame.size());
         for (auto it = frame.begin(); it != frame.end(); it++) {
             *it ^= 123;
         }
-        return webrtc::FrameDecryptorInterface::Result(webrtc::FrameDecryptorInterface::Status::kOk,
-                                                       encrypted_frame.size());
+        return webrtc::FrameDecryptorInterface::Result(webrtc::FrameDecryptorInterface::Status::kOk, encrypted_frame.size());
     }
 
     virtual size_t GetMaxPlaintextByteSize(cricket::MediaType media_type,
@@ -491,17 +476,17 @@ private:
 
 public:
     PeerConnectionObserverImpl(
-            std::function<void(std::string, int, std::string)> discoveredIceCandidate,
-            std::function<void(bool)> connectionStateChanged,
-            std::function<void(rtc::scoped_refptr<webrtc::RtpTransceiverInterface>)> onTrackAdded,
-            std::function<void(rtc::scoped_refptr<webrtc::RtpReceiverInterface>)> onTrackRemoved,
-            std::function<void(uint32_t)> onMissingSsrc
+        std::function<void(std::string, int, std::string)> discoveredIceCandidate,
+        std::function<void(bool)> connectionStateChanged,
+        std::function<void(rtc::scoped_refptr<webrtc::RtpTransceiverInterface>)> onTrackAdded,
+        std::function<void(rtc::scoped_refptr<webrtc::RtpReceiverInterface>)> onTrackRemoved,
+        std::function<void(uint32_t)> onMissingSsrc
     ) :
-            _discoveredIceCandidate(discoveredIceCandidate),
-            _connectionStateChanged(connectionStateChanged),
-            _onTrackAdded(onTrackAdded),
-            _onTrackRemoved(onTrackRemoved),
-            _onMissingSsrc(onMissingSsrc) {
+    _discoveredIceCandidate(discoveredIceCandidate),
+    _connectionStateChanged(connectionStateChanged),
+    _onTrackAdded(onTrackAdded),
+    _onTrackRemoved(onTrackRemoved),
+    _onMissingSsrc(onMissingSsrc) {
     }
 
     virtual void OnSignalingChange(webrtc::PeerConnectionInterface::SignalingState new_state) override {
@@ -532,8 +517,7 @@ public:
         _connectionStateChanged(isConnected);
     }
 
-    virtual void
-    OnStandardizedIceConnectionChange(webrtc::PeerConnectionInterface::IceConnectionState new_state) override {
+    virtual void OnStandardizedIceConnectionChange(webrtc::PeerConnectionInterface::IceConnectionState new_state) override {
     }
 
     virtual void OnConnectionChange(webrtc::PeerConnectionInterface::PeerConnectionState new_state) override {
@@ -542,34 +526,32 @@ public:
     virtual void OnIceGatheringChange(webrtc::PeerConnectionInterface::IceGatheringState new_state) override {
     }
 
-    virtual void OnIceCandidate(const webrtc::IceCandidateInterface *candidate) override {
+    virtual void OnIceCandidate(const webrtc::IceCandidateInterface* candidate) override {
         std::string sdp;
         candidate->ToString(&sdp);
         _discoveredIceCandidate(sdp, candidate->sdp_mline_index(), candidate->sdp_mid());
     }
 
-    virtual void OnIceCandidateError(const std::string &host_candidate, const std::string &url, int error_code,
-                                     const std::string &error_text) override {
+    virtual void OnIceCandidateError(const std::string& host_candidate, const std::string& url, int error_code, const std::string& error_text) override {
     }
 
-    virtual void OnIceCandidateError(const std::string &address,
+    virtual void OnIceCandidateError(const std::string& address,
                                      int port,
-                                     const std::string &url,
+                                     const std::string& url,
                                      int error_code,
-                                     const std::string &error_text) override {
+                                     const std::string& error_text) override {
     }
 
-    virtual void OnIceCandidatesRemoved(const std::vector<cricket::Candidate> &candidates) override {
+    virtual void OnIceCandidatesRemoved(const std::vector<cricket::Candidate>& candidates) override {
     }
 
     virtual void OnIceConnectionReceivingChange(bool receiving) override {
     }
 
-    virtual void OnIceSelectedCandidatePairChanged(const cricket::CandidatePairChangeEvent &event) override {
+    virtual void OnIceSelectedCandidatePairChanged(const cricket::CandidatePairChangeEvent& event) override {
     }
 
-    virtual void OnAddTrack(rtc::scoped_refptr<webrtc::RtpReceiverInterface> receiver,
-                            const std::vector<rtc::scoped_refptr<webrtc::MediaStreamInterface>> &streams) override {
+    virtual void OnAddTrack(rtc::scoped_refptr<webrtc::RtpReceiverInterface> receiver, const std::vector<rtc::scoped_refptr<webrtc::MediaStreamInterface>>& streams) override {
     }
 
     virtual void OnTrack(rtc::scoped_refptr<webrtc::RtpTransceiverInterface> transceiver) override {
@@ -595,9 +577,8 @@ public:
 
 class RTCStatsCollectorCallbackImpl : public webrtc::RTCStatsCollectorCallback {
 public:
-    RTCStatsCollectorCallbackImpl(
-            std::function<void(const rtc::scoped_refptr<const webrtc::RTCStatsReport> &)> completion) :
-            _completion(completion) {
+    RTCStatsCollectorCallbackImpl(std::function<void(const rtc::scoped_refptr<const webrtc::RTCStatsReport> &)> completion) :
+    _completion(completion) {
     }
 
     virtual void OnStatsDelivered(const rtc::scoped_refptr<const webrtc::RTCStatsReport> &report) override {
@@ -637,7 +618,7 @@ public:
         for (int i = 0; i < kVadResultHistoryLength; i++) {
             movingAverage += _vadResultHistory[i];
         }
-        movingAverage /= (float) kVadResultHistoryLength;
+        movingAverage /= (float)kVadResultHistoryLength;
 
         bool vadResult = false;
         if (movingAverage > 0.8f) {
@@ -648,7 +629,7 @@ public:
     }
 };
 
-class AudioTrackSinkInterfaceImpl : public webrtc::AudioTrackSinkInterface {
+class AudioTrackSinkInterfaceImpl: public webrtc::AudioTrackSinkInterface {
 private:
     std::function<void(float, bool)> _update;
 
@@ -659,17 +640,16 @@ private:
 
 public:
     AudioTrackSinkInterfaceImpl(std::function<void(float, bool)> update) :
-            _update(update) {
+    _update(update) {
     }
 
     virtual ~AudioTrackSinkInterfaceImpl() {
     }
 
-    virtual void OnData(const void *audio_data, int bits_per_sample, int sample_rate, size_t number_of_channels,
-                        size_t number_of_frames) override {
+    virtual void OnData(const void *audio_data, int bits_per_sample, int sample_rate, size_t number_of_channels, size_t number_of_frames) override {
         if (bits_per_sample == 16 && number_of_channels == 1) {
-            int16_t *samples = (int16_t *) audio_data;
-            int numberOfSamplesInFrame = (int) number_of_frames;
+            int16_t *samples = (int16_t *)audio_data;
+            int numberOfSamplesInFrame = (int)number_of_frames;
 
             webrtc::AudioBuffer buffer(sample_rate, 1, 48000, 1, 48000, 1);
             webrtc::StreamConfig config(sample_rate, 1);
@@ -689,7 +669,7 @@ public:
             }
 
             if (_peakCount >= 1200) {
-                float level = ((float) (_peak)) / 4000.0f;
+                float level = ((float)(_peak)) / 4000.0f;
                 _peak = 0;
                 _peakCount = 0;
                 _update(level, vadResult);
@@ -704,10 +684,10 @@ private:
 
 public:
     CreateSessionDescriptionObserverImpl(std::function<void(std::string, std::string)> completion) :
-            _completion(completion) {
+    _completion(completion) {
     }
 
-    virtual void OnSuccess(webrtc::SessionDescriptionInterface *desc) override {
+    virtual void OnSuccess(webrtc::SessionDescriptionInterface* desc) override {
         if (desc) {
             std::string sdp;
             desc->ToString(&sdp);
@@ -726,9 +706,8 @@ private:
     std::function<void(webrtc::RTCError)> _error;
 
 public:
-    SetSessionDescriptionObserverImpl(std::function<void()> completion, std::function<void(webrtc::RTCError)> error)
-            :
-            _completion(completion), _error(error) {
+    SetSessionDescriptionObserverImpl(std::function<void()> completion, std::function<void(webrtc::RTCError)> error) :
+    _completion(completion), _error(error) {
     }
 
     virtual void OnSuccess() override {
@@ -745,22 +724,20 @@ private:
     void Initialize(int sample_rate_hz, int num_channels) override {
 
     }
-
     // Analyzes the given capture or render signal.
-    void Analyze(const webrtc::AudioBuffer *audio) override {
+    void Analyze(const webrtc::AudioBuffer* audio) override {
         _analyze(audio);
     }
-
     // Returns a string representation of the module state.
     std::string ToString() const override {
         return "analyzing";
     }
 
-    std::function<void(const webrtc::AudioBuffer *)> _analyze;
+    std::function<void(const webrtc::AudioBuffer*)> _analyze;
 
 public:
-    AudioCaptureAnalyzer(std::function<void(const webrtc::AudioBuffer *)> analyze) :
-            _analyze(analyze) {
+    AudioCaptureAnalyzer(std::function<void(const webrtc::AudioBuffer*)> analyze) :
+    _analyze(analyze) {
     }
 
     virtual ~AudioCaptureAnalyzer() = default;
@@ -806,13 +783,11 @@ public:
         return _impl->RecordingDevices();
     }
 
-    virtual int32_t PlayoutDeviceName(uint16_t index, char name[webrtc::kAdmMaxDeviceNameSize],
-                                      char guid[webrtc::kAdmMaxGuidSize]) override {
+    virtual int32_t PlayoutDeviceName(uint16_t index, char name[webrtc::kAdmMaxDeviceNameSize], char guid[webrtc::kAdmMaxGuidSize]) override {
         return _impl->PlayoutDeviceName(index, name, guid);
     }
 
-    virtual int32_t RecordingDeviceName(uint16_t index, char name[webrtc::kAdmMaxDeviceNameSize],
-                                        char guid[webrtc::kAdmMaxGuidSize]) override {
+    virtual int32_t RecordingDeviceName(uint16_t index, char name[webrtc::kAdmMaxDeviceNameSize], char guid[webrtc::kAdmMaxGuidSize]) override {
         return _impl->RecordingDeviceName(index, name, guid);
     }
 
@@ -904,7 +879,7 @@ public:
         return _impl->SetSpeakerVolume(volume);
     }
 
-    virtual int32_t SpeakerVolume(uint32_t *volume) const override {
+    virtual int32_t SpeakerVolume(uint32_t* volume) const override {
         return _impl->SpeakerVolume(volume);
     }
 
@@ -984,7 +959,7 @@ public:
         return _impl->StereoRecording(enabled);
     }
 
-    virtual int32_t PlayoutDelay(uint16_t *delayMS) const override {
+    virtual int32_t PlayoutDelay(uint16_t* delayMS) const override {
         return _impl->PlayoutDelay(delayMS);
     }
 
@@ -1024,582 +999,6 @@ public:
         return _impl->GetRecordAudioParameters(params);
     }
 #endif  // WEBRTC_IOS
-};
-
-
-const int kRecordingFixedSampleRate = 48000;
-const size_t kRecordingNumChannels = 2;
-const int kPlayoutFixedSampleRate = 48000;
-const size_t kPlayoutNumChannels = 2;
-const size_t kPlayoutBufferSize =
-        kPlayoutFixedSampleRate / 100 * kPlayoutNumChannels * 2;
-const size_t kRecordingBufferSize =
-        kRecordingFixedSampleRate / 100 * kRecordingNumChannels * 2;
-
-class FileAudioDevice : public webrtc::AudioDeviceGeneric {
-private:
-    int32_t _playout_index;
-    int32_t _record_index;
-    webrtc::AudioDeviceBuffer *_ptrAudioBuffer;
-    int8_t *_recordingBuffer;  // In bytes.
-    int8_t *_playoutBuffer;    // In bytes.
-    uint32_t _recordingFramesLeft;
-    uint32_t _playoutFramesLeft;
-    rtc::CriticalSection _critSect;
-
-    size_t _recordingBufferSizeIn10MS;
-    size_t _recordingFramesIn10MS;
-    size_t _playoutFramesIn10MS;
-
-    std::unique_ptr<rtc::PlatformThread> _ptrThreadRec;
-    std::unique_ptr<rtc::PlatformThread> _ptrThreadPlay;
-
-    bool _playing;
-    bool _recording;
-    int64_t _lastCallPlayoutMillis;
-    int64_t _lastCallRecordMillis;
-
-    webrtc::FileWrapper _outputFile;
-    webrtc::FileWrapper _inputFile;
-    std::string _outputFilename;
-    std::string _inputFilename;
-
-public:
-    FileAudioDevice() :
-            _ptrAudioBuffer(NULL),
-            _recordingBuffer(NULL),
-            _playoutBuffer(NULL),
-            _recordingFramesLeft(0),
-            _playoutFramesLeft(0),
-            _recordingBufferSizeIn10MS(0),
-            _recordingFramesIn10MS(0),
-            _playoutFramesIn10MS(0),
-            _playing(false),
-            _recording(false),
-            _lastCallPlayoutMillis(0),
-            _lastCallRecordMillis(0),
-            _outputFilename("output.raw"),
-            _inputFilename("input.raw") {} // todo from descriptor of config. create methods to set new values
-
-    ~FileAudioDevice() {}
-
-    int32_t ActiveAudioLayer(
-            webrtc::AudioDeviceModule::AudioLayer& audioLayer) const {
-        return -1;
-    }
-
-    InitStatus Init() {
-        return InitStatus::OK;
-    }
-
-    int32_t Terminate() {
-        return 0;
-    }
-
-    bool Initialized() const {
-        return true;
-    }
-
-    int16_t PlayoutDevices() {
-        return 1;
-    }
-
-    int16_t RecordingDevices() {
-        return 1;
-    }
-
-    int32_t PlayoutDeviceName(uint16_t index, char name[webrtc::kAdmMaxDeviceNameSize], char guid[webrtc::kAdmMaxGuidSize]) {
-        const char *kName = "dummy_device";
-        const char *kGuid = "dummy_device_unique_id";
-        if (index < 1) {
-            memset(name, 0, webrtc::kAdmMaxDeviceNameSize);
-            memset(guid, 0, webrtc::kAdmMaxGuidSize);
-            memcpy(name, kName, strlen(kName));
-            memcpy(guid, kGuid, strlen(guid));
-            return 0;
-        }
-        return -1;
-    }
-
-    int32_t RecordingDeviceName(uint16_t index, char name[webrtc::kAdmMaxDeviceNameSize], char guid[webrtc::kAdmMaxGuidSize]) {
-        const char *kName = "dummy_device";
-        const char *kGuid = "dummy_device_unique_id";
-        if (index < 1) {
-            memset(name, 0, webrtc::kAdmMaxDeviceNameSize);
-            memset(guid, 0, webrtc::kAdmMaxGuidSize);
-            memcpy(name, kName, strlen(kName));
-            memcpy(guid, kGuid, strlen(guid));
-            return 0;
-        }
-        return -1;
-    }
-
-    int32_t SetPlayoutDevice(uint16_t index) {
-        // index == 0 (DefaultDevice)
-        if (index == 0) {
-            _playout_index = index;
-            return 0;
-        }
-        return -1;
-    }
-
-
-    int32_t SetPlayoutDevice(
-            webrtc::AudioDeviceModule::WindowsDeviceType device) {
-        return -1;
-    }
-
-    int32_t SetRecordingDevice(uint16_t index) {
-        if (index == 0) {
-            _record_index = index;
-            return _record_index;
-        }
-        return -1;
-    }
-
-    int32_t SetRecordingDevice(
-            webrtc::AudioDeviceModule::WindowsDeviceType device) {
-        return -1;
-    }
-
-    int32_t PlayoutIsAvailable(bool &available) {
-        if (_playout_index == 0) {
-            available = true;
-            return _playout_index;
-        }
-        available = false;
-        return -1;
-    }
-
-    int32_t InitPlayout() {
-        rtc::CritScope lock(&_critSect);
-
-        if (_playing) {
-            return -1;
-        }
-
-        _playoutFramesIn10MS = static_cast<size_t>(kPlayoutFixedSampleRate / 100);
-
-        if (_ptrAudioBuffer) {
-            // Update webrtc audio buffer with the selected parameters
-            _ptrAudioBuffer->SetPlayoutSampleRate(kPlayoutFixedSampleRate);
-            _ptrAudioBuffer->SetPlayoutChannels(kPlayoutNumChannels);
-        }
-        return 0;
-    }
-
-    bool PlayoutIsInitialized() const {
-        return _playoutFramesIn10MS != 0;
-    }
-
-    int32_t RecordingIsAvailable(bool &available) {
-        if (_record_index == 0) {
-            available = true;
-            return _record_index;
-        }
-        available = false;
-        return -1;
-    }
-
-    int32_t InitRecording() {
-        rtc::CritScope lock(&_critSect);
-
-        if (_recording) {
-            return -1;
-        }
-
-        _recordingFramesIn10MS = static_cast<size_t>(kRecordingFixedSampleRate / 100);
-
-        if (_ptrAudioBuffer) {
-            _ptrAudioBuffer->SetRecordingSampleRate(kRecordingFixedSampleRate);
-            _ptrAudioBuffer->SetRecordingChannels(kRecordingNumChannels);
-        }
-        return 0;
-    }
-
-    bool RecordingIsInitialized() const {
-        return _recordingFramesIn10MS != 0;
-    }
-
-    int32_t StartPlayout() {
-        if (_playing) {
-            return 0;
-        }
-
-        _playing = true;
-        _playoutFramesLeft = 0;
-
-        if (!_playoutBuffer) {
-            _playoutBuffer = new int8_t[kPlayoutBufferSize];
-        }
-        if (!_playoutBuffer) {
-            _playing = false;
-            return -1;
-        }
-
-        // PLAYOUT
-        if (!_outputFilename.empty()) {
-            _outputFile = webrtc::FileWrapper::OpenWriteOnly(_outputFilename.c_str());
-            if (!_outputFile.is_open()) {
-                RTC_LOG(LS_ERROR) << "Failed to open playout file: " << _outputFilename;
-                _playing = false;
-                delete[] _playoutBuffer;
-                _playoutBuffer = NULL;
-                return -1;
-            }
-        }
-
-        _ptrThreadPlay.reset(new rtc::PlatformThread(
-                PlayThreadFunc, this, "webrtc_audio_module_play_thread",
-                rtc::kRealtimePriority));
-        _ptrThreadPlay->Start();
-
-        RTC_LOG(LS_INFO) << "Started playout capture to output file: "
-                         << _outputFilename;
-        return 0;
-    }
-
-    int32_t StopPlayout() {
-        {
-            rtc::CritScope lock(&_critSect);
-            _playing = false;
-        }
-
-        // stop playout thread first
-        if (_ptrThreadPlay) {
-            _ptrThreadPlay->Stop();
-            _ptrThreadPlay.reset();
-        }
-
-        rtc::CritScope lock(&_critSect);
-
-        _playoutFramesLeft = 0;
-        delete[] _playoutBuffer;
-        _playoutBuffer = NULL;
-        _outputFile.Close();
-
-        RTC_LOG(LS_INFO) << "Stopped playout capture to output file: "
-                         << _outputFilename;
-        return 0;
-    }
-
-    bool Playing() const {
-        return _playing;
-    }
-
-    int32_t StartRecording() {
-        _recording = true;
-
-        // Make sure we only create the buffer once.
-        _recordingBufferSizeIn10MS =
-                _recordingFramesIn10MS * kRecordingNumChannels * 2;
-        if (!_recordingBuffer) {
-            _recordingBuffer = new int8_t[_recordingBufferSizeIn10MS];
-        }
-
-        if (!_inputFilename.empty()) {
-            _inputFile = webrtc::FileWrapper::OpenReadOnly(_inputFilename.c_str());
-            if (!_inputFile.is_open()) {
-                RTC_LOG(LS_ERROR) << "Failed to open audio input file: "
-                                  << _inputFilename;
-                _recording = false;
-                delete[] _recordingBuffer;
-                _recordingBuffer = NULL;
-                return -1;
-            }
-        }
-
-        _ptrThreadRec.reset(new rtc::PlatformThread(
-                RecThreadFunc, this, "webrtc_audio_module_capture_thread",
-                rtc::kRealtimePriority));
-
-        _ptrThreadRec->Start();
-
-        RTC_LOG(LS_INFO) << "Started recording from input file: " << _inputFilename;
-
-        return 0;
-    }
-
-    int32_t StopRecording() {
-        {
-            rtc::CritScope lock(&_critSect);
-            _recording = false;
-        }
-
-        if (_ptrThreadRec) {
-            _ptrThreadRec->Stop();
-            _ptrThreadRec.reset();
-        }
-
-        rtc::CritScope lock(&_critSect);
-        _recordingFramesLeft = 0;
-        if (_recordingBuffer) {
-            delete[] _recordingBuffer;
-            _recordingBuffer = NULL;
-        }
-        _inputFile.Close();
-
-        RTC_LOG(LS_INFO) << "Stopped recording from input file: " << _inputFilename;
-        return 0;
-    }
-
-    bool Recording() const {
-        return _recording;
-    }
-
-    int32_t InitSpeaker() {
-        return -1;
-    }
-
-    bool SpeakerIsInitialized() const {
-        return false;
-    }
-
-    int32_t InitMicrophone() {
-        return 0;
-    }
-
-    bool MicrophoneIsInitialized() const {
-        return true;
-    }
-
-    int32_t SpeakerVolumeIsAvailable(bool &available) {
-        return -1;
-    }
-
-    int32_t SetSpeakerVolume(uint32_t volume) {
-        return -1;
-    }
-
-    int32_t SpeakerVolume(uint32_t &volume) const {
-        return -1;
-    }
-
-    int32_t MaxSpeakerVolume(uint32_t &maxVolume) const {
-        return -1;
-    }
-
-    int32_t MinSpeakerVolume(uint32_t &minVolume) const {
-        return -1;
-    }
-
-    int32_t MicrophoneVolumeIsAvailable(bool &available) {
-        return -1;
-    }
-
-    int32_t SetMicrophoneVolume(uint32_t volume) {
-        return -1;
-    }
-
-    int32_t MicrophoneVolume(uint32_t &volume) const {
-        return -1;
-    }
-
-    int32_t MaxMicrophoneVolume(uint32_t &maxVolume) const {
-        return -1;
-    }
-
-    int32_t MinMicrophoneVolume(uint32_t &minVolume) const {
-        return -1;
-    }
-
-    int32_t SpeakerMuteIsAvailable(bool &available) {
-        return -1;
-    }
-
-    int32_t SetSpeakerMute(bool enable) {
-        return -1;
-    }
-
-    int32_t SpeakerMute(bool &enabled) const {
-        return -1;
-    }
-
-    int32_t MicrophoneMuteIsAvailable(bool &available) {
-        return -1;
-    }
-
-    int32_t SetMicrophoneMute(bool enable) {
-        return -1;
-    }
-
-    int32_t MicrophoneMute(bool &enabled) const {
-        return -1;
-    }
-
-    int32_t StereoPlayoutIsAvailable(bool &available) {
-        available = true;
-        return 0;
-    }
-
-    int32_t SetStereoPlayout(bool enable) {
-        return 0;
-    }
-
-    int32_t StereoPlayout(bool &enabled) const {
-        enabled = true;
-        return 0;
-    }
-
-    int32_t StereoRecordingIsAvailable(bool &available) {
-        available = true;
-        return 0;
-    }
-
-    int32_t SetStereoRecording(bool enable) {
-        return 0;
-    }
-
-    int32_t StereoRecording(bool &enabled) const {
-        enabled = true;
-        return 0;
-    }
-
-    int32_t PlayoutDelay(uint16_t &delayMS) const {
-        return 0;
-    }
-
-    void AttachAudioBuffer(webrtc::AudioDeviceBuffer *audioBuffer) {
-        rtc::CritScope lock(&_critSect);
-
-        _ptrAudioBuffer = audioBuffer;
-
-        // Inform the AudioBuffer about default settings for this implementation.
-        // Set all values to zero here since the actual settings will be done by
-        // InitPlayout and InitRecording later.
-        _ptrAudioBuffer->SetRecordingSampleRate(0);
-        _ptrAudioBuffer->SetPlayoutSampleRate(0);
-        _ptrAudioBuffer->SetRecordingChannels(0);
-        _ptrAudioBuffer->SetPlayoutChannels(0);
-    }
-
-    static void PlayThreadFunc(void *pThis) {
-        FileAudioDevice *device = static_cast<FileAudioDevice *>(pThis);
-        while (device->PlayThreadProcess()) {
-        }
-    }
-
-    static void RecThreadFunc(void *pThis) {
-        FileAudioDevice *device = static_cast<FileAudioDevice *>(pThis);
-        while (device->RecThreadProcess()) {
-        }
-    }
-
-    bool PlayThreadProcess() {
-        if (!_playing) {
-            return false;
-        }
-        int64_t currentTime = rtc::TimeMillis();
-        _critSect.Enter();
-
-        if (_lastCallPlayoutMillis == 0 ||
-            currentTime - _lastCallPlayoutMillis >= 10) {
-            _critSect.Leave();
-            _ptrAudioBuffer->RequestPlayoutData(_playoutFramesIn10MS);
-            _critSect.Enter();
-
-            _playoutFramesLeft = _ptrAudioBuffer->GetPlayoutData(_playoutBuffer);
-            RTC_DCHECK_EQ(_playoutFramesIn10MS, _playoutFramesLeft);
-            if (_outputFile.is_open()) {
-                _outputFile.Write(_playoutBuffer, kPlayoutBufferSize);
-            }
-            _lastCallPlayoutMillis = currentTime;
-        }
-        _playoutFramesLeft = 0;
-        _critSect.Leave();
-
-        int64_t deltaTimeMillis = rtc::TimeMillis() - currentTime;
-        if (deltaTimeMillis < 10) {
-            ::webrtc::SleepMs(10 - deltaTimeMillis);
-        }
-
-        return true;
-    }
-
-    bool RecThreadProcess() {
-        if (!_recording) {
-            return false;
-        }
-
-        int64_t currentTime = rtc::TimeMillis();
-        _critSect.Enter();
-
-        if (_lastCallRecordMillis == 0 || currentTime - _lastCallRecordMillis >= 10) {
-            if (_inputFile.is_open()) {
-                if (_inputFile.Read(_recordingBuffer, kRecordingBufferSize) > 0) {
-                    _ptrAudioBuffer->SetRecordedBuffer(_recordingBuffer,
-                                                       _recordingFramesIn10MS);
-                } else {
-                    _inputFile.Rewind();
-                }
-                _lastCallRecordMillis = currentTime;
-                _critSect.Leave();
-                _ptrAudioBuffer->DeliverRecordedData();
-                _critSect.Enter();
-            }
-        }
-
-        _critSect.Leave();
-
-        int64_t deltaTimeMillis = rtc::TimeMillis() - currentTime;
-        if (deltaTimeMillis < 10) {
-            ::webrtc::SleepMs(10 - deltaTimeMillis);
-        }
-
-        return true;
-};
-};
-
-class WrappedAudioDeviceModuleImpl : public webrtc::AudioDeviceModule {
-public:
-    static rtc::scoped_refptr<AudioDeviceModule> Create(
-            AudioLayer audio_layer,
-            webrtc::TaskQueueFactory* task_queue_factory) {
-        RTC_LOG(INFO) << __FUNCTION__;
-        return WrappedAudioDeviceModuleImpl::CreateForTest(audio_layer, task_queue_factory);
-    }
-
-    static rtc::scoped_refptr<webrtc::AudioDeviceModuleForTest> CreateForTest(
-            AudioLayer audio_layer,
-            webrtc::TaskQueueFactory* task_queue_factory) {
-        RTC_LOG(INFO) << __FUNCTION__;
-
-        // The "AudioDeviceModule::kWindowsCoreAudio2" audio layer has its own
-        // dedicated factory method which should be used instead.
-        if (audio_layer == AudioDeviceModule::kWindowsCoreAudio2) {
-            RTC_LOG(LS_ERROR) << "Use the CreateWindowsCoreAudioAudioDeviceModule() "
-                                 "factory method instead for this option.";
-            return nullptr;
-        }
-
-        // Create the generic reference counted (platform independent) implementation.
-        rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> audioDevice(
-                new rtc::RefCountedObject<webrtc::AudioDeviceModuleImpl>(audio_layer,
-                                                                         task_queue_factory));
-
-        // Ensure that the current platform is supported.
-        if (audioDevice->CheckPlatform() == -1) {
-            return nullptr;
-        }
-
-        bool fromFile = false; // TODO
-
-        // Create the platform-dependent implementation.
-        auto created = audioDevice->CreatePlatformSpecificObjects();
-        if (fromFile) {
-            audioDevice->ResetAudioDevice(new FileAudioDevice());
-        } else if (created == -1) {
-            return nullptr;
-        }
-
-        // Ensure that the generic audio buffer can communicate with the platform
-        // specific parts.
-        if (audioDevice->AttachAudioBuffer() == -1) {
-            return nullptr;
-        }
-
-        return audioDevice;
-    }
 };
 
 template <typename Out>
@@ -1687,7 +1086,7 @@ public:
         }
         _adm_thread->Invoke<void>(RTC_FROM_HERE, [&] {
             const auto check = [&](webrtc::AudioDeviceModule::AudioLayer layer) {
-                auto result = WrappedAudioDeviceModuleImpl::Create( // todo custom layer?
+                auto result = webrtc::AudioDeviceModule::Create(
                     layer,
                     dependencies.task_queue_factory.get());
                 return (result && (result->Init() == 0)) ? result : nullptr;
@@ -1724,12 +1123,13 @@ public:
 
         webrtc::field_trial::InitFieldTrialsFromString(
             //"WebRTC-Audio-SendSideBwe/Enabled/"
-            "WebRTC-Audio-Allocation/min:128kbps,max:128kbps/"
+            "WebRTC-Audio-Allocation/min:6kbps,max:32kbps/"
             "WebRTC-Audio-OpusMinPacketLossRate/Enabled-1/"
             //"WebRTC-FlexFEC-03/Enabled/"
             //"WebRTC-FlexFEC-03-Advertised/Enabled/"
-            "WebRTC-PcFactoryDefaultBitrates/min:128kbps,start:128kbps,max:128kbps/"
+            "WebRTC-PcFactoryDefaultBitrates/min:6kbps,start:32kbps,max:32kbps/"
         );
+
         PlatformInterface::SharedInstance()->configurePlatformAudio();
 
         webrtc::PeerConnectionFactoryDependencies dependencies;
@@ -1738,7 +1138,7 @@ public:
         dependencies.signaling_thread = getSignalingThread();
         dependencies.task_queue_factory = webrtc::CreateDefaultTaskQueueFactory();
 
-        if (!createAudioDeviceModule(dependencies)) { // todo type of audio device from constr of GroupInst
+        if (!createAudioDeviceModule(dependencies)) {
             return;
         }
 
@@ -1749,7 +1149,6 @@ public:
         mediaDeps.video_encoder_factory = PlatformInterface::SharedInstance()->makeVideoEncoderFactory();
         mediaDeps.video_decoder_factory = PlatformInterface::SharedInstance()->makeVideoDecoderFactory();
         mediaDeps.adm = _adm_use_withAudioDeviceModule;
-        mediaDeps.audio_processing = webrtc::AudioProcessingBuilder().Create();
 
         std::shared_ptr<CombinedVad> myVad(new CombinedVad());
 
@@ -1814,7 +1213,7 @@ public:
 
         audioConfig.high_pass_filter.enabled = true;
 
-//        apm->ApplyConfig(audioConfig);
+        apm->ApplyConfig(audioConfig);
 
         mediaDeps.audio_processing = apm;
 
@@ -1840,9 +1239,9 @@ public:
         webrtc::PeerConnectionInterface::RTCConfiguration config;
         config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
         //config.continual_gathering_policy = webrtc::PeerConnectionInterface::ContinualGatheringPolicy::GATHER_CONTINUALLY;
-        config.audio_jitter_buffer_fast_accelerate = false;
-        config.prioritize_most_likely_ice_candidate_pairs = false;
-        config.presume_writable_when_fully_relayed = false;
+        config.audio_jitter_buffer_fast_accelerate = true;
+        config.prioritize_most_likely_ice_candidate_pairs = true;
+        config.presume_writable_when_fully_relayed = true;
         //config.audio_jitter_buffer_enable_rtx_handling = true;
 
         /*webrtc::CryptoOptions cryptoOptions;
@@ -1933,6 +1332,7 @@ public:
             // is active leads to errors in recording and assertion violation.
 			adm->EnableBuiltInAEC(false);
 #endif // WEBRTC_WIN
+
             if (adm->InitPlayout() == 0) {
                 adm->StartPlayout();
             } else {
@@ -1968,12 +1368,6 @@ public:
                     adm->StartRecording();
                 }
             };
-
-//            std::cout << "setAudioInputDevice " << webrtc::AudioDeviceModule::kPlatformDefaultAudio;
-//            adm->SetRecordingDevice(webrtc::AudioDeviceModule::kPlatformDefaultAudio);
-//            return finish();
-            // todo if from file should be kPlatformDefaultAudio (!= kDefaultCommunicationDevice)
-
             if (id == "default" || id.empty()) {
                 if (const auto result = adm->SetRecordingDevice(webrtc::AudioDeviceModule::kDefaultCommunicationDevice)) {
                     RTC_LOG(LS_ERROR) << "setAudioInputDevice(" << id << "): SetRecordingDevice(kDefaultCommunicationDevice) failed: " << result << ".";
@@ -1993,7 +1387,7 @@ public:
                 char name[webrtc::kAdmMaxDeviceNameSize + 1] = { 0 };
                 char guid[webrtc::kAdmMaxGuidSize + 1] = { 0 };
                 adm->RecordingDeviceName(i, name, guid);
-                if (id == guid || id == name) {
+                if (id == guid) {
                     const auto result = adm->SetRecordingDevice(i);
                     if (result != 0) {
                         RTC_LOG(LS_ERROR) << "setAudioInputDevice(" << id << ") name '" << std::string(name) << "' failed: " << result << ".";
@@ -2022,10 +1416,6 @@ public:
                     adm->StartPlayout();
                 }
             };
-
-//            adm->SetPlayoutDevice(webrtc::AudioDeviceModule::kDummyAudio);
-//            return finish();
-
             if (id == "default" || id.empty()) {
                 if (const auto result = adm->SetPlayoutDevice(webrtc::AudioDeviceModule::kDefaultCommunicationDevice)) {
                     RTC_LOG(LS_ERROR) << "setAudioOutputDevice(" << id << "): SetPlayoutDevice(kDefaultCommunicationDevice) failed: " << result << ".";
@@ -2045,7 +1435,7 @@ public:
                 char name[webrtc::kAdmMaxDeviceNameSize + 1] = { 0 };
                 char guid[webrtc::kAdmMaxGuidSize + 1] = { 0 };
                 adm->PlayoutDeviceName(i, name, guid);
-                if (id == guid || id == name) {
+                if (id == guid) {
                     const auto result = adm->SetPlayoutDevice(i);
                     if (result != 0) {
                         RTC_LOG(LS_ERROR) << "setAudioOutputDevice(" << id << ") name '" << std::string(name) << "' failed: " << result << ".";
