@@ -184,6 +184,24 @@ RUN make DESTDIR="$LibrariesPath/ffmpeg-cache" install
 
 WORKDIR ..
 
+FROM builder AS openal
+RUN git clone -b fix_pulse_default --depth=1 $GIT/telegramdesktop/openal-soft.git
+
+WORKDIR openal-soft
+RUN cmake -B build . \
+	-DCMAKE_BUILD_TYPE=Release \
+	-DLIBTYPE:STRING=STATIC \
+	-DALSOFT_EXAMPLES=OFF \
+	-DALSOFT_TESTS=OFF \
+	-DALSOFT_UTILS=OFF \
+	-DALSOFT_CONFIG=OFF
+
+RUN cmake --build build -j$(nproc)
+RUN DESTDIR="$LibrariesPath/openal-cache" cmake --install build
+
+WORKDIR ..
+RUN rm -rf openal
+
 FROM builder AS webrtc
 
 COPY --from=mozjpeg ${LibrariesPath}/mozjpeg-cache /
@@ -221,6 +239,7 @@ COPY --from=mozjpeg ${LibrariesPath}/mozjpeg-cache /
 COPY --from=opus ${LibrariesPath}/opus-cache /
 COPY --from=ffmpeg ${LibrariesPath}/ffmpeg ffmpeg
 COPY --from=ffmpeg ${LibrariesPath}/ffmpeg-cache /
+COPY --from=openal ${LibrariesPath}/openal-cache /
 COPY --from=openssl ${LibrariesPath}/openssl-cache /
 COPY --from=webrtc ${LibrariesPath}/webrtc tg_owt
 
