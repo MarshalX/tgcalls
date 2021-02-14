@@ -1,4 +1,4 @@
-FROM ubuntu:latest AS builder
+FROM i386/ubuntu:latest AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV GIT https://github.com
@@ -20,7 +20,7 @@ RUN apt-get update \
     libasound2-dev \
     libpulse-dev \
     ninja-build \
-    python-dev-is-python3
+    python3-dev
 
 ENV LibrariesPath /usr/src/Libraries
 WORKDIR $LibrariesPath
@@ -213,14 +213,14 @@ COPY tgcalls/third_party/webrtc ${LibrariesPath}/webrtc
 
 WORKDIR webrtc
 
-RUN cmake -B out/Release . \
-	-DCMAKE_BUILD_TYPE=Release \
-	-DTG_OWT_SPECIAL_TARGET=linux \
-	-DTG_OWT_LIBJPEG_INCLUDE_PATH=/usr/local/include \
-	-DTG_OWT_OPENSSL_INCLUDE_PATH=$OPENSSL_PREFIX/include \
-	-DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \
-	-DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include
-RUN cmake --build out/Release -- -j$(nproc)
+# RUN cmake -B out/Release . \
+# 	-DCMAKE_BUILD_TYPE=Release \
+# 	-DTG_OWT_SPECIAL_TARGET=linux \
+# 	-DTG_OWT_LIBJPEG_INCLUDE_PATH=/usr/local/include \
+# 	-DTG_OWT_OPENSSL_INCLUDE_PATH=$OPENSSL_PREFIX/include \
+# 	-DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \
+# 	-DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include
+# RUN cmake --build out/Release -- -j$(nproc)
 
 RUN cmake -B out/Debug . \
 	-DCMAKE_BUILD_TYPE=Debug \

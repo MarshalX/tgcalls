@@ -1,0 +1,12 @@
+name: GitHub Actions Docker
+description: Docker container
+
+author: Marshal
+
+branding:
+  color: green
+  icon: activity
+
+runs:
+  using: docker
+  image: Dockerfile
