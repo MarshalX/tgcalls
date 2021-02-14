@@ -14,6 +14,11 @@ class AudioDeviceModule;
 class TaskQueueFactory;
 }
 
+namespace rtc {
+template <class T>
+class scoped_refptr;
+}
+
 namespace tgcalls {
 
 class LogSinkImpl;
@@ -44,6 +49,7 @@ struct GroupInstanceDescriptor {
     std::string initialInputDeviceId;
     std::string initialOutputDeviceId;
     bool debugIgnoreMissingSsrcs = false;
+    std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory*)> createAudioDeviceModule;
 };
 
 struct GroupJoinPayloadFingerprint {
@@ -101,6 +107,8 @@ public:
     void setIsMuted(bool isMuted);
     void setAudioOutputDevice(std::string id);
     void setAudioInputDevice(std::string id);
+
+    void setVolume(uint32_t ssrc, double volume);
 
     struct AudioDevice {
       enum class Type {Input, Output};

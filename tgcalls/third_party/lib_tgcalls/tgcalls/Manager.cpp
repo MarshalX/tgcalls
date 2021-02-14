@@ -122,6 +122,7 @@ _remotePrefferedAspectRatioUpdated(std::move(descriptor.remotePrefferedAspectRat
 _signalingDataEmitted(std::move(descriptor.signalingDataEmitted)),
 _signalBarsUpdated(std::move(descriptor.signalBarsUpdated)),
 _audioLevelUpdated(std::move(descriptor.audioLevelUpdated)),
+_createAudioDeviceModule(std::move(descriptor.createAudioDeviceModule)),
 _enableHighBitrateVideo(descriptor.config.enableHighBitrateVideo),
 _dataSaving(descriptor.config.dataSaving) {
 	assert(_thread->IsCurrent());
@@ -243,7 +244,7 @@ void Manager::start() {
 			});
 	}));
 	bool isOutgoing = _encryptionKey.isOutgoing;
-	_mediaManager.reset(new ThreadLocalObject<MediaManager>(getMediaThread(), [weak, isOutgoing, protocolVersion = _protocolVersion, thread, sendSignalingMessage, videoCapture = _videoCapture, mediaDevicesConfig = _mediaDevicesConfig, enableHighBitrateVideo = _enableHighBitrateVideo, signalBarsUpdated = _signalBarsUpdated, audioLevelUpdated = _audioLevelUpdated, preferredCodecs = _preferredCodecs]() {
+	_mediaManager.reset(new ThreadLocalObject<MediaManager>(getMediaThread(), [weak, isOutgoing, protocolVersion = _protocolVersion, thread, sendSignalingMessage, videoCapture = _videoCapture, mediaDevicesConfig = _mediaDevicesConfig, enableHighBitrateVideo = _enableHighBitrateVideo, signalBarsUpdated = _signalBarsUpdated, audioLevelUpdated = _audioLevelUpdated, preferredCodecs = _preferredCodecs, createAudioDeviceModule = _createAudioDeviceModule]() {
 		return new MediaManager(
 			getMediaThread(),
 			isOutgoing,
@@ -262,7 +263,8 @@ void Manager::start() {
 			},
             signalBarsUpdated,
             audioLevelUpdated,
-            enableHighBitrateVideo,
+			createAudioDeviceModule,
+			enableHighBitrateVideo,
             preferredCodecs);
 	}));
     _networkManager->perform(RTC_FROM_HERE, [](NetworkManager *networkManager) {

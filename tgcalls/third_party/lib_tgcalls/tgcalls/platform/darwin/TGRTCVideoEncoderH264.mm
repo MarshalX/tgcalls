@@ -19,7 +19,6 @@
 #endif
 #import "RTCCodecSpecificInfoH264.h"
 #import "RTCH264ProfileLevelId.h"
-#import "api/peerconnection/RTCRtpFragmentationHeader+Private.h"
 #import "api/peerconnection/RTCVideoCodecInfo+Private.h"
 #import "base/RTCCodecSpecificInfo.h"
 #import "base/RTCI420Buffer.h"
@@ -784,12 +783,8 @@ static NSUInteger GetMaxSampleRate(const webrtc::H264::ProfileLevelId &profile_l
   }
 
   __block std::unique_ptr<rtc::Buffer> buffer = std::make_unique<rtc::Buffer>();
-  RTCRtpFragmentationHeader *header;
   {
-    std::unique_ptr<webrtc::RTPFragmentationHeader> header_cpp;
-    bool result =
-        H264CMSampleBufferToAnnexBBuffer(sampleBuffer, isKeyframe, buffer.get(), &header_cpp);
-    header = [[RTCRtpFragmentationHeader alloc] initWithNativeFragmentationHeader:header_cpp.get()];
+	bool result = webrtc::H264CMSampleBufferToAnnexBBuffer(sampleBuffer, isKeyframe, buffer.get());
     if (!result) {
       return;
     }
@@ -804,7 +799,7 @@ static NSUInteger GetMaxSampleRate(const webrtc::H264::ProfileLevelId &profile_l
                                          }];
   frame.encodedWidth = width;
   frame.encodedHeight = height;
-  frame.completeFrame = YES;
+  //frame.completeFrame = YES;
   frame.frameType = isKeyframe ? RTCFrameTypeVideoFrameKey : RTCFrameTypeVideoFrameDelta;
   frame.captureTimeMs = renderTimeMs;
   frame.timeStamp = timestamp;
@@ -818,7 +813,7 @@ static NSUInteger GetMaxSampleRate(const webrtc::H264::ProfileLevelId &profile_l
   _h264BitstreamParser.GetLastSliceQp(&qp);
   frame.qp = @(qp);
 
-  BOOL res = _callback(frame, codecSpecificInfo, header);
+  BOOL res = _callback(frame, codecSpecificInfo);
   if (!res) {
     RTC_LOG(LS_ERROR) << "Encode callback failed";
     return;
