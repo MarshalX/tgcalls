@@ -193,9 +193,8 @@ PRIVATE
     rtc_base/crypt_string.h
     rtc_base/checks.cc
     rtc_base/checks.h
-    # temporary without comment?
-     rtc_base/critical_section.cc
-     rtc_base/critical_section.h
+    #rtc_base/critical_section.cc
+    #rtc_base/critical_section.h
     rtc_base/data_rate_limiter.cc
     rtc_base/data_rate_limiter.h
     rtc_base/dscp.h
