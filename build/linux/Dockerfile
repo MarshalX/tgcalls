@@ -12,7 +12,6 @@ RUN apt-get update \
     pkg-config \
     git \
     build-essential \
-    cmake \
     autoconf \
     libtool \
     yasm \
@@ -24,6 +23,13 @@ RUN apt-get update \
 
 ENV LibrariesPath /usr/src/Libraries
 WORKDIR $LibrariesPath
+
+RUN wget https://cmake.org/files/v3.19/cmake-3.19.4.tar.gz
+RUN tar -xzvf cmake-3.19.4.tar.gz
+WORKDIR cmake-3.19.4
+RUN ./bootstrap
+RUN make -j$(nproc)
+RUN make install
 
 RUN wget https://bootstrap.pypa.io/get-pip.py
 RUN python3 get-pip.py
