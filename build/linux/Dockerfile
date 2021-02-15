@@ -16,7 +16,6 @@ RUN apt-get update \
     autoconf \
     libtool \
     yasm \
-    libdrm-dev \
     libasound2-dev \
     libpulse-dev \
     ninja-build \
@@ -52,7 +51,6 @@ FROM builder AS opus
 RUN git clone -b v1.3 --depth=1 $GIT/xiph/opus.git
 
 WORKDIR opus
-ENV CFLAGS "-fPIC"
 RUN ./autogen.sh
 RUN ./configure --enable-static --with-pic
 RUN make -j$(nproc)
@@ -81,9 +79,6 @@ RUN git clone -b release/4.2 --depth=1 $GIT/FFmpeg/FFmpeg.git ffmpeg
 
 WORKDIR ffmpeg
 RUN ./configure \
-    --pkg-config-flags="--static" \
-#     --extra-cflags="-I/usr/local/include -static" \
-#     --extra-ldflags="-L/usr/local/lib -static" \
 	--disable-debug \
 	--disable-programs \
 	--disable-doc \
@@ -91,15 +86,11 @@ RUN ./configure \
 	--disable-autodetect \
 	--disable-everything \
 	--disable-alsa \
-	--disable-libxcb \
-    --disable-xlib \
-    --disable-lzma \
-    --disable-vaapi \
+	--disable-asm \
 	--disable-iconv \
 	--disable-shared \
 	--enable-static \
 	--enable-libopus \
-    --enable-libdrm \
 	--enable-protocol=file \
 	--enable-hwaccel=h264_vaapi \
 	--enable-hwaccel=h264_vdpau \
@@ -195,24 +186,6 @@ RUN make DESTDIR="$LibrariesPath/ffmpeg-cache" install
 
 WORKDIR ..
 
-FROM builder AS openal
-RUN git clone -b fix_pulse_default --depth=1 $GIT/telegramdesktop/openal-soft.git
-
-WORKDIR openal-soft
-RUN cmake -B build . \
-	-DCMAKE_BUILD_TYPE=Release \
-	-DLIBTYPE:STRING=STATIC \
-	-DALSOFT_EXAMPLES=OFF \
-	-DALSOFT_TESTS=OFF \
-	-DALSOFT_UTILS=OFF \
-	-DALSOFT_CONFIG=OFF
-
-RUN cmake --build build -j$(nproc)
-RUN DESTDIR="$LibrariesPath/openal-cache" cmake --install build
-
-WORKDIR ..
-RUN rm -rf openal
-
 FROM builder AS webrtc
 
 COPY --from=mozjpeg ${LibrariesPath}/mozjpeg-cache /
@@ -227,6 +200,8 @@ WORKDIR webrtc
 # RUN cmake -B out/Release . \
 # 	-DCMAKE_BUILD_TYPE=Release \
 # 	-DTG_OWT_SPECIAL_TARGET=linux \
+# 	-DBUILD_SHARED_LIBS=OFF \
+#   -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
 # 	-DTG_OWT_LIBJPEG_INCLUDE_PATH=/usr/local/include \
 # 	-DTG_OWT_OPENSSL_INCLUDE_PATH=$OPENSSL_PREFIX/include \
 # 	-DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \
@@ -252,7 +227,6 @@ COPY --from=mozjpeg ${LibrariesPath}/mozjpeg-cache /
 COPY --from=opus ${LibrariesPath}/opus-cache /
 COPY --from=ffmpeg ${LibrariesPath}/ffmpeg ffmpeg
 COPY --from=ffmpeg ${LibrariesPath}/ffmpeg-cache /
-COPY --from=openal ${LibrariesPath}/openal-cache /
 COPY --from=openssl ${LibrariesPath}/openssl-cache /
 COPY --from=webrtc ${LibrariesPath}/webrtc tg_owt
 

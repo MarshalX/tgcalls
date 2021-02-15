@@ -25,7 +25,6 @@ include(cmake/options.cmake)
 add_subdirectory(${third_party_loc}/pybind11)
 
 add_subdirectory(cmake/external/jpeg)
-add_subdirectory(cmake/external/openal)
 add_subdirectory(cmake/external/openssl)
 add_subdirectory(cmake/external/opus)
 add_subdirectory(cmake/external/webrtc)
