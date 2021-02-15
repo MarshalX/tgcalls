@@ -1,4 +1,4 @@
-FROM i386/ubuntu:latest AS builder
+FROM ubuntu:latest AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV GIT https://github.com
@@ -12,6 +12,7 @@ RUN apt-get update \
     pkg-config \
     git \
     build-essential \
+    cmake \
     autoconf \
     libtool \
     yasm \
@@ -19,17 +20,10 @@ RUN apt-get update \
     libasound2-dev \
     libpulse-dev \
     ninja-build \
-    python3-dev
+    python-dev-is-python3
 
 ENV LibrariesPath /usr/src/Libraries
 WORKDIR $LibrariesPath
-
-RUN wget https://cmake.org/files/v3.19/cmake-3.19.4.tar.gz
-RUN tar -xzvf cmake-3.19.4.tar.gz
-WORKDIR cmake-3.19.4
-RUN ./bootstrap
-RUN make -j$(nproc)
-RUN make install
 
 RUN wget https://bootstrap.pypa.io/get-pip.py
 RUN python3 get-pip.py
@@ -45,6 +39,7 @@ WORKDIR mozjpeg
 RUN cmake -B build . \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DCMAKE_INSTALL_PREFIX=/usr/local \
+	-DCMAKE_POSITION_INDEPENDENT_CODE=ON \
 	-DWITH_JPEG8=ON \
 	-DPNG_SUPPORTED=OFF
 
@@ -57,8 +52,9 @@ FROM builder AS opus
 RUN git clone -b v1.3 --depth=1 $GIT/xiph/opus.git
 
 WORKDIR opus
+ENV CFLAGS "-fPIC"
 RUN ./autogen.sh
-RUN ./configure
+RUN ./configure --enable-static --with-pic
 RUN make -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/opus-cache" install
 
@@ -85,6 +81,9 @@ RUN git clone -b release/4.2 --depth=1 $GIT/FFmpeg/FFmpeg.git ffmpeg
 
 WORKDIR ffmpeg
 RUN ./configure \
+    --pkg-config-flags="--static" \
+#     --extra-cflags="-I/usr/local/include -static" \
+#     --extra-ldflags="-L/usr/local/lib -static" \
 	--disable-debug \
 	--disable-programs \
 	--disable-doc \
@@ -92,7 +91,13 @@ RUN ./configure \
 	--disable-autodetect \
 	--disable-everything \
 	--disable-alsa \
+	--disable-libxcb \
+    --disable-xlib \
+    --disable-lzma \
+    --disable-vaapi \
 	--disable-iconv \
+	--disable-shared \
+	--enable-static \
 	--enable-libopus \
     --enable-libdrm \
 	--enable-protocol=file \
@@ -231,6 +236,8 @@ WORKDIR webrtc
 RUN cmake -B out/Debug . \
 	-DCMAKE_BUILD_TYPE=Debug \
 	-DTG_OWT_SPECIAL_TARGET=linux \
+	-DBUILD_SHARED_LIBS=OFF \
+	-DCMAKE_POSITION_INDEPENDENT_CODE=ON \
 	-DTG_OWT_LIBJPEG_INCLUDE_PATH=/usr/local/include \
 	-DTG_OWT_OPENSSL_INCLUDE_PATH=$OPENSSL_PREFIX/include \
 	-DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \

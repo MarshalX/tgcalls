@@ -1,4 +1,4 @@
-include(cmake/external_ffmpeg.cmake)
+#include(cmake/external_ffmpeg.cmake)
 include(cmake/lib_tgcalls.cmake)
 
 list(APPEND SOURCES
@@ -15,10 +15,7 @@ pybind11_add_module(tgcalls ${SOURCES})
 target_link_libraries(tgcalls
 PRIVATE
     lib_tgcalls
-    external_openal
-    external_openssl
-    external_jpeg
-    external_ffmpeg
+#    external_ffmpeg # todo
     external_webrtc
 )
 
