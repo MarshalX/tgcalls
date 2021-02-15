@@ -6,6 +6,9 @@ ENV PKG_CONFIG_PATH /usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/loc
 ENV OPENSSL_VER 1_1_1
 ENV OPENSSL_PREFIX /usr/local/desktop-app/openssl-1.1.1
 
+COPY /home/runner/work/tgcalls/tgcalls/tgcalls/third_party/webrtc /webrtc
+# temp test
+
 RUN apt-get update \
     && apt-get install -y \
     wget \
