@@ -23,4 +23,4 @@ jobs:
           context: .
           file: build/manylinux/Dockerfile
           push: true
-          tags: ghcr.io/MarshalX/tgcalls:latest
+          tags: ghcr.io/tgcalls/manylinux:latest
