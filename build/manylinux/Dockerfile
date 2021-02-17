@@ -1,5 +1,6 @@
-# TODO from arg
-FROM quay.io/pypa/manylinux2014_x86_64 AS builder
+ARG MANYLINUX_PLATFORM
+ENV MANYLINUX_PLATFORM $MANYLINUX_PLATFORM
+FROM quay.io/pypa/$MANYLINUX_PLATFORM AS builder
 
 ENV GIT https://github.com
 ENV PKG_CONFIG_PATH /usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig
