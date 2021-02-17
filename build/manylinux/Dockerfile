@@ -1,9 +1,9 @@
 ARG MANYLINUX_PLATFORM
-ENV MANYLINUX_PLATFORM $MANYLINUX_PLATFORM
 FROM quay.io/pypa/$MANYLINUX_PLATFORM AS builder
 
-ENV GIT https://github.com
+ENV MANYLINUX_PLATFORM $MANYLINUX_PLATFORM
 ENV PKG_CONFIG_PATH /usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig
+ENV GIT https://github.com
 ENV OPENSSL_VER 1_1_1
 ENV OPENSSL_PREFIX /usr/local/desktop-app/openssl-1.1.1
 
