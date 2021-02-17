@@ -23,4 +23,4 @@ jobs:
           context: .
           file: build/manylinux/Dockerfile
           push: true
-          tags: ghcr.io/tgcalls/manylinux:latest
+          tags: ghcr.io/${{ github.repository_owner }}/tgcalls/manylinux:latest
