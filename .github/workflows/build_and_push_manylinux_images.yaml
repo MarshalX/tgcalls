@@ -20,3 +20,4 @@ jobs:
         with:
           context: .
           push: true
+          tags: tgcalls/manylinux:latest
