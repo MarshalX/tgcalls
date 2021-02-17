@@ -6,9 +6,6 @@ ENV PKG_CONFIG_PATH /usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/loc
 ENV OPENSSL_VER 1_1_1
 ENV OPENSSL_PREFIX /usr/local/desktop-app/openssl-1.1.1
 
-COPY ../../tgcalls/third_party/webrtc /webrtc
-# temp test
-
 RUN apt-get update \
     && apt-get install -y \
     wget \
@@ -200,16 +197,16 @@ COPY tgcalls/third_party/webrtc ${LibrariesPath}/webrtc
 
 WORKDIR webrtc
 
-# RUN cmake -B out/Release . \
-# 	-DCMAKE_BUILD_TYPE=Release \
-# 	-DTG_OWT_SPECIAL_TARGET=linux \
-# 	-DBUILD_SHARED_LIBS=OFF \
-#   -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-# 	-DTG_OWT_LIBJPEG_INCLUDE_PATH=/usr/local/include \
-# 	-DTG_OWT_OPENSSL_INCLUDE_PATH=$OPENSSL_PREFIX/include \
-# 	-DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \
-# 	-DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include
-# RUN cmake --build out/Release -- -j$(nproc)
+RUN cmake -B out/Release . \
+	-DCMAKE_BUILD_TYPE=Release \
+	-DTG_OWT_SPECIAL_TARGET=linux \
+	-DBUILD_SHARED_LIBS=OFF \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+	-DTG_OWT_LIBJPEG_INCLUDE_PATH=/usr/local/include \
+	-DTG_OWT_OPENSSL_INCLUDE_PATH=$OPENSSL_PREFIX/include \
+	-DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \
+	-DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include
+RUN cmake --build out/Release -- -j$(nproc)
 
 RUN cmake -B out/Debug . \
 	-DCMAKE_BUILD_TYPE=Debug \
