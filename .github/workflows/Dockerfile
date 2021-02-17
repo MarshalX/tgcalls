@@ -1,14 +1,15 @@
-FROM centos:7 AS builder
+# TODO from arg
+FROM quay.io/pypa/manylinux2014_x86_64 AS builder
 
 ENV GIT https://github.com
 ENV PKG_CONFIG_PATH /usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig
 ENV OPENSSL_VER 1_1_1
 ENV OPENSSL_PREFIX /usr/local/desktop-app/openssl-1.1.1
 
-RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 RUN yum -y install https://packages.endpoint.com/rhel/7/os/x86_64/endpoint-repo-1.7-1.x86_64.rpm
 RUN yum -y install centos-release-scl
 
+# TODO cleanup packages
 RUN yum -y install git cmake3 meson ninja-build autoconf automake libtool \
 	zlib-devel gtk2-devel gtk3-devel libdrm-devel fontconfig-devel \
 	freetype-devel libX11-devel at-spi2-core-devel alsa-lib-devel \
@@ -34,6 +35,7 @@ WORKDIR mozjpeg
 RUN cmake3 -B build . \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DCMAKE_INSTALL_PREFIX=/usr/local \
+	-DCMAKE_POSITION_INDEPENDENT_CODE=ON \
 	-DWITH_JPEG8=ON \
 	-DPNG_SUPPORTED=OFF
 
@@ -48,7 +50,7 @@ RUN git clone -b v1.3 --depth=1 $GIT/xiph/opus.git
 
 WORKDIR opus
 RUN ./autogen.sh
-RUN ./configure
+RUN ./configure --with-pic
 RUN make -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/opus-cache" install
 
@@ -89,8 +91,12 @@ RUN ./configure \
 	--disable-autodetect \
 	--disable-everything \
 	--disable-alsa \
+	--disable-asm \
 	--disable-iconv \
+	--disable-shared \
+	--enable-static \
 	--enable-libopus \
+	--enable-pic \
 	--enable-protocol=file \
 	--enable-hwaccel=h264_vaapi \
 	--enable-hwaccel=h264_vdpau \
@@ -186,30 +192,6 @@ RUN make DESTDIR="$LibrariesPath/ffmpeg-cache" install
 
 WORKDIR ..
 
-FROM builder AS webrtc
-
-COPY --from=mozjpeg ${LibrariesPath}/mozjpeg-cache /
-COPY --from=opus ${LibrariesPath}/opus-cache /
-COPY --from=ffmpeg ${LibrariesPath}/ffmpeg-cache /
-COPY --from=openssl ${LibrariesPath}/openssl-cache /
-
-COPY tgcalls/third_party/webrtc ${LibrariesPath}/webrtc
-
-WORKDIR webrtc
-
-RUN cmake -B out/Debug . \
-	-DCMAKE_BUILD_TYPE=Debug \
-	-DTG_OWT_SPECIAL_TARGET=linux \
-	-DBUILD_SHARED_LIBS=OFF \
-	-DCMAKE_POSITION_INDEPENDENT_CODE=ON \
-	-DTG_OWT_LIBJPEG_INCLUDE_PATH=/usr/local/include \
-	-DTG_OWT_OPENSSL_INCLUDE_PATH=$OPENSSL_PREFIX/include \
-	-DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \
-	-DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include
-RUN cmake --build out/Debug -- -j$(nproc)
-
-WORKDIR ..
-
 FROM builder
 
 COPY --from=mozjpeg ${LibrariesPath}/mozjpeg-cache /
@@ -217,10 +199,3 @@ COPY --from=opus ${LibrariesPath}/opus-cache /
 COPY --from=ffmpeg ${LibrariesPath}/ffmpeg ffmpeg
 COPY --from=ffmpeg ${LibrariesPath}/ffmpeg-cache /
 COPY --from=openssl ${LibrariesPath}/openssl-cache /
-COPY --from=webrtc ${LibrariesPath}/webrtc tg_owt
-
-WORKDIR ..
-COPY ./ tgcalls
-WORKDIR tgcalls
-
-RUN python3 setup.py build --debug
