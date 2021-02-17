@@ -20,6 +20,7 @@ jobs:
       - name: Push to GitHub Packages
         uses: docker/build-push-action@v2
         with:
+          context: .
           file: build/manylinux/Dockerfile
           push: true
           tags: tgcalls/manylinux:latest
