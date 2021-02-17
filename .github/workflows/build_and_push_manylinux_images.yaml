@@ -18,12 +18,11 @@ jobs:
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
       - name: Prepare registry name
-        run: |
-          echo IMAGE_REPOSITORY=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+        run: echo IMAGE_REPOSITORY=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
       - name: Push to GitHub Packages
         uses: docker/build-push-action@v2
         with:
           context: .
           file: build/manylinux/Dockerfile
           push: true
-          tags: ghcr.io/$IMAGE_REPOSITORY/tgcalls/manylinux:latest
+          tags: ghcr.io/${{ env.IMAGE_REPOSITORY }}/tgcalls/manylinux:latest
