@@ -26,6 +26,6 @@ RUN cmake3 -B out/Debug . \
 	-DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include
 RUN cmake --build out/Debug -- -j$(nproc)
 
-WORKDIR ..
+COPY cp -R ${LibrariesPath}/webrtc tg_owt
 
-COPY --from=builder ${LibrariesPath}/webrtc tg_owt
+WORKDIR ..
