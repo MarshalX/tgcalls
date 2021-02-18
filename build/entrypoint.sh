@@ -5,6 +5,7 @@ PYTHON_VERSIONS=$1
 MANYLINUX_PLATFORM=$2
 
 cp -R /github/workspace /usr/src/tgcalls
+cp -R /usr/src/Libraries/ /tmp/Libraries
 cd /usr/src/tgcalls
 
 function repair_wheel {
@@ -24,7 +25,5 @@ done
 for whl in wheelhouse/*.whl; do
     repair_wheel "$whl"
 done
-
-#/opt/python/cp37-cp37m/bin/python setup.py build --debug
 
 # upload to pypi/github releases/etc
