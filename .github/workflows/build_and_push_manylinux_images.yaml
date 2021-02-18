@@ -35,4 +35,4 @@ jobs:
           file: build/manylinux/Dockerfile
           push: true
           build-args: MANYLINUX_PLATFORM=${{ matrix.manylinux_tag }}
-          tags: ${{ env.IMAGE_REPOSITORY }}/tgcalls/${{ matrix.manylinux_tag }}:latest
+          tags: docker.pkg.github.com/${{ env.IMAGE_REPOSITORY }}/tgcalls/${{ matrix.manylinux_tag }}:latest
