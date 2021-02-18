@@ -178,3 +178,5 @@ RUN make -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/ffmpeg-cache" install
 
 WORKDIR ..
+
+FROM builder

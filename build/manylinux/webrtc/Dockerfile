@@ -1,7 +1,15 @@
 ARG MANYLINUX_PLATFORM
 FROM ghcr.io/marshalx/tgcalls/$MANYLINUX_PLATFORM:latest AS builder
 
+FROM builder AS webrtc
+
+COPY --from=mozjpeg ${LibrariesPath}/mozjpeg-cache /
+COPY --from=opus ${LibrariesPath}/opus-cache /
+COPY --from=ffmpeg ${LibrariesPath}/ffmpeg-cache /
+COPY --from=openssl ${LibrariesPath}/openssl-cache /
+
 COPY tgcalls/third_party/webrtc ${LibrariesPath}/webrtc
+
 WORKDIR webrtc
 
 RUN cmake3 -B out/Release . \
@@ -25,6 +33,13 @@ RUN cmake3 -B out/Debug . \
 	-DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include
 RUN cmake --build out/Debug -- -j$(nproc)
 
-RUN cp -R ${LibrariesPath}/webrtc tg_owt
-
 WORKDIR ..
+
+FROM builder
+
+COPY --from=mozjpeg ${LibrariesPath}/mozjpeg-cache /
+COPY --from=opus ${LibrariesPath}/opus-cache /
+COPY --from=ffmpeg ${LibrariesPath}/ffmpeg ffmpeg
+COPY --from=ffmpeg ${LibrariesPath}/ffmpeg-cache /
+COPY --from=openssl ${LibrariesPath}/openssl-cache /
+COPY --from=webrtc ${LibrariesPath}/webrtc tg_owt
