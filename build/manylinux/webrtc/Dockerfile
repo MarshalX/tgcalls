@@ -3,11 +3,6 @@ FROM ghcr.io/marshalx/tgcalls/$MANYLINUX_PLATFORM:latest AS builder
 
 FROM builder AS webrtc
 
-COPY --from=mozjpeg ${LibrariesPath}/mozjpeg-cache /
-COPY --from=opus ${LibrariesPath}/opus-cache /
-COPY --from=ffmpeg ${LibrariesPath}/ffmpeg-cache /
-COPY --from=openssl ${LibrariesPath}/openssl-cache /
-
 COPY tgcalls/third_party/webrtc ${LibrariesPath}/webrtc
 
 WORKDIR webrtc

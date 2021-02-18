@@ -3,7 +3,7 @@ on:
   push:
     paths:
       - '.github/workflows/build_and_push_manylinux_images.yaml'
-      - 'build/manylinux/**'
+      - 'build/manylinux/Dockerfile'
 jobs:
   build_push_to_registry:
     name: Push Docker image to GitHub Packages
