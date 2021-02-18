@@ -23,7 +23,7 @@ jobs:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v1
         with:
-          registry: docker.pkg.github.com
+          registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
       - name: Prepare registry name
@@ -35,4 +35,4 @@ jobs:
           file: build/manylinux/Dockerfile
           push: true
           build-args: MANYLINUX_PLATFORM=${{ matrix.manylinux_tag }}
-          tags: docker.pkg.github.com/${{ env.IMAGE_REPOSITORY }}/tgcalls/${{ matrix.manylinux_tag }}:latest
+          tags: ghcr.io/${{ env.IMAGE_REPOSITORY }}/tgcalls/${{ matrix.manylinux_tag }}:latest
