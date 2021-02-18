@@ -17,7 +17,7 @@ branding:
 
 runs:
   using: docker
-  image: Dockerfile
+  image: build/Dockerfile
   args:
     - ${{ inputs.python-versions }}
     - ${{ inputs.manulinux-platform }}
