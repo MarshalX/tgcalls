@@ -4,8 +4,8 @@ set -e -u -x
 PYTHON_VERSIONS=$1
 MANYLINUX_PLATFORM=$2
 
-TWINE_USERNAME=$3
-TWINE_PASSWORD=$4
+export TWINE_USERNAME=$3
+export TWINE_PASSWORD=$4
 
 cp -R /github/workspace /usr/src/tgcalls
 cp -R /usr/src/Libraries/ /tmp/Libraries
