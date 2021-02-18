@@ -1,5 +1,10 @@
 name: Build manylinux with dependencies and WebRTC. Deploy images to GitHub Packages
-on: [push] # TODO
+on:
+  push:
+    paths:
+      - '.github/workflows/build_and_push_manylinux_images.yaml'
+      - 'build/manylinux/Dockerfile'
+      - 'tgcalls/third_party/webrtc/**'
 jobs:
   build_push_to_registry:
     name: Push Docker image to GitHub Packages
