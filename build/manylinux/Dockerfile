@@ -7,18 +7,10 @@ ENV GIT https://github.com
 ENV OPENSSL_VER 1_1_1
 ENV OPENSSL_PREFIX /usr/local/desktop-app/openssl-1.1.1
 
-# TODO
-RUN yum -y install https://packages.endpoint.com/rhel/7/os/x86_64/endpoint-repo-1.7-1.x86_64.rpm
-RUN yum -y install centos-release-scl
-
-# TODO cleanup packages
 RUN yum -y install git cmake3 meson ninja-build autoconf automake libtool \
-	zlib-devel gtk2-devel gtk3-devel libdrm-devel fontconfig-devel \
-	freetype-devel libX11-devel at-spi2-core-devel alsa-lib-devel \
-	pulseaudio-libs-devel mesa-libGL-devel mesa-libEGL-devel \
-	pkgconfig bison yasm file which xorg-x11-util-macros \
-	devtoolset-8-make devtoolset-8-gcc devtoolset-8-gcc-c++ \
-	devtoolset-8-binutils
+	zlib-devel alsa-lib-devel pulseaudio-libs-devel pkgconfig bison \
+	yasm file which devtoolset-8-make devtoolset-8-gcc \
+	devtoolset-8-gcc-c++ devtoolset-8-binutils
 
 SHELL [ "scl", "enable", "devtoolset-8", "--", "bash", "-c" ]
 RUN ln -s cmake3 /usr/bin/cmake
@@ -27,7 +19,6 @@ ENV LibrariesPath /usr/src/Libraries
 WORKDIR $LibrariesPath
 
 FROM builder AS patches
-ADD https://api.github.com/repos/desktop-app/patches/git/refs/heads/master patches-version.json
 RUN git clone --depth=1 $GIT/desktop-app/patches.git
 
 FROM builder AS mozjpeg
