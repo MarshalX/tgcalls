@@ -12,15 +12,13 @@ function repair_wheel {
     if ! auditwheel show "$wheel"; then
         echo "Skipping non-platform wheel $wheel"
     else
-        auditwheel repair "$wheel" --plat "$MANYLINUX_PLATFORM" -w /io/wheelhouse/
+        auditwheel repair "$wheel" --plat "$MANYLINUX_PLATFORM" -w wheelhouse/
     fi
 }
 
 arrPYTHON_VERSIONS=(${PYTHON_VERSIONS// / })
 for PYTHON_VER in "${arrPYTHON_VERSIONS[@]}"; do
-    /opt/python/"${PYTHON_VER}"/bin/pip install --upgrade --no-cache-dir pip
-
-    /opt/python/"${PYTHON_VER}"/bin/pip wheel /io/ --no-deps -w wheelhouse/
+    /opt/python/"${PYTHON_VER}"/bin/pip wheel . --no-deps -w wheelhouse/
 done
 
 for whl in wheelhouse/*.whl; do
