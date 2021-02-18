@@ -4,6 +4,9 @@ set -e -u -x
 PYTHON_VERSIONS=$1
 MANYLINUX_PLATFORM=$2
 
+TWINE_USERNAME=$3
+TWINE_PASSWORD=$4
+
 cp -R /github/workspace /usr/src/tgcalls
 cp -R /usr/src/Libraries/ /tmp/Libraries
 cd /usr/src/tgcalls
@@ -26,4 +29,5 @@ for whl in wheelhouse/*.whl; do
     repair_wheel "$whl"
 done
 
-# upload to pypi/github releases/etc
+/opt/python/cp37-cp37m/bin/pip install twine
+/opt/python/cp37-cp37m/bin/python twine upload /usr/src/tgcalls/wheelhouse/*.whl

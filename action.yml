@@ -10,6 +10,14 @@ inputs:
     description: 'Manylinux platform'
     required: true
     default: 'manylinux2014_x86_64'
+  twine-username:
+    description: 'Twine username'
+    required: true
+    default: ''
+  twine-password:
+    description: 'Twine password'
+    required: true
+    default: ''
 
 branding:
   color: green
@@ -21,3 +29,5 @@ runs:
   args:
     - ${{ inputs.python-versions }}
     - ${{ inputs.manulinux-platform }}
+    - ${{ inputs.twine-username }}
+    - ${{ inputs.twine-password }}
