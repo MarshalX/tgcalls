@@ -1,4 +1,4 @@
-name: Build wheels for x86_64 and many Python versions
+name: Build and publish wheels for x86_64 and many Python versions
 on: [push]
 jobs:
   build_wheels_for_x86_64:
@@ -14,3 +14,8 @@ jobs:
         with:
           python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
           manulinux-platform: 'manylinux2014_x86_64'
+      - name: Publish wheels to PyPI
+        env:
+          TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        run: twine upload /usr/src/tgcalls/wheelhouse/*.whl
