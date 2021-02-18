@@ -33,5 +33,6 @@ jobs:
           context: .
           file: build/manylinux/Dockerfile
           push: true
+          platforms: linux/arm64
           build-args: MANYLINUX_PLATFORM=${{ matrix.manylinux_tag }}
           tags: ghcr.io/${{ env.IMAGE_REPOSITORY }}/tgcalls/${{ matrix.manylinux_tag }}:latest
