@@ -37,9 +37,4 @@ WORKDIR ..
 
 FROM builder
 
-COPY --from=mozjpeg ${LibrariesPath}/mozjpeg-cache /
-COPY --from=opus ${LibrariesPath}/opus-cache /
-COPY --from=ffmpeg ${LibrariesPath}/ffmpeg ffmpeg
-COPY --from=ffmpeg ${LibrariesPath}/ffmpeg-cache /
-COPY --from=openssl ${LibrariesPath}/openssl-cache /
 COPY --from=webrtc ${LibrariesPath}/webrtc tg_owt
