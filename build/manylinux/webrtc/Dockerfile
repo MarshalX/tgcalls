@@ -1,8 +1,6 @@
 ARG MANYLINUX_PLATFORM
 FROM ghcr.io/marshalx/tgcalls/$MANYLINUX_PLATFORM:latest AS builder
 
-FROM builder AS webrtc
-
 COPY tgcalls/third_party/webrtc ${LibrariesPath}/webrtc
 
 WORKDIR webrtc
@@ -30,6 +28,4 @@ RUN cmake --build out/Debug -- -j$(nproc)
 
 WORKDIR ..
 
-FROM builder
-
-COPY --from=webrtc ${LibrariesPath}/webrtc tg_owt
+COPY --from=builder ${LibrariesPath}/webrtc tg_owt
