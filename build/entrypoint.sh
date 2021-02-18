@@ -30,4 +30,4 @@ for whl in wheelhouse/*.whl; do
 done
 
 /opt/python/cp37-cp37m/bin/pip install twine
-/opt/python/cp37-cp37m/bin/python twine upload /usr/src/tgcalls/wheelhouse/*.whl
+/opt/python/cp37-cp37m/bin/python -m twine upload /usr/src/tgcalls/wheelhouse/*.whl
