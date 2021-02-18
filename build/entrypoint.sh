@@ -4,7 +4,7 @@ set -e -x
 PYTHON_VERSIONS=$1
 MANYLINUX_PLATFORM=$2
 
-cd /github/workspace/tgcalls/tgcalls/third_party/webrtc
+cd /github/workspace/tgcalls/third_party/webrtc
 
 cmake -B out/Debug . \
 	-DCMAKE_BUILD_TYPE=Debug \
