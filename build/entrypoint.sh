@@ -4,20 +4,9 @@ set -e -x
 PYTHON_VERSIONS=$1
 MANYLINUX_PLATFORM=$2
 
-cd /
-
-echo $(ls)
+cp -R /github/workspace /usr/src/tgcalls
 
 cd /usr/src
-
-echo $(ls)
-
-cd /usr/src/Libraries
-
-echo $(ls)
-
-cd /github/workspace
-
 echo $(ls)
 
 #python3 setup.py build --debug

@@ -1,9 +1,9 @@
 ARG MANYLINUX_PLATFORM
 FROM ghcr.io/marshalx/tgcalls/$MANYLINUX_PLATFORM:latest AS builder
 
-COPY tgcalls/third_party/webrtc /tg_owt
+COPY tgcalls/third_party/webrtc ${LibrariesPath}/tg_owt
 
-WORKDIR /tg_owt
+WORKDIR tg_owt
 
 RUN cmake3 -B out/Release . \
 	-DCMAKE_BUILD_TYPE=Release \
