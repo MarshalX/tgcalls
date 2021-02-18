@@ -9,6 +9,8 @@ cp -R /github/workspace /usr/src/tgcalls
 cd /usr/src
 echo $(ls)
 
+cd /usr/src/tgcalls
+
 #python3 setup.py build --debug
 /opt/python/cp37-cp37m/bin/python setup.py build --debug
 # TODO path from manylinux. Matrix with python versions
