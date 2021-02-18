@@ -18,9 +18,6 @@ RUN ln -s cmake3 /usr/bin/cmake
 ENV LibrariesPath /usr/src/Libraries
 WORKDIR $LibrariesPath
 
-FROM builder AS patches
-RUN git clone --depth=1 $GIT/desktop-app/patches.git
-
 FROM builder AS mozjpeg
 RUN git clone -b v4.0.1-rc2 --depth=1 $GIT/mozilla/mozjpeg.git
 
@@ -68,11 +65,8 @@ RUN make DESTDIR="$LibrariesPath/openssl-cache" install_sw
 WORKDIR ..
 RUN rm -rf $opensslDir
 
-
 FROM builder AS ffmpeg
-
 COPY --from=opus ${LibrariesPath}/opus-cache /
-
 RUN git clone -b release/4.2 --depth=1 $GIT/FFmpeg/FFmpeg.git ffmpeg
 
 WORKDIR ffmpeg

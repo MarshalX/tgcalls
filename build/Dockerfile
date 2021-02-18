@@ -1,4 +1,4 @@
-FROM ghcr.io/marshalx/tgcalls/manylinux2014_x86_64:latest
+FROM ghcr.io/marshalx/tgcalls/manylinux2014_x86_64-webrtc:latest
 
 ENV PLATFORM manylinux2014_x86_64
 
