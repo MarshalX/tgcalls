@@ -113,7 +113,7 @@ class CMakeBuild(build_ext):
 
 setup(
     name='tgcalls',
-    version=f'0.0.1-dev{os.environ["EPOCHSECONDS"]}',
+    version=f'0.0.1-dev1',
     author='Il\'ya Semyonov',
     author_email='ilya@marshal.by',
     description='A python binding for tgcalls',
