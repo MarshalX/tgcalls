@@ -3,8 +3,6 @@ import os
 import sys
 import subprocess
 
-from time import time
-
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 
@@ -114,9 +112,11 @@ class CMakeBuild(build_ext):
         )
 
 
+label = subprocess.check_output(['git', 'describe', '--always']).strip()[5:]
+
 setup(
     name='tgcalls',
-    version=f'0.0.1-dev{int(time())}',
+    version=f'0.0.1-dev{label}',
     author='Il\'ya Semyonov',
     author_email='ilya@marshal.by',
     description='A python binding for tgcalls',
