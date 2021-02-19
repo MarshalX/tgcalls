@@ -4,6 +4,7 @@ on:
     paths:
       - '.github/workflows/build_and_push_manylinux_images.yaml'
       - 'build/manylinux/Dockerfile'
+      - 'build/manylinux/webrtc/Dockerfile'
       - 'tgcalls/third_party/webrtc/**'
 jobs:
   build_push_to_registry:

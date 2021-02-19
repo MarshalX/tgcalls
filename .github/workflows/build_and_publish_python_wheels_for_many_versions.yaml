@@ -1,5 +1,14 @@
 name: Build and publish wheels for x86_64 and many Python versions
-on: [push]
+on:
+  push:
+    paths:
+      - '.github/workflows/build_and_publish_python_wheels_for_many_versions.yaml'
+      - 'build/Dockerfile'
+      - 'build/entrypoint.sh'
+      - 'action.yml'
+      - 'setup.py'
+      - 'CMakeLists.txt'
+      - 'tgcalls/**'
 jobs:
   build_wheels_for_x86_64:
     name: Build and publish wheels for x86_64
