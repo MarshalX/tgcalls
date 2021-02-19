@@ -46,6 +46,9 @@ PRIVATE
     VideoCaptureInterfaceImpl.h
     VideoCapturerInterface.h
 
+    FileAudioDevice.cpp
+    FileAudioDevice.h
+
     group/GroupInstanceImpl.cpp
     group/GroupInstanceImpl.h
 

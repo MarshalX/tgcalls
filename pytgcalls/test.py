@@ -522,17 +522,17 @@ async def main(client1, client2, make_out, make_inc):
         await asyncio.sleep(1)
 
     calls = []
-    chats = ['@wallstreetbets']
+    chats = ['@MarshalCm']
     for chat in chats:
         group_call = GroupCall(client2)
         await group_call.get_group_call(chat)
         group_call.native_instance = tgcalls.NativeInstance()
         group_call.native_instance.setEmitJoinPayloadCallback(group_call.emit_join_payload_callback)
         group_call.native_instance.startGroupCall()
-        group_call.native_instance.setIsMuted(True)
+        group_call.native_instance.setIsMuted(False)
 
         calls.append(group_call)
-        # group_call.native_instance.setAudioInputDevice('VB-Cable')
+        group_call.native_instance.setAudioInputDevice('VB-Cable')
         group_call.native_instance.setAudioOutputDevice('default (Built-in Output)')
     # await asyncio.sleep(60)
     # group_call.native_instance.stopGroupCall()

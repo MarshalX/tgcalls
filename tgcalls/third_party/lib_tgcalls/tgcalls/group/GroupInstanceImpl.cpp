@@ -36,6 +36,8 @@
 #include <sstream>
 #include <iostream>
 
+#include "FileAudioDevice.cpp"
+
 namespace tgcalls {
 
 namespace {
@@ -1088,7 +1090,7 @@ public:
         }
         _adm_thread->Invoke<void>(RTC_FROM_HERE, [&] {
             const auto create = [&](webrtc::AudioDeviceModule::AudioLayer layer) {
-                return webrtc::AudioDeviceModule::Create(
+                return WrappedAudioDeviceModuleImpl::Create( // todo custom layer?
                     layer,
                     dependencies.task_queue_factory.get());
             };
@@ -1125,11 +1127,11 @@ public:
 
         webrtc::field_trial::InitFieldTrialsFromString(
             //"WebRTC-Audio-SendSideBwe/Enabled/"
-            "WebRTC-Audio-Allocation/min:32kbps,max:32kbps/"
+            "WebRTC-Audio-Allocation/min:128kbps,max:128kbps/"
             "WebRTC-Audio-OpusMinPacketLossRate/Enabled-1/"
             //"WebRTC-FlexFEC-03/Enabled/"
             //"WebRTC-FlexFEC-03-Advertised/Enabled/"
-            "WebRTC-PcFactoryDefaultBitrates/min:32kbps,start:32kbps,max:32kbps/"
+            "WebRTC-PcFactoryDefaultBitrates/min:128kbps,start:128kbps,max:128kbps/"
         );
 
         PlatformInterface::SharedInstance()->configurePlatformAudio();
@@ -1140,7 +1142,7 @@ public:
         dependencies.signaling_thread = getSignalingThread();
         dependencies.task_queue_factory = webrtc::CreateDefaultTaskQueueFactory();
 
-        if (!createAudioDeviceModule(dependencies)) {
+        if (!createAudioDeviceModule(dependencies)) {  // todo type of audio device from constr of GroupInst
             return;
         }
 
@@ -1151,6 +1153,7 @@ public:
         mediaDeps.video_encoder_factory = PlatformInterface::SharedInstance()->makeVideoEncoderFactory();
         mediaDeps.video_decoder_factory = PlatformInterface::SharedInstance()->makeVideoDecoderFactory();
         mediaDeps.adm = _adm_use_withAudioDeviceModule;
+        mediaDeps.audio_processing = webrtc::AudioProcessingBuilder().Create();
 
         std::shared_ptr<CombinedVad> myVad(new CombinedVad());
 
@@ -1215,7 +1218,7 @@ public:
 
 		audioConfig.high_pass_filter.enabled = true;
 
-        apm->ApplyConfig(audioConfig);
+//        apm->ApplyConfig(audioConfig);
 
         mediaDeps.audio_processing = apm;
 
