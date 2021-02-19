@@ -111,12 +111,9 @@ class CMakeBuild(build_ext):
             ['cmake', '--build', '.'] + build_args, cwd=self.build_temp
         )
 
-
-label = subprocess.check_output(['git', 'describe', '--always']).strip()[5:]
-
 setup(
     name='tgcalls',
-    version=f'0.0.1-dev{label}',
+    version=f'0.0.1-dev{os.environ["EPOCHSECONDS"]}',
     author='Il\'ya Semyonov',
     author_email='ilya@marshal.by',
     description='A python binding for tgcalls',
