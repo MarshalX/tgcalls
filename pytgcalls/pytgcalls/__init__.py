@@ -17,6 +17,6 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-from group_call import GroupCall
+from pytgcalls.group_call import GroupCall
 
 __all__ = ['GroupCall']

@@ -4,7 +4,7 @@ packages = find_packages()
 
 setup(
     name='pytgcalls',
-    version='0.0.1.beta',
+    version='0.0.1.beta.1',
     author='Il`ya Semyonov',
     author_email='ilya@marshal.dev',
     license='LGPLv3',
