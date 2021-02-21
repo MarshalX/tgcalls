@@ -113,13 +113,13 @@ class CMakeBuild(build_ext):
 
 setup(
     name='tgcalls',
-    version=f'0.0.1-dev1',
+    version=f'0.0.1.beta',
     author='Il\'ya Semyonov',
     author_email='ilya@marshal.by',
     description='A python binding for tgcalls',
     long_description='',
     classifiers=[
-        'Development Status :: 1 - Planning',
+        'Development Status :: 4 - Beta',
         'Natural Language :: English',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
