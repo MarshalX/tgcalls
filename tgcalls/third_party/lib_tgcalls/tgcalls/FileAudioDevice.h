@@ -34,7 +34,8 @@ public:
     // The input file should be a readable 48k stereo raw file, and the output
     // file should point to a writable location. The output format will also be
     // 48k stereo raw audio.
-    FileAudioDevice(const char *inputFilename, const char *outputFilename);
+    FileAudioDevice(std::function<std::string()> getInputFilename,
+                    std::function<std::string()> getOutputFilename);
 
     virtual ~FileAudioDevice();
 
@@ -195,6 +196,7 @@ private:
 
     webrtc::FileWrapper _outputFile;
     webrtc::FileWrapper _inputFile;
-    std::string _outputFilename;
-    std::string _inputFilename;
+
+    std::function<std::string()> _getInputFilename;
+    std::function<std::string()> _getOutputFilename;
 };

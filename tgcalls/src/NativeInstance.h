@@ -16,10 +16,16 @@ public:
     NativeInstance();
 
     void startCall(vector<RtcServer> servers, std::array<uint8_t, 256> authKey, bool isOutgoing, std::string logPath);
-    void startGroupCall();
+    void startGroupCall(bool useFileAudioDevice,
+                        std::function<std::string()> &getInputFilename,
+                        std::function<std::string()> &getOutputFilename);
     void stopGroupCall();
 
     void setIsMuted(bool isMuted);
+
+    void reinitAudioInputDevice();
+    void reinitAudioOutputDevice();
+
     void setAudioOutputDevice(std::string id);
     void setAudioInputDevice(std::string id);
 

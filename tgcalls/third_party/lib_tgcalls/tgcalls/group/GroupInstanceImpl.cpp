@@ -1048,7 +1048,10 @@ public:
     _audioLevelsUpdated(descriptor.audioLevelsUpdated),
     _initialInputDeviceId(descriptor.initialInputDeviceId),
     _initialOutputDeviceId(descriptor.initialOutputDeviceId),
-    _createAudioDeviceModule(descriptor.createAudioDeviceModule) {
+    _useFileAudioDevice(descriptor.useFileAudioDevice),
+    _createAudioDeviceModule(descriptor.createAudioDeviceModule),
+    _getInputFilename(descriptor.getInputFilename),
+    _getOutputFilename(descriptor.getOutputFilename) {
 		auto generator = std::mt19937(std::random_device()());
 		auto distribution = std::uniform_int_distribution<uint32_t>();
 		do {
@@ -1083,16 +1086,21 @@ public:
     }
 
     bool createAudioDeviceModule(
-            const webrtc::PeerConnectionFactoryDependencies &dependencies) {
+            const webrtc::PeerConnectionFactoryDependencies &dependencies,
+            bool useFileAudioDevice,
+            std::function<std::string()> getInputFilename,
+            std::function<std::string()> getOutputFilename) {
         _adm_thread = dependencies.worker_thread;
         if (!_adm_thread) {
             return false;
         }
         _adm_thread->Invoke<void>(RTC_FROM_HERE, [&] {
             const auto create = [&](webrtc::AudioDeviceModule::AudioLayer layer) {
-                return WrappedAudioDeviceModuleImpl::Create( // todo custom layer?
+                return WrappedAudioDeviceModuleImpl::Create(
                     layer,
-                    dependencies.task_queue_factory.get());
+                    dependencies.task_queue_factory.get(),
+                    getInputFilename,
+                    getOutputFilename); // TODO rewrite hardcode
             };
 			const auto finalize = [&](const rtc::scoped_refptr<webrtc::AudioDeviceModule> &result) {
 				_adm_use_withAudioDeviceModule = new rtc::RefCountedObject<WrappedAudioDeviceModule>(result);
@@ -1107,7 +1115,12 @@ public:
             if (_createAudioDeviceModule
                 && check(_createAudioDeviceModule(dependencies.task_queue_factory.get()))) {
                 return;
-            } else if (check(create(webrtc::AudioDeviceModule::kPlatformDefaultAudio))) {
+            }
+            else if (useFileAudioDevice
+                && check(create(webrtc::AudioDeviceModule::kDummyAudio))) {
+                return;
+            }
+            else if (check(create(webrtc::AudioDeviceModule::kPlatformDefaultAudio))) {
                 return;
             }
         });
@@ -1127,11 +1140,11 @@ public:
 
         webrtc::field_trial::InitFieldTrialsFromString(
             //"WebRTC-Audio-SendSideBwe/Enabled/"
-            "WebRTC-Audio-Allocation/min:128kbps,max:128kbps/"
+            "WebRTC-Audio-Allocation/min:64kbps,max:64kbps/"
             "WebRTC-Audio-OpusMinPacketLossRate/Enabled-1/"
             //"WebRTC-FlexFEC-03/Enabled/"
             //"WebRTC-FlexFEC-03-Advertised/Enabled/"
-            "WebRTC-PcFactoryDefaultBitrates/min:128kbps,start:128kbps,max:128kbps/"
+            "WebRTC-PcFactoryDefaultBitrates/min:64kbps,start:64kbps,max:64kbps/"
         );
 
         PlatformInterface::SharedInstance()->configurePlatformAudio();
@@ -1142,7 +1155,7 @@ public:
         dependencies.signaling_thread = getSignalingThread();
         dependencies.task_queue_factory = webrtc::CreateDefaultTaskQueueFactory();
 
-        if (!createAudioDeviceModule(dependencies)) {  // todo type of audio device from constr of GroupInst
+        if (!createAudioDeviceModule(dependencies, _useFileAudioDevice, _getInputFilename, _getOutputFilename)) {
             return;
         }
 
@@ -1153,7 +1166,7 @@ public:
         mediaDeps.video_encoder_factory = PlatformInterface::SharedInstance()->makeVideoEncoderFactory();
         mediaDeps.video_decoder_factory = PlatformInterface::SharedInstance()->makeVideoDecoderFactory();
         mediaDeps.adm = _adm_use_withAudioDeviceModule;
-        mediaDeps.audio_processing = webrtc::AudioProcessingBuilder().Create();
+//        mediaDeps.audio_processing = webrtc::AudioProcessingBuilder().Create();
 
         std::shared_ptr<CombinedVad> myVad(new CombinedVad());
 
@@ -1359,6 +1372,17 @@ public:
         beginLevelsTimer(50);
 	}
 
+    void reinitAudioInputDevice() {
+        withAudioDeviceModule([&](webrtc::AudioDeviceModule *adm) {
+            ReinitAudioInputDevice(adm);
+        });
+    }
+
+    void reinitAudioOutputDevice() {
+        withAudioDeviceModule([&](webrtc::AudioDeviceModule *adm) {
+            ReinitAudioOutputDevice(adm);
+        });
+    }
 
     void setAudioInputDevice(std::string id) {
 #ifndef WEBRTC_IOS
@@ -1979,6 +2003,8 @@ private:
     std::string _initialInputDeviceId;
     std::string _initialOutputDeviceId;
 
+    bool _useFileAudioDevice;
+
     uint32_t _sessionId = 6543245;
     uint32_t _mainStreamAudioSsrc = 0;
     uint32_t _fakeIncomingSsrc = 0;
@@ -2016,6 +2042,8 @@ private:
     std::map<uint32_t, GroupLevelValue> _audioLevels;
     std::map<uint32_t, double> _audioTrackVolumes;
 
+    std::function<std::string()> _getInputFilename;
+    std::function<std::string()> _getOutputFilename;
 };
 
 GroupInstanceImpl::GroupInstanceImpl(GroupInstanceDescriptor &&descriptor)
@@ -2072,6 +2100,17 @@ void GroupInstanceImpl::removeSsrcs(std::vector<uint32_t> ssrcs) {
 void GroupInstanceImpl::setIsMuted(bool isMuted) {
     _manager->perform(RTC_FROM_HERE, [isMuted](GroupInstanceManager *manager) {
         manager->setIsMuted(isMuted);
+    });
+}
+
+void GroupInstanceImpl::reinitAudioInputDevice() {
+    _manager->perform(RTC_FROM_HERE, [&](GroupInstanceManager *manager) {
+        manager->reinitAudioInputDevice();
+    });
+}
+void GroupInstanceImpl::reinitAudioOutputDevice() {
+    _manager->perform(RTC_FROM_HERE, [&](GroupInstanceManager *manager) {
+        manager->reinitAudioOutputDevice();
     });
 }
 

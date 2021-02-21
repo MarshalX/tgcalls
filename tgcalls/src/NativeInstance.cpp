@@ -9,10 +9,15 @@ NativeInstance::NativeInstance() {
 //    tgcalls::Register<tgcalls::InstanceImpl>();
 }
 
-void NativeInstance::startGroupCall() {
+void NativeInstance::startGroupCall(bool useFileAudioDevice,
+                                    std::function<std::string()> &getInputFilename,
+                                    std::function<std::string()> &getOutputFilename) {
     tgcalls::GroupInstanceDescriptor descriptor {
         .networkStateUpdated = [=](bool state) {},
-        .audioLevelsUpdated = [=](tgcalls::GroupLevelsUpdate const &update) {},
+        .audioLevelsUpdated = [=](tgcalls::GroupLevelsUpdate const &update) {}, // TODO
+        .useFileAudioDevice = useFileAudioDevice,
+        .getInputFilename = getInputFilename,
+        .getOutputFilename = getOutputFilename,
     };
 
     InstanceHolder holder = InstanceHolder();
@@ -35,6 +40,14 @@ void NativeInstance::setJoinResponsePayload(tgcalls::GroupJoinResponsePayload pa
 
 void NativeInstance::setIsMuted(bool isMuted) {
     instanceHolder.groupNativeInstance->setIsMuted(isMuted);
+}
+
+void NativeInstance::reinitAudioInputDevice() {
+    instanceHolder.groupNativeInstance->reinitAudioInputDevice();
+}
+
+void NativeInstance::reinitAudioOutputDevice() {
+    instanceHolder.groupNativeInstance->reinitAudioOutputDevice();
 }
 
 void NativeInstance::setAudioOutputDevice(std::string id) {

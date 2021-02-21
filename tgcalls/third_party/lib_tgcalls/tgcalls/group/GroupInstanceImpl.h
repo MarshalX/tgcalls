@@ -48,8 +48,11 @@ struct GroupInstanceDescriptor {
     std::function<void(GroupLevelsUpdate const &)> audioLevelsUpdated;
     std::string initialInputDeviceId;
     std::string initialOutputDeviceId;
+    bool useFileAudioDevice;
     bool debugIgnoreMissingSsrcs = false;
     std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory*)> createAudioDeviceModule;
+    std::function<std::string()> getInputFilename;
+    std::function<std::string()> getOutputFilename;
 };
 
 struct GroupJoinPayloadFingerprint {
@@ -105,6 +108,10 @@ public:
     void removeSsrcs(std::vector<uint32_t> ssrcs);
 
     void setIsMuted(bool isMuted);
+
+    void reinitAudioInputDevice();
+    void reinitAudioOutputDevice();
+
     void setAudioOutputDevice(std::string id);
     void setAudioInputDevice(std::string id);
 

@@ -435,8 +435,17 @@ class GroupCall:
         self.chat_peer = None
         self.my_ssrc = None
 
+        self.input_filename = 'input.raw'
+        self.output_filename = 'output.raw'
+
         self._update_handler = RawUpdateHandler(self.process_update)
         self.client.add_handler(self._update_handler, -1)
+
+    def get_input_filename(self):
+        return self.input_filename
+
+    def get_output_filename(self):
+        return self.output_filename
 
     async def process_update(self, _, update, users, chats):
         if not isinstance(update, types.UpdateGroupCall):
@@ -528,12 +537,20 @@ async def main(client1, client2, make_out, make_inc):
         await group_call.get_group_call(chat)
         group_call.native_instance = tgcalls.NativeInstance()
         group_call.native_instance.setEmitJoinPayloadCallback(group_call.emit_join_payload_callback)
-        group_call.native_instance.startGroupCall()
+        group_call.native_instance.startGroupCall(True, group_call.get_input_filename, group_call.get_output_filename)
         group_call.native_instance.setIsMuted(False)
 
         calls.append(group_call)
-        group_call.native_instance.setAudioInputDevice('VB-Cable')
-        group_call.native_instance.setAudioOutputDevice('default (Built-in Output)')
+        # group_call.native_instance.setAudioInputDevice('VB-Cable')
+        # group_call.native_instance.setAudioOutputDevice('default (Built-in Output)')
+
+        await asyncio.sleep(30)
+        group_call.input_filename = 'inputGovno.raw'
+        group_call.native_instance.reinitAudioInputDevice()
+        await asyncio.sleep(15)
+        group_call.input_filename = 'input.raw'
+        group_call.native_instance.reinitAudioInputDevice()
+
     # await asyncio.sleep(60)
     # group_call.native_instance.stopGroupCall()
 

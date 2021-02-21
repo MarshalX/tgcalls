@@ -20,8 +20,8 @@ const size_t kPlayoutBufferSize =
 const size_t kRecordingBufferSize =
         kRecordingFixedSampleRate / 100 * kRecordingNumChannels * 2;
 
-FileAudioDevice::FileAudioDevice(const char* inputFilename,
-                                 const char* outputFilename)
+FileAudioDevice::FileAudioDevice(std::function<std::string()> getInputFilename,
+                                 std::function<std::string()> getOutputFilename)
         : _ptrAudioBuffer(NULL),
           _recordingBuffer(NULL),
           _playoutBuffer(NULL),
@@ -34,8 +34,8 @@ FileAudioDevice::FileAudioDevice(const char* inputFilename,
           _recording(false),
           _lastCallPlayoutMillis(0),
           _lastCallRecordMillis(0),
-          _outputFilename(outputFilename),
-          _inputFilename(inputFilename) {}
+          _getInputFilename(getInputFilename),
+          _getOutputFilename(getOutputFilename) {}
 
 FileAudioDevice::~FileAudioDevice() {}
 
@@ -196,10 +196,10 @@ int32_t FileAudioDevice::StartPlayout() {
     }
 
     // PLAYOUT
-    if (!_outputFilename.empty()) {
-        _outputFile = webrtc::FileWrapper::OpenWriteOnly(_outputFilename.c_str());
+    if (!_getOutputFilename().empty()) {
+        _outputFile = webrtc::FileWrapper::OpenWriteOnly(_getOutputFilename().c_str());
         if (!_outputFile.is_open()) {
-            RTC_LOG(LS_ERROR) << "Failed to open playout file: " << _outputFilename;
+            RTC_LOG(LS_ERROR) << "Failed to open playout file: " << _getOutputFilename();
             _playing = false;
             delete[] _playoutBuffer;
             _playoutBuffer = NULL;
@@ -213,7 +213,7 @@ int32_t FileAudioDevice::StartPlayout() {
     _ptrThreadPlay->Start();
 
     RTC_LOG(LS_INFO) << "Started playout capture to output file: "
-                     << _outputFilename;
+                     << _getOutputFilename();
     return 0;
 }
 
@@ -236,8 +236,7 @@ int32_t FileAudioDevice::StopPlayout() {
     _playoutBuffer = NULL;
     _outputFile.Close();
 
-    RTC_LOG(LS_INFO) << "Stopped playout capture to output file: "
-                     << _outputFilename;
+    RTC_LOG(LS_INFO) << "Stopped playout capture to output file";
     return 0;
 }
 
@@ -255,11 +254,11 @@ int32_t FileAudioDevice::StartRecording() {
         _recordingBuffer = new int8_t[_recordingBufferSizeIn10MS];
     }
 
-    if (!_inputFilename.empty()) {
-        _inputFile = webrtc::FileWrapper::OpenReadOnly(_inputFilename.c_str());
+    if (!_getInputFilename().empty()) {
+        _inputFile = webrtc::FileWrapper::OpenReadOnly(_getInputFilename().c_str());
         if (!_inputFile.is_open()) {
             RTC_LOG(LS_ERROR) << "Failed to open audio input file: "
-                              << _inputFilename;
+                              << _getInputFilename();
             _recording = false;
             delete[] _recordingBuffer;
             _recordingBuffer = NULL;
@@ -273,7 +272,7 @@ int32_t FileAudioDevice::StartRecording() {
 
     _ptrThreadRec->Start();
 
-    RTC_LOG(LS_INFO) << "Started recording from input file: " << _inputFilename;
+    RTC_LOG(LS_INFO) << "Started recording from input file: " << _getInputFilename();
 
     return 0;
 }
@@ -297,7 +296,7 @@ int32_t FileAudioDevice::StopRecording() {
     }
     _inputFile.Close();
 
-    RTC_LOG(LS_INFO) << "Stopped recording from input file: " << _inputFilename;
+    RTC_LOG(LS_INFO) << "Stopped recording from input file: " << _getInputFilename();
     return 0;
 }
 
@@ -508,16 +507,21 @@ bool FileAudioDevice::RecThreadProcess() {
 
 class WrappedAudioDeviceModuleImpl : public webrtc::AudioDeviceModule {
 public:
-    static rtc::scoped_refptr<AudioDeviceModule> Create(
+    static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> Create(
             AudioLayer audio_layer,
-            webrtc::TaskQueueFactory* task_queue_factory) {
+            webrtc::TaskQueueFactory* task_queue_factory,
+            std::function<std::string()> getInputFilename,
+            std::function<std::string()> getOutputFilename) {
         RTC_LOG(INFO) << __FUNCTION__;
-        return WrappedAudioDeviceModuleImpl::CreateForTest(audio_layer, task_queue_factory);
+        return WrappedAudioDeviceModuleImpl::CreateForTest(
+                audio_layer, task_queue_factory, getInputFilename, getOutputFilename);
     }
 
-    static rtc::scoped_refptr<webrtc::AudioDeviceModuleForTest> CreateForTest(
+    static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> CreateForTest(
             AudioLayer audio_layer,
-            webrtc::TaskQueueFactory* task_queue_factory) {
+            webrtc::TaskQueueFactory* task_queue_factory,
+            std::function<std::string()> getInputFilename,
+            std::function<std::string()> getOutputFilename) {
         RTC_LOG(INFO) << __FUNCTION__;
 
         // The "AudioDeviceModule::kWindowsCoreAudio2" audio layer has its own
@@ -538,13 +542,11 @@ public:
             return nullptr;
         }
 
-        bool fromFile = true; // TODO
-
         // Create the platform-dependent implementation.
         auto created = audioDevice->CreatePlatformSpecificObjects();
-        if (fromFile) {
+        if (audio_layer == kDummyAudio) {
             // todo from descriptor of config. create methods to set new values
-            audioDevice->ResetAudioDevice(new FileAudioDevice("input.raw", "output.raw"));
+            audioDevice->ResetAudioDevice(new FileAudioDevice(getInputFilename, getOutputFilename));
         }
         if (created == -1) {
             return nullptr;
