@@ -11,7 +11,7 @@ from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
 
 import tgcalls
-from utils.helpers import b2i, i2b, check_g, calc_fingerprint, generate_visualization
+from .helpers import b2i, i2b, check_g, calc_fingerprint, generate_visualization
 
 
 class DH:
