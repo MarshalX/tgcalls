@@ -15,7 +15,7 @@ void ping() {
 PYBIND11_MODULE(tgcalls, m) {
     m.def("ping", &ping);
 
-    py::add_ostream_redirect(m, "ostream_redirect");
+//    py::add_ostream_redirect(m, "ostream_redirect");
 
     py::register_exception_translator([](std::exception_ptr p) {
         try {
