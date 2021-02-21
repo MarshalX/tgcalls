@@ -36,7 +36,7 @@
 #include <sstream>
 #include <iostream>
 
-#include "FileAudioDevice.cpp"
+#include "FileAudioDevice.h"
 
 namespace tgcalls {
 

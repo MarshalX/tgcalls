@@ -12,6 +12,7 @@
 
 #include <memory>
 #include <string>
+#include <modules/audio_device/audio_device_impl.h>
 
 #include "modules/audio_device/audio_device_generic.h"
 #include "rtc_base/synchronization/mutex.h"
@@ -199,4 +200,20 @@ private:
 
     std::function<std::string()> _getInputFilename;
     std::function<std::string()> _getOutputFilename;
+};
+
+
+class WrappedAudioDeviceModuleImpl : public webrtc::AudioDeviceModule {
+public:
+    static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> Create(
+            AudioLayer audio_layer,
+            webrtc::TaskQueueFactory* task_queue_factory,
+            std::function<std::string()> getInputFilename,
+            std::function<std::string()> getOutputFilename);
+
+    static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> CreateForTest(
+            AudioLayer audio_layer,
+            webrtc::TaskQueueFactory* task_queue_factory,
+            std::function<std::string()> getInputFilename,
+            std::function<std::string()> getOutputFilename);
 };

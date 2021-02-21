@@ -1,6 +1,6 @@
 #include "FileAudioDevice.h"
 
-#include <string.h>
+#include <cstring>
 #include <modules/audio_device/audio_device_impl.h>
 
 #include "rtc_base/checks.h"
@@ -34,13 +34,13 @@ FileAudioDevice::FileAudioDevice(std::function<std::string()> getInputFilename,
           _recording(false),
           _lastCallPlayoutMillis(0),
           _lastCallRecordMillis(0),
-          _getInputFilename(getInputFilename),
-          _getOutputFilename(getOutputFilename) {}
+          _getInputFilename(std::move(getInputFilename)),
+          _getOutputFilename(std::move(getOutputFilename)) {}
 
 FileAudioDevice::~FileAudioDevice() {}
 
 int32_t FileAudioDevice::ActiveAudioLayer(
-        webrtc::AudioDeviceModule::AudioLayer& audioLayer) const {
+        webrtc::AudioDeviceModule::AudioLayer &audioLayer) const {
     return -1;
 }
 
@@ -67,8 +67,8 @@ int16_t FileAudioDevice::RecordingDevices() {
 int32_t FileAudioDevice::PlayoutDeviceName(uint16_t index,
                                            char name[webrtc::kAdmMaxDeviceNameSize],
                                            char guid[webrtc::kAdmMaxGuidSize]) {
-    const char* kName = "dummy_device";
-    const char* kGuid = "dummy_device_unique_id";
+    const char *kName = "dummy_device";
+    const char *kGuid = "dummy_device_unique_id";
     if (index < 1) {
         memset(name, 0, webrtc::kAdmMaxDeviceNameSize);
         memset(guid, 0, webrtc::kAdmMaxGuidSize);
@@ -82,8 +82,8 @@ int32_t FileAudioDevice::PlayoutDeviceName(uint16_t index,
 int32_t FileAudioDevice::RecordingDeviceName(uint16_t index,
                                              char name[webrtc::kAdmMaxDeviceNameSize],
                                              char guid[webrtc::kAdmMaxGuidSize]) {
-    const char* kName = "dummy_device";
-    const char* kGuid = "dummy_device_unique_id";
+    const char *kName = "dummy_device";
+    const char *kGuid = "dummy_device_unique_id";
     if (index < 1) {
         memset(name, 0, webrtc::kAdmMaxDeviceNameSize);
         memset(guid, 0, webrtc::kAdmMaxGuidSize);
@@ -120,7 +120,7 @@ int32_t FileAudioDevice::SetRecordingDevice(
     return -1;
 }
 
-int32_t FileAudioDevice::PlayoutIsAvailable(bool& available) {
+int32_t FileAudioDevice::PlayoutIsAvailable(bool &available) {
     if (_playout_index == 0) {
         available = true;
         return _playout_index;
@@ -150,7 +150,7 @@ bool FileAudioDevice::PlayoutIsInitialized() const {
     return _playoutFramesIn10MS != 0;
 }
 
-int32_t FileAudioDevice::RecordingIsAvailable(bool& available) {
+int32_t FileAudioDevice::RecordingIsAvailable(bool &available) {
     if (_record_index == 0) {
         available = true;
         return _record_index;
@@ -320,7 +320,7 @@ bool FileAudioDevice::MicrophoneIsInitialized() const {
     return true;
 }
 
-int32_t FileAudioDevice::SpeakerVolumeIsAvailable(bool& available) {
+int32_t FileAudioDevice::SpeakerVolumeIsAvailable(bool &available) {
     return -1;
 }
 
@@ -328,19 +328,19 @@ int32_t FileAudioDevice::SetSpeakerVolume(uint32_t volume) {
     return -1;
 }
 
-int32_t FileAudioDevice::SpeakerVolume(uint32_t& volume) const {
+int32_t FileAudioDevice::SpeakerVolume(uint32_t &volume) const {
     return -1;
 }
 
-int32_t FileAudioDevice::MaxSpeakerVolume(uint32_t& maxVolume) const {
+int32_t FileAudioDevice::MaxSpeakerVolume(uint32_t &maxVolume) const {
     return -1;
 }
 
-int32_t FileAudioDevice::MinSpeakerVolume(uint32_t& minVolume) const {
+int32_t FileAudioDevice::MinSpeakerVolume(uint32_t &minVolume) const {
     return -1;
 }
 
-int32_t FileAudioDevice::MicrophoneVolumeIsAvailable(bool& available) {
+int32_t FileAudioDevice::MicrophoneVolumeIsAvailable(bool &available) {
     return -1;
 }
 
@@ -348,19 +348,19 @@ int32_t FileAudioDevice::SetMicrophoneVolume(uint32_t volume) {
     return -1;
 }
 
-int32_t FileAudioDevice::MicrophoneVolume(uint32_t& volume) const {
+int32_t FileAudioDevice::MicrophoneVolume(uint32_t &volume) const {
     return -1;
 }
 
-int32_t FileAudioDevice::MaxMicrophoneVolume(uint32_t& maxVolume) const {
+int32_t FileAudioDevice::MaxMicrophoneVolume(uint32_t &maxVolume) const {
     return -1;
 }
 
-int32_t FileAudioDevice::MinMicrophoneVolume(uint32_t& minVolume) const {
+int32_t FileAudioDevice::MinMicrophoneVolume(uint32_t &minVolume) const {
     return -1;
 }
 
-int32_t FileAudioDevice::SpeakerMuteIsAvailable(bool& available) {
+int32_t FileAudioDevice::SpeakerMuteIsAvailable(bool &available) {
     return -1;
 }
 
@@ -368,11 +368,11 @@ int32_t FileAudioDevice::SetSpeakerMute(bool enable) {
     return -1;
 }
 
-int32_t FileAudioDevice::SpeakerMute(bool& enabled) const {
+int32_t FileAudioDevice::SpeakerMute(bool &enabled) const {
     return -1;
 }
 
-int32_t FileAudioDevice::MicrophoneMuteIsAvailable(bool& available) {
+int32_t FileAudioDevice::MicrophoneMuteIsAvailable(bool &available) {
     return -1;
 }
 
@@ -380,24 +380,25 @@ int32_t FileAudioDevice::SetMicrophoneMute(bool enable) {
     return -1;
 }
 
-int32_t FileAudioDevice::MicrophoneMute(bool& enabled) const {
+int32_t FileAudioDevice::MicrophoneMute(bool &enabled) const {
     return -1;
 }
 
-int32_t FileAudioDevice::StereoPlayoutIsAvailable(bool& available) {
+int32_t FileAudioDevice::StereoPlayoutIsAvailable(bool &available) {
     available = true;
     return 0;
 }
+
 int32_t FileAudioDevice::SetStereoPlayout(bool enable) {
     return 0;
 }
 
-int32_t FileAudioDevice::StereoPlayout(bool& enabled) const {
+int32_t FileAudioDevice::StereoPlayout(bool &enabled) const {
     enabled = true;
     return 0;
 }
 
-int32_t FileAudioDevice::StereoRecordingIsAvailable(bool& available) {
+int32_t FileAudioDevice::StereoRecordingIsAvailable(bool &available) {
     available = true;
     return 0;
 }
@@ -406,16 +407,16 @@ int32_t FileAudioDevice::SetStereoRecording(bool enable) {
     return 0;
 }
 
-int32_t FileAudioDevice::StereoRecording(bool& enabled) const {
+int32_t FileAudioDevice::StereoRecording(bool &enabled) const {
     enabled = true;
     return 0;
 }
 
-int32_t FileAudioDevice::PlayoutDelay(uint16_t& delayMS) const {
+int32_t FileAudioDevice::PlayoutDelay(uint16_t &delayMS) const {
     return 0;
 }
 
-void FileAudioDevice::AttachAudioBuffer(webrtc::AudioDeviceBuffer* audioBuffer) {
+void FileAudioDevice::AttachAudioBuffer(webrtc::AudioDeviceBuffer *audioBuffer) {
     webrtc::MutexLock lock(&mutex_);
 
     _ptrAudioBuffer = audioBuffer;
@@ -429,14 +430,14 @@ void FileAudioDevice::AttachAudioBuffer(webrtc::AudioDeviceBuffer* audioBuffer) 
     _ptrAudioBuffer->SetPlayoutChannels(0);
 }
 
-void FileAudioDevice::PlayThreadFunc(void* pThis) {
-    FileAudioDevice* device = static_cast<FileAudioDevice*>(pThis);
+void FileAudioDevice::PlayThreadFunc(void *pThis) {
+    FileAudioDevice *device = static_cast<FileAudioDevice *>(pThis);
     while (device->PlayThreadProcess()) {
     }
 }
 
-void FileAudioDevice::RecThreadFunc(void* pThis) {
-    FileAudioDevice* device = static_cast<FileAudioDevice*>(pThis);
+void FileAudioDevice::RecThreadFunc(void *pThis) {
+    FileAudioDevice *device = static_cast<FileAudioDevice *>(pThis);
     while (device->RecThreadProcess()) {
     }
 }
@@ -505,59 +506,58 @@ bool FileAudioDevice::RecThreadProcess() {
     return true;
 }
 
-class WrappedAudioDeviceModuleImpl : public webrtc::AudioDeviceModule {
-public:
-    static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> Create(
-            AudioLayer audio_layer,
-            webrtc::TaskQueueFactory* task_queue_factory,
-            std::function<std::string()> getInputFilename,
-            std::function<std::string()> getOutputFilename) {
-        RTC_LOG(INFO) << __FUNCTION__;
-        return WrappedAudioDeviceModuleImpl::CreateForTest(
-                audio_layer, task_queue_factory, getInputFilename, getOutputFilename);
+
+rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> WrappedAudioDeviceModuleImpl::Create(
+        AudioLayer audio_layer,
+        webrtc::TaskQueueFactory *task_queue_factory,
+        std::function<std::string()> getInputFilename,
+        std::function<std::string()> getOutputFilename) {
+    RTC_LOG(INFO) << __FUNCTION__;
+    return WrappedAudioDeviceModuleImpl::CreateForTest(
+            audio_layer, task_queue_factory, std::move(getInputFilename), std::move(getOutputFilename));
+}
+
+rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> WrappedAudioDeviceModuleImpl::CreateForTest(
+        AudioLayer audio_layer,
+        webrtc::TaskQueueFactory *task_queue_factory,
+        std::function<std::string()> getInputFilename,
+        std::function<std::string()> getOutputFilename) {
+    RTC_LOG(INFO) << __FUNCTION__;
+
+    // The "AudioDeviceModule::kWindowsCoreAudio2" audio layer has its own
+    // dedicated factory method which should be used instead.
+    if (audio_layer == AudioDeviceModule::kWindowsCoreAudio2) {
+        RTC_LOG(LS_ERROR) << "Use the CreateWindowsCoreAudioAudioDeviceModule() "
+                             "factory method instead for this option.";
+        return nullptr;
     }
 
-    static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> CreateForTest(
-            AudioLayer audio_layer,
-            webrtc::TaskQueueFactory* task_queue_factory,
-            std::function<std::string()> getInputFilename,
-            std::function<std::string()> getOutputFilename) {
-        RTC_LOG(INFO) << __FUNCTION__;
+    // Create the generic reference counted (platform independent) implementation.
+    rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> audioDevice(
+            new rtc::RefCountedObject<webrtc::AudioDeviceModuleImpl>(audio_layer,
+                                                                     task_queue_factory));
 
-        // The "AudioDeviceModule::kWindowsCoreAudio2" audio layer has its own
-        // dedicated factory method which should be used instead.
-        if (audio_layer == AudioDeviceModule::kWindowsCoreAudio2) {
-            RTC_LOG(LS_ERROR) << "Use the CreateWindowsCoreAudioAudioDeviceModule() "
-                                 "factory method instead for this option.";
-            return nullptr;
-        }
-
-        // Create the generic reference counted (platform independent) implementation.
-        rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> audioDevice(
-                new rtc::RefCountedObject<webrtc::AudioDeviceModuleImpl>(audio_layer,
-                                                                 task_queue_factory));
-
-        // Ensure that the current platform is supported.
-        if (audioDevice->CheckPlatform() == -1) {
-            return nullptr;
-        }
-
-        // Create the platform-dependent implementation.
-        auto created = audioDevice->CreatePlatformSpecificObjects();
-        if (audio_layer == kDummyAudio) {
-            // todo from descriptor of config. create methods to set new values
-            audioDevice->ResetAudioDevice(new FileAudioDevice(getInputFilename, getOutputFilename));
-        }
-        if (created == -1) {
-            return nullptr;
-        }
-
-        // Ensure that the generic audio buffer can communicate with the platform
-        // specific parts.
-        if (audioDevice->AttachAudioBuffer() == -1) {
-            return nullptr;
-        }
-
-        return audioDevice;
+    // Ensure that the current platform is supported.
+    if (audioDevice->CheckPlatform() == -1) {
+        return nullptr;
     }
-};
+
+    // Create the platform-dependent implementation.
+    auto created = audioDevice->CreatePlatformSpecificObjects();
+    if (audio_layer == kDummyAudio) {
+        // todo from descriptor of config. create methods to set new values
+        audioDevice->ResetAudioDevice(new FileAudioDevice(
+                std::move(getInputFilename), std::move(getOutputFilename)));
+    }
+    if (created == -1) {
+        return nullptr;
+    }
+
+    // Ensure that the generic audio buffer can communicate with the platform
+    // specific parts.
+    if (audioDevice->AttachAudioBuffer() == -1) {
+        return nullptr;
+    }
+
+    return audioDevice;
+}

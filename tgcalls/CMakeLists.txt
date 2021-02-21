@@ -19,7 +19,7 @@ PRIVATE
     external_webrtc
 )
 
-target_compile_definitions(tgcalls
-PUBLIC
-    DEBUG
-)
+#target_compile_definitions(tgcalls
+#PUBLIC
+#    DEBUG
+#)

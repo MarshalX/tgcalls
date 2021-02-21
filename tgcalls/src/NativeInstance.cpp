@@ -1,12 +1,25 @@
 #include <rtc_base/ssl_adapter.h>
 #include <tgcalls/InstanceImpl.h>
 #include <tgcalls/group/GroupInstanceImpl.h>
+
 #include "NativeInstance.h"
+
+namespace py = pybind11;
+
+std::string license = "GNU Lesser General Public License v3 (LGPLv3)";
+std::string copyright = "Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>";
+auto noticeDisplayed = false;
 
 
 NativeInstance::NativeInstance() {
-//    rtc::InitializeSSL();
-//    tgcalls::Register<tgcalls::InstanceImpl>();
+    if (!noticeDisplayed) {
+        py::print("tgcalls BETA, " + copyright);
+        py::print("Licensed under the terms of the " + license + "\n\n");
+
+        noticeDisplayed = true;
+    }
+    rtc::InitializeSSL();
+    tgcalls::Register<tgcalls::InstanceImpl>();
 }
 
 void NativeInstance::startGroupCall(bool useFileAudioDevice,
@@ -26,7 +39,7 @@ void NativeInstance::startGroupCall(bool useFileAudioDevice,
     instanceHolder = std::move(holder);
 };
 
-void NativeInstance::stopGroupCall() {
+void NativeInstance::stopGroupCall() const {
     instanceHolder.groupNativeInstance->stop();
 }
 
@@ -34,28 +47,32 @@ void NativeInstance::setEmitJoinPayloadCallback(const std::function<void(const t
     emitJoinPayloadCallback = f;
 }
 
-void NativeInstance::setJoinResponsePayload(tgcalls::GroupJoinResponsePayload payload) {
-    instanceHolder.groupNativeInstance->setJoinResponsePayload(payload);
+void NativeInstance::setJoinResponsePayload(tgcalls::GroupJoinResponsePayload payload) const {
+    instanceHolder.groupNativeInstance->setJoinResponsePayload(std::move(payload));
 }
 
-void NativeInstance::setIsMuted(bool isMuted) {
+void NativeInstance::setIsMuted(bool isMuted) const {
     instanceHolder.groupNativeInstance->setIsMuted(isMuted);
 }
 
-void NativeInstance::reinitAudioInputDevice() {
+void NativeInstance::reinitAudioInputDevice() const {
     instanceHolder.groupNativeInstance->reinitAudioInputDevice();
 }
 
-void NativeInstance::reinitAudioOutputDevice() {
+void NativeInstance::reinitAudioOutputDevice() const {
     instanceHolder.groupNativeInstance->reinitAudioOutputDevice();
 }
 
-void NativeInstance::setAudioOutputDevice(std::string id) {
-    instanceHolder.groupNativeInstance->setAudioOutputDevice(id);
+void NativeInstance::setAudioOutputDevice(std::string id) const {
+    instanceHolder.groupNativeInstance->setAudioOutputDevice(std::move(id));
 }
 
-void NativeInstance::setAudioInputDevice(std::string id) {
-    instanceHolder.groupNativeInstance->setAudioInputDevice(id);
+void NativeInstance::setAudioInputDevice(std::string id) const {
+    instanceHolder.groupNativeInstance->setAudioInputDevice(std::move(id));
+}
+
+void NativeInstance::removeSsrcs(std::vector<uint32_t> ssrcs) {
+    instanceHolder.groupNativeInstance->removeSsrcs(std::move(ssrcs));
 }
 
 void NativeInstance::startCall(vector<RtcServer> servers, std::array<uint8_t, 256> authKey, bool isOutgoing, string logPath) {
@@ -86,7 +103,7 @@ void NativeInstance::startCall(vector<RtcServer> servers, std::array<uint8_t, 25
                     .enableNS = true,
                     .enableAGC = true,
                     .enableVolumeControl = true,
-                    .logPath = {logPath},
+                    .logPath = {std::move(logPath)},
                     .statsLogPath = {"/Users/marshal/projects/tgcalls/python-binding/pytgcalls/tgcalls-stat.txt"},
                     .maxApiLayer = 92,
                     .enableHighBitrateVideo = false,
@@ -169,15 +186,14 @@ void NativeInstance::startCall(vector<RtcServer> servers, std::array<uint8_t, 25
     InstanceHolder holder = InstanceHolder();
     holder.nativeInstance = tgcalls::Meta::Create("3.0.0", std::move(descriptor));
     holder._videoCapture = videoCapture;
-    holder.nativeInstance.get()->setNetworkType(tgcalls::NetworkType::WiFi);
-    holder.nativeInstance.get()->setRequestedVideoAspect(1);
-    holder.nativeInstance.get()->setMuteMicrophone(false);
+    holder.nativeInstance->setNetworkType(tgcalls::NetworkType::WiFi);
+    holder.nativeInstance->setRequestedVideoAspect(1);
+    holder.nativeInstance->setMuteMicrophone(false);
 
     instanceHolder = std::move(holder);
 }
 
-void NativeInstance::receiveSignalingData(std::vector<uint8_t> &data) {
-//    py::print("receiveSignalingData");
+void NativeInstance::receiveSignalingData(std::vector<uint8_t> &data) const {
     instanceHolder.nativeInstance->receiveSignalingData(data);
 }
 

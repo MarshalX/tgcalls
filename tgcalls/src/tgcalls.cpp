@@ -1,9 +1,8 @@
-#include <stdio.h>
+#include <cstdio>
 #include <sstream>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
-#include <pybind11/iostream.h>
 #include <tgcalls/InstanceImpl.h>
 #include "NativeInstance.h"
 
@@ -131,6 +130,7 @@ PYBIND11_MODULE(tgcalls, m) {
             .def("reinitAudioOutputDevice", &NativeInstance::reinitAudioOutputDevice)
             .def("setAudioOutputDevice", &NativeInstance::setAudioOutputDevice)
             .def("setAudioInputDevice", &NativeInstance::setAudioInputDevice)
+            .def("removeSsrcs", &NativeInstance::removeSsrcs)
             .def("setJoinResponsePayload", &NativeInstance::setJoinResponsePayload)
             .def("receiveSignalingData", &NativeInstance::receiveSignalingData)
             .def("setSignalingDataEmittedCallback", &NativeInstance::setSignalingDataEmittedCallback)

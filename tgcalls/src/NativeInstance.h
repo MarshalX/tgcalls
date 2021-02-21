@@ -19,18 +19,20 @@ public:
     void startGroupCall(bool useFileAudioDevice,
                         std::function<std::string()> &getInputFilename,
                         std::function<std::string()> &getOutputFilename);
-    void stopGroupCall();
+    void stopGroupCall() const;
 
-    void setIsMuted(bool isMuted);
+    void setIsMuted(bool isMuted) const;
 
-    void reinitAudioInputDevice();
-    void reinitAudioOutputDevice();
+    void reinitAudioInputDevice() const;
+    void reinitAudioOutputDevice() const;
 
-    void setAudioOutputDevice(std::string id);
-    void setAudioInputDevice(std::string id);
+    void setAudioOutputDevice(std::string id) const;
+    void setAudioInputDevice(std::string id) const;
 
-    void receiveSignalingData(std::vector<uint8_t> &data);
-    void setJoinResponsePayload(tgcalls::GroupJoinResponsePayload payload);
+    void removeSsrcs(std::vector<uint32_t> ssrcs);
+
+    void receiveSignalingData(std::vector<uint8_t> &data) const;
+    void setJoinResponsePayload(tgcalls::GroupJoinResponsePayload payload) const;
     void setSignalingDataEmittedCallback(const std::function<void(const std::vector<uint8_t> &data)> &f);
     void setEmitJoinPayloadCallback(const std::function<void(const tgcalls::GroupJoinPayload &payload)> &f);
 };
