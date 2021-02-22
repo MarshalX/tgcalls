@@ -4,14 +4,14 @@ packages = find_packages()
 
 setup(
     name='pytgcalls',
-    version='0.0.1.beta.1',
+    version='0.0.1.beta.2',
     author='Il`ya Semyonov',
     author_email='ilya@marshal.dev',
     license='LGPLv3',
     description='Library connecting python binding for tgcalls and pyrogram',
     long_description='',
     packages=packages,
-    install_requires=['tgcalls == 0.0.1b0', 'pyrogram >= 1.1.13'],
+    install_requires=['tgcalls == 0.0.1b1', 'pyrogram >= 1.1.13'],
     python_requires="~=3.6",
     include_package_data=True,
     classifiers=[

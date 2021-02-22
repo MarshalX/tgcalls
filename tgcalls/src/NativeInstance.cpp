@@ -23,10 +23,11 @@ NativeInstance::NativeInstance() {
 }
 
 void NativeInstance::startGroupCall(bool useFileAudioDevice,
+                                    std::function<void(bool)> &networkStateUpdated,
                                     std::function<std::string()> &getInputFilename,
                                     std::function<std::string()> &getOutputFilename) {
     tgcalls::GroupInstanceDescriptor descriptor {
-        .networkStateUpdated = [=](bool state) {},
+        .networkStateUpdated = networkStateUpdated,
         .audioLevelsUpdated = [=](tgcalls::GroupLevelsUpdate const &update) {}, // TODO
         .useFileAudioDevice = useFileAudioDevice,
         .getInputFilename = getInputFilename,

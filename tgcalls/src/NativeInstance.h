@@ -17,6 +17,7 @@ public:
 
     void startCall(vector<RtcServer> servers, std::array<uint8_t, 256> authKey, bool isOutgoing, std::string logPath);
     void startGroupCall(bool useFileAudioDevice,
+                        std::function<void(bool)> &networkStateUpdated,
                         std::function<std::string()> &getInputFilename,
                         std::function<std::string()> &getOutputFilename);
     void stopGroupCall() const;

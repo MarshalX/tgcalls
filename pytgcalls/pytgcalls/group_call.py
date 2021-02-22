@@ -30,7 +30,7 @@ import tgcalls
 
 
 class GroupCall:
-    SEND_ACTION_UPDATE_EACH = 0.5
+    SEND_ACTION_UPDATE_EACH = 0.45
 
     def __init__(self, client: pyrogram.Client, input_filename: str = None, output_filename: str = None):
         if not client.is_connected:
@@ -46,6 +46,9 @@ class GroupCall:
 
         self.chat_peer = None
         self.my_ssrc = None
+
+        self.enable_action = True
+        self.is_connected = False
 
         # feature of impl tgcalls
         self._input_filename = ''
@@ -110,6 +113,8 @@ class GroupCall:
         self.native_instance.stopGroupCall()
 
     async def start(self, group: Union[str, int], enable_action=True):
+        self.enable_action = enable_action
+
         await self._get_me()
         await self.get_group_call(group)
 
@@ -118,13 +123,11 @@ class GroupCall:
 
         await self._start_group_call()
 
-        if enable_action:
-            await self.start_status_worker()
-
     async def _start_group_call(self):
-        self.native_instance.startGroupCall(True, self.__get_input_filename_callback,
-                                            self.__get_output_filename_callback)
-        self.set_is_mute(False)
+        self.native_instance.startGroupCall(
+            True, self.network_state_updated_callback,
+            self.__get_input_filename_callback, self.__get_output_filename_callback
+        )
 
     def set_is_mute(self, is_muted: bool):
         self.native_instance.setIsMuted(is_muted)
@@ -165,11 +168,24 @@ class GroupCall:
     def __get_output_filename_callback(self):
         return self._output_filename
 
+    def network_state_updated_callback(self, state: bool):
+        self.is_connected = state
+
+        if self.is_connected:
+            self.set_is_mute(False)
+            if self.enable_action:
+                self.start_status_worker()
+
     async def audio_levels_updated_callback(self):
         pass  # TODO
 
-    async def start_status_worker(self):
-        pass  # TODO
+    def start_status_worker(self):
+        async def worker():
+            while self.is_connected:
+                await self.send_speaking_group_call_action()
+                await asyncio.sleep(self.SEND_ACTION_UPDATE_EACH)
+
+        asyncio.ensure_future(worker(), loop=self.client.loop)
 
     async def send_speaking_group_call_action(self):
         await self.client.send(
@@ -222,14 +238,14 @@ class GroupCall:
             'ufrag': payload.ufrag,
             'pwd': payload.pwd,
             'fingerprints': fingerprints,
-            'ssrc': float(payload.ssrc)
+            'ssrc': payload.ssrc
         }
 
         async def _():
             response = await self.client.send(functions.phone.JoinGroupCall(
                 call=self.group_call,
                 params=types.DataJSON(data=json.dumps(params)),
-                muted=False
+                muted=True
             ))
             await self.client.handle_updates(response)
 

@@ -10,8 +10,9 @@ from pyrogram import errors, raw
 from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
 
+import pytgcalls
 import tgcalls
-from .helpers import b2i, i2b, check_g, calc_fingerprint, generate_visualization
+from helpers import b2i, i2b, check_g, calc_fingerprint, generate_visualization
 
 
 class DH:
@@ -421,213 +422,6 @@ async def start(client1, client2, make_out, make_inc):
             await call.discard_call()
 
 
-class GroupCall:
-    SEND_ACTION_UPDATE_EACH = 0.5
-
-    def __init__(self, client: pyrogram.Client, input_filename: str = None, output_filename: str = None):
-        if not client.is_connected:
-            raise RuntimeError('Client must be started first')
-
-        self.client = client
-
-        self.native_instance = tgcalls.NativeInstance()
-        self.native_instance.setEmitJoinPayloadCallback(self.emit_join_payload_callback)
-
-        self.me = None
-        self.group_call = None
-
-        self.chat_peer = None
-        self.my_ssrc = None
-
-        # feature of impl tgcalls
-        self._input_filename = ''
-        if input_filename:
-            self._input_filename = input_filename
-        self._output_filename = ''
-        if output_filename:
-            self._output_filename = output_filename
-
-        self.update_to_handler = {
-            types.UpdateGroupCallParticipants: self._process_group_call_participants_update,
-            types.UpdateGroupCall: self._process_group_call_update,
-        }
-
-        self._update_handler = RawUpdateHandler(self.process_update)
-        self.client.add_handler(self._update_handler, -1)
-
-    async def _process_group_call_participants_update(self, update):
-        ssrcs_to_remove = []
-        for participant in update.participants:
-            ssrcs = participant.source
-            uint_ssrcs = ssrcs if ssrcs >= 0 else ssrcs + 2**32
-            # tg r u kidding me? sometimes send int instead of uint
-
-            if participant.left:
-                ssrcs_to_remove.append(uint_ssrcs)
-            elif participant.user_id == self.me.id and uint_ssrcs != self.my_ssrc:
-                # reconnect
-                await self._start_group_call()
-
-        if ssrcs_to_remove:
-            self.native_instance.removeSsrcs(ssrcs_to_remove)
-
-    async def _process_group_call_update(self, update):
-        if update.call.params:
-            await self.set_join_response_payload(json.loads(update.call.params.data))
-
-    async def process_update(self, _, update, users, chats):
-        if type(update) not in self.update_to_handler.keys():
-            raise pyrogram.ContinuePropagation
-
-        if not self.group_call or not update.call or update.call.id != self.group_call.id:
-            raise pyrogram.ContinuePropagation
-        self.group_call = update.call
-
-        await self.update_to_handler[type(update)](update)
-
-    async def _get_me(self):
-        self.me = await self.client.get_me()
-
-        return self.me
-
-    async def get_group_call(self, group: Union[str, int]):
-        self.chat_peer = await self.client.resolve_peer(group)
-        self.group_call = (await (self.client.send(functions.channels.GetFullChannel(
-            channel=self.chat_peer
-        )))).full_chat.call
-
-        return self.group_call
-
-    async def stop(self):
-        self.native_instance.stopGroupCall()
-
-    async def start(self, group: Union[str, int], enable_action=True):
-        await self._get_me()
-        await self.get_group_call(group)
-
-        if self.group_call is None:
-            raise Exception('Chat without voice chat')
-
-        await self._start_group_call()
-
-        if enable_action:
-            await self.start_status_worker()
-
-    async def _start_group_call(self):
-        self.native_instance.startGroupCall(True, self.__get_input_filename_callback,
-                                            self.__get_output_filename_callback)
-        self.set_is_mute(False)
-
-    def set_is_mute(self, is_muted: bool):
-        self.native_instance.setIsMuted(is_muted)
-
-    def stop_playout(self):
-        self.input_filename = ''
-
-    def stop_output(self):
-        self.output_filename = ''
-
-    def restart_playout(self):
-        self.native_instance.reinitAudioInputDevice()
-
-    def restart_recording(self):
-        self.native_instance.reinitAudioOutputDevice()
-
-    @property
-    def input_filename(self):
-        return self._input_filename
-
-    @input_filename.setter
-    def input_filename(self, filename):
-        self._input_filename = filename
-        self.restart_playout()
-
-    @property
-    def output_filename(self):
-        return self._output_filename
-
-    @output_filename.setter
-    def output_filename(self, filename):
-        self._output_filename = filename
-        self.restart_recording()
-
-    def __get_input_filename_callback(self):
-        return self._input_filename
-
-    def __get_output_filename_callback(self):
-        return self._output_filename
-
-    async def audio_levels_updated_callback(self):
-        pass    # TODO
-
-    async def start_status_worker(self):
-        pass    # TODO
-
-    async def send_speaking_group_call_action(self):
-        await self.client.send(
-            raw.functions.messages.SetTyping(
-                peer=self.chat_peer,
-                action=raw.types.SpeakingInGroupCallAction()
-            )
-        )
-
-    async def set_join_response_payload(self, params):
-        params = params['transport']
-
-        candidates = []
-        for row_candidates in params.get('candidates', []):
-            candidate = tgcalls.GroupJoinResponseCandidate()
-            for key, value in row_candidates.items():
-                setattr(candidate, key, value)
-
-            candidates.append(candidate)
-
-        fingerprints = []
-        for row_fingerprint in params.get('fingerprints', []):
-            fingerprint = tgcalls.GroupJoinPayloadFingerprint()
-            for key, value in row_fingerprint.items():
-                setattr(fingerprint, key, value)
-
-            fingerprints.append(fingerprint)
-
-        payload = tgcalls.GroupJoinResponsePayload()
-        payload.ufrag = params.get('ufrag')
-        payload.pwd = params.get('pwd')
-        payload.fingerprints = fingerprints
-        payload.candidates = candidates
-
-        self.native_instance.setJoinResponsePayload(payload)
-
-    def emit_join_payload_callback(self, payload):
-        if self.group_call is None:
-            return
-
-        self.my_ssrc = payload.ssrc
-
-        fingerprints = [{
-            'hash': f.hash,
-            'setup': f.setup,
-            'fingerprint': f.fingerprint
-        } for f in payload.fingerprints]
-
-        params = {
-            'ufrag': payload.ufrag,
-            'pwd': payload.pwd,
-            'fingerprints': fingerprints,
-            'ssrc': float(payload.ssrc)
-        }
-
-        async def _():
-            response = await self.client.send(functions.phone.JoinGroupCall(
-                    call=self.group_call,
-                    params=types.DataJSON(data=json.dumps(params)),
-                    muted=False
-            ))
-            await self.client.handle_updates(response)
-
-        asyncio.ensure_future(_(), loop=self.client.loop)
-
-
 async def main(client1, client2, make_out, make_inc):
     # await client1.start()
     await client2.start()
@@ -638,17 +432,17 @@ async def main(client1, client2, make_out, make_inc):
     calls = []
     chats = ['@MarshalCm']
     for chat in chats:
-        group_call = GroupCall(client2, 'input.raw', 'output.raw')
+        group_call = pytgcalls.GroupCall(client2, 'input.raw', 'output.raw')
         calls.append(group_call)
 
         await group_call.start(chat)
 
-        await asyncio.sleep(30)
+        await asyncio.sleep(10)
         group_call.input_filename = 'inputGovno.raw'
         await asyncio.sleep(15)
         group_call.input_filename = 'input.raw'
         await asyncio.sleep(10)
-        await group_call.stop()
+        # await group_call.stop()
 
     # group_call.native_instance.setAudioInputDevice('VB-Cable')
     # group_call.native_instance.setAudioOutputDevice('default (Built-in Output)')
