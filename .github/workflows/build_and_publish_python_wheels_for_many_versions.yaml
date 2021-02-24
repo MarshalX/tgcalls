@@ -25,11 +25,11 @@ jobs:
 #          twine-username: ${{ secrets.PYPI_USERNAME }}
 #          twine-password: ${{ secrets.PYPI_PASSWORD }}
       - name: Build for aarch64
-        with:
-          python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
-          manulinux-platform: manylinux2014_aarch64
-          twine-username: ${{ secrets.PYPI_USERNAME }}
-          twine-password: ${{ secrets.PYPI_PASSWORD }}
+#        with:
+#          python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
+#          manulinux-platform: manylinux2014_aarch64
+#          twine-username: ${{ secrets.PYPI_USERNAME }}
+#          twine-password: ${{ secrets.PYPI_PASSWORD }}
         run: |
             # Enable docker daemon support for --platform parameter
             echo '{"experimental": true}' | sudo tee /etc/docker/daemon.json > /dev/null
