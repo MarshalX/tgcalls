@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 cmake_policy(SET CMP0076 NEW)
-cmake_policy(SET CMP0091 NEW)
+# cmake 3.15+ cmake_policy(SET CMP0091 NEW)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
