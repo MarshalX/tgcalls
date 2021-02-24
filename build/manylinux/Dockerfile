@@ -28,11 +28,14 @@ RUN cmake3 -B build . \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DCMAKE_INSTALL_PREFIX=/usr/local \
 	-DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+	-DWITH_JAVA=OFF \
 	-DWITH_JPEG8=ON \
 	-DPNG_SUPPORTED=OFF
 
-RUN cmake3 --build build -j$(nproc)
-RUN DESTDIR="$LibrariesPath/mozjpeg-cache" cmake3 --install build
+RUN make -j$(nproc)
+RUN make DESTDIR="$LibrariesPath/mozjpeg-cache" install
+#RUN cmake3 --build build -j$(nproc)
+#RUN DESTDIR="$LibrariesPath/mozjpeg-cache" cmake3 --install build
 
 WORKDIR ..
 RUN rm -rf mozjpeg
