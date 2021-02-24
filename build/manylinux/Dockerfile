@@ -8,6 +8,8 @@ ENV OPENSSL_VER 1_1_1
 ENV OPENSSL_PREFIX /usr/local/desktop-app/openssl-1.1.1
 
 # TODO RUN if [ "$MANYLINUX_PLATFORM" == "manylinux2014_aarch64"] ; then yum -y install https://download-ib01.fedoraproject.org/pub/epel/7/aarch64/Packages/c/cmake3-3.14.6-2.el7.aarch64.rpm ; else echo nothing to install ; fi
+RUN yum -y install https://extras.getpagespeed.com/release-el7-latest.rpm
+RUN yum -y install rhash libuv https://download-ib01.fedoraproject.org/pub/epel/7/aarch64/Packages/c/cmake3-data-3.14.6-2.el7.noarch.rpm
 RUN yum -y install https://download-ib01.fedoraproject.org/pub/epel/7/aarch64/Packages/c/cmake3-3.14.6-2.el7.aarch64.rpm
 
 RUN yum -y install git cmake3 meson ninja-build autoconf automake libtool \
