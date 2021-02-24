@@ -11,10 +11,8 @@ jobs:
     strategy:
       matrix:
         manylinux_tag: [
-#            "manylinux2014_x86_64",
+            "manylinux2014_x86_64",
             "manylinux2014_aarch64",
-#           "manylinux2014_ppc64le",
-#           "manylinux2014_s390x"
         ]
     steps:
       - name: Check out the repo
