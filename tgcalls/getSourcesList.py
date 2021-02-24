@@ -1,6 +1,6 @@
 import os
 
-SRC_DIR = 'tgcalls/src'
+SRC_DIR = 'src'
 
 if __name__ == '__main__':
     sources = list()

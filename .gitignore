@@ -8,6 +8,8 @@ cmake-build-debug/
 __pycache__/
 *.egg-info/
 
+copy_build.sh
+
 *.so
 
 *.session

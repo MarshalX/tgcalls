@@ -34,8 +34,6 @@ RUN cmake3 -B build . \
 
 RUN make -C build -j$(nproc)
 RUN make DESTDIR="$LibrariesPath/mozjpeg-cache" install -C build
-#RUN cmake3 --build build -j$(nproc)
-#RUN DESTDIR="$LibrariesPath/mozjpeg-cache" cmake3 --install build
 
 WORKDIR ..
 RUN rm -rf mozjpeg

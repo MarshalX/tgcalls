@@ -1,9 +1,9 @@
 [submodule "cmake"]
-	path = cmake
-	url = https://github.com/desktop-app/cmake_helpers
+    path = cmake
+    url = https://github.com/desktop-app/cmake_helpers
 [submodule "tgcalls/third_party/pybind11"]
-	path = tgcalls/third_party/pybind11
-	url = https://github.com/pybind/pybind11
+    path = tgcalls/third_party/pybind11
+    url = https://github.com/pybind/pybind11
 [submodule "tgcalls/third_party/webrtc/src/third_party/libyuv"]
     path = tgcalls/third_party/webrtc/src/third_party/libyuv
     url = https://chromium.googlesource.com/libyuv/libyuv

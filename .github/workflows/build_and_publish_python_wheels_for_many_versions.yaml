@@ -3,8 +3,7 @@ on:
   push:
     paths:
       - '.github/workflows/build_and_publish_python_wheels_for_many_versions.yaml'
-      - 'build/Dockerfile'
-      - 'build/entrypoint.sh'
+      - 'build/manylinux/entrypoint.sh'
       - 'action.yml'
       - 'setup.py'
       - 'CMakeLists.txt'
@@ -27,6 +26,7 @@ jobs:
       - name: Build for ${{ matrix.manylinux_tag }}
         uses: ./
         with:
+          image: build/manylinux/${{ matrix.manylinux_tag }}.Dockerfile
           python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
           manulinux-platform: ${{ matrix.manylinux_tag }}
           twine-username: ${{ secrets.PYPI_USERNAME }}

@@ -2,6 +2,9 @@ name: GitHub Actions Docker
 description: Docker container
 author: Marshal
 inputs:
+  image:
+    description: 'Image'
+    required: true
   python-versions:
     description: 'Python versions'
     required: true
@@ -25,7 +28,7 @@ branding:
 
 runs:
   using: docker
-  image: build/Dockerfile
+  image: ${{ inputs.image }}
   args:
     - ${{ inputs.python-versions }}
     - ${{ inputs.manulinux-platform }}
