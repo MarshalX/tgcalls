@@ -6,6 +6,7 @@ on:
       - 'build/manylinux/Dockerfile'
       - 'build/manylinux/webrtc/Dockerfile'
       - 'build/manylinux/entrypoint/Dockerfile'
+      - 'build/manylinux/entrypoint/entrypoint.sh'
       - 'tgcalls/third_party/webrtc/**'
 jobs:
   build_push_to_registry:
