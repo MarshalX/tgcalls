@@ -47,7 +47,7 @@ jobs:
               --device /dev/fuse \
               --volume /sys \
               --volume /sys/fs/cgroup:/sys/fs/cgroup:ro \
-              --volume $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
+              --volume $GITHUB_WORKSPACE:/github/workspace \
               --workdir $GITHUB_WORKSPACE \
               --platform "linux/arm64" \
               ghcr.io/marshalx/tgcalls/manylinux2014_aarch64-webrtc-entrypoint:latest \
