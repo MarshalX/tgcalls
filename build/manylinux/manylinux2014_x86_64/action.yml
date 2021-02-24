@@ -2,16 +2,13 @@ name: GitHub Actions Docker
 description: Docker container
 author: Marshal
 inputs:
-  image:
-    description: 'Image'
-    required: true
   python-versions:
     description: 'Python versions'
     required: true
     default: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
   manulinux-platform:
     description: 'Manylinux platform'
-    required: true
+    required: false
     default: 'manylinux2014_x86_64'
   twine-username:
     description: 'Twine username'
@@ -28,7 +25,7 @@ branding:
 
 runs:
   using: docker
-  image: ${{ inputs.image }}
+  image: Dockerfile
   args:
     - ${{ inputs.python-versions }}
     - ${{ inputs.manulinux-platform }}

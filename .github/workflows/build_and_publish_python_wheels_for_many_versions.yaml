@@ -24,9 +24,8 @@ jobs:
         with:
           submodules: recursive
       - name: Build for ${{ matrix.manylinux_tag }}
-        uses: ./
+        uses: ./build/manylinux/${{ matrix.manylinux_tag }}
         with:
-          image: build/manylinux/${{ matrix.manylinux_tag }}.Dockerfile
           python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
           manulinux-platform: ${{ matrix.manylinux_tag }}
           twine-username: ${{ secrets.PYPI_USERNAME }}
