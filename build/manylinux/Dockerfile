@@ -7,7 +7,7 @@ ENV GIT https://github.com
 ENV OPENSSL_VER 1_1_1
 ENV OPENSSL_PREFIX /usr/local/desktop-app/openssl-1.1.1
 
-RUN yum install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+RUN yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
 
 RUN yum -y install git cmake3 meson ninja-build autoconf automake libtool \
 	zlib-devel alsa-lib-devel pulseaudio-libs-devel pkgconfig bison \
