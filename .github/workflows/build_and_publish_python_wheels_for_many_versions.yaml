@@ -12,21 +12,22 @@ jobs:
   build_wheels_for_linux:
     name: Build and publish wheels for Linux
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        manylinux_tag: [
-            "manylinux2014_x86_64",
-            "manylinux2014_aarch64",
-        ]
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
         with:
           submodules: recursive
-      - name: Build for ${{ matrix.manylinux_tag }}
-        uses: ./build/manylinux/${{ matrix.manylinux_tag }}
+      - name: Build for x86_64
+        uses: ./build/manylinux/manylinux2014_x86_64
         with:
           python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
-          manulinux-platform: ${{ matrix.manylinux_tag }}
+          manulinux-platform: manylinux2014_x86_64
+          twine-username: ${{ secrets.PYPI_USERNAME }}
+          twine-password: ${{ secrets.PYPI_PASSWORD }}
+      - name: Build for aarch64
+        uses: ./build/manylinux/manylinux2014_aarch64
+        with:
+          python-versions: 'cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39'
+          manulinux-platform: manylinux2014_aarch64
           twine-username: ${{ secrets.PYPI_USERNAME }}
           twine-password: ${{ secrets.PYPI_PASSWORD }}
