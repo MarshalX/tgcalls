@@ -3,6 +3,9 @@
 Incoming, outgoing and video calls, voice chats in Telegram for developers
 and their projects (user bots).
 
+![Python 3.6+](https://img.shields.io/badge/python-3.6+-blue.svg)
+![License LGPLv3](https://img.shields.io/badge/license-LGPLv3-lightgrey.svg)
+
 **Features**:
 - Python solution
 - Join to voice chats
@@ -20,9 +23,15 @@ and their projects (user bots).
 - Convenient callbacks and methods
 - macOS Python wheels
 
-## tgcalls
+## Table of contents
+- [tgcalls](#tgcalls)
+- [pytgcalls](#pytgcalls)
+- [Getting help](#getting-help)
+- [License](#license)
 
-## pytgcalls
+## tgcalls ![tgcalls pypi](https://img.shields.io/pypi/v/tgcalls.svg)
+
+## pytgcalls ![pytgcalls pypi](https://img.shields.io/pypi/v/pytgcalls.svg)
 
 ## Getting help
 
