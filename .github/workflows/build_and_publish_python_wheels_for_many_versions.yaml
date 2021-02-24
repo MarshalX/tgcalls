@@ -50,10 +50,10 @@ jobs:
               --volume $GITHUB_WORKSPACE:$GITHUB_WORKSPACE \
               --workdir $GITHUB_WORKSPACE \
               --platform "linux/arm64" \
+              ghcr.io/marshalx/tgcalls/manylinux2014_aarch64-webrtc-entrypoint:latest \
               "cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39" \
+              "manylinux2014_aarch64" \
               ${{ secrets.PYPI_USERNAME }} \
               ${{ secrets.PYPI_PASSWORD }} \
-              "linux/arm64" \
-              ghcr.io/marshalx/tgcalls/manylinux2014_aarch64-webrtc-entrypoint:latest
 
 
