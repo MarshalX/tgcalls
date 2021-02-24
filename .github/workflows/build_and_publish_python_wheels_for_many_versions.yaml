@@ -41,7 +41,7 @@ jobs:
               --cap-add SYS_ADMIN \
               multiarch/qemu-user-static --reset -p yes
 
-            docker run --rm --tty \
+            docker run --rm \
               --security-opt apparmor:unconfined \
               --cap-add SYS_ADMIN \
               --device /dev/fuse \
@@ -51,6 +51,6 @@ jobs:
               --workdir $GITHUB_WORKSPACE \
               --platform "linux/arm64" \
               --env PLATFORM="linux/arm64" \
-              ghcr.io/marshalx/tgcalls/manylinux2014_aarch64-webrtc:latest
+              ghcr.io/marshalx/tgcalls/manylinux2014_aarch64-webrtc-entrypoint:latest
 
 

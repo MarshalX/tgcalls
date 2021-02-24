@@ -1,0 +1,44 @@
+name: Build manylinux with dependencies, WebRTC and entrypoint. Deploy images to GitHub Packages
+on:
+  push:
+    paths:
+      - '.github/workflows/build_and_push_manylinux_webrtc_entrypoint_images.yaml'
+      - 'build/manylinux/Dockerfile'
+      - 'build/manylinux/webrtc/Dockerfile'
+      - 'build/manylinux/entrypoint/Dockerfile'
+      - 'tgcalls/third_party/webrtc/**'
+jobs:
+  build_push_to_registry:
+    name: Push Docker image to GitHub Packages
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        manylinux_tag: [
+            "manylinux2014_x86_64",
+            "manylinux2014_aarch64",
+        ]
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.CR_PAT }}
+      - name: Prepare registry name
+        run: echo IMAGE_REPOSITORY=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]') >> $GITHUB_ENV
+      - name: ${{ matrix.manylinux_tag }}
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: build/manylinux/entrypoint/Dockerfile
+          push: true
+          build-args: MANYLINUX_PLATFORM=${{ matrix.manylinux_tag }}
+          tags: ghcr.io/${{ env.IMAGE_REPOSITORY }}/tgcalls/${{ matrix.manylinux_tag }}-webrtc-entrypoint:latest
