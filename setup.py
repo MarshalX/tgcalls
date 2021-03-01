@@ -125,6 +125,7 @@ setup(
              'voip, group-chat, video-call, calls, pyrogram, pytgcalls, tgcalls ',
     description='A python binding for tgcalls',
     long_description=readme,
+    long_description_content_type='text/markdown',
     classifiers=[
         'Development Status :: 4 - Beta',
         'Natural Language :: English',

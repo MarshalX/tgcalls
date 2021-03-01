@@ -1,6 +1,6 @@
 <p align="center">
     <a href="https://github.com/MarshalX/tgcalls">
-        <img src=".github/images/logo.png" alt="tgcalls">
+        <img src="https://github.com/MarshalX/tgcalls/raw/main/.github/images/logo.png" alt="tgcalls">
     </a>
     <br>
     <b>Voice chats, private incoming and outgoing calls in Telegram for Developers</b>
@@ -81,7 +81,7 @@ pip3 install pytgcalls
 <hr>
 <p align="center">
     <a href="https://github.com/MarshalX/tgcalls">
-        <img src=".github/images/tgcalls.png" alt="tgcalls">
+        <img src="https://github.com/MarshalX/tgcalls/raw/main/.github/images/tgcalls.png" alt="tgcalls">
     </a>
     <br>
     <a href="https://pypi.org/project/tgcalls/">
@@ -123,7 +123,7 @@ along with MTProto.
 <hr>
 <p align="center">
     <a href="https://github.com/MarshalX/tgcalls">
-        <img src=".github/images/pytgcalls.png" alt="tgcalls">
+        <img src="https://github.com/MarshalX/tgcalls/raw/main/.github/images/pytgcalls.png" alt="pytgcalls">
     </a>
     <br>
     <a href="https://pypi.org/project/pytgcalls/">

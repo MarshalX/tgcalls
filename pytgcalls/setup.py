@@ -21,6 +21,7 @@ setup(
              'voip, group-chat, video-call, calls, pyrogram, pytgcalls, tgcalls ',
     description='Library connecting python binding for tgcalls and pyrogram',
     long_description=readme,
+    long_description_content_type='text/markdown',
     packages=packages,
     install_requires=['tgcalls == 0.0.2', 'pyrogram >= 1.1.13'],
     python_requires="~=3.6",
