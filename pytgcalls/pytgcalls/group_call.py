@@ -33,9 +33,6 @@ class GroupCall:
     SEND_ACTION_UPDATE_EACH = 0.45
 
     def __init__(self, client: pyrogram.Client, input_filename: str = None, output_filename: str = None):
-        if not client.is_connected:
-            raise RuntimeError('Client must be started first')
-
         self.client = client
 
         self.native_instance = tgcalls.NativeInstance()

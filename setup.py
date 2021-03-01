@@ -111,25 +111,54 @@ class CMakeBuild(build_ext):
             ['cmake', '--build', '.'] + build_args, cwd=self.build_temp
         )
 
+
+with open('README.md', 'r', encoding='utf-8') as f:
+    readme = f.read()
+
 setup(
     name='tgcalls',
-    version=f'0.0.1.beta.2',
+    version=f'0.0.2',
     author='Il\'ya Semyonov',
     author_email='ilya@marshal.by',
+    url='https://github.com/MarshalX/tgcalls',
+    keywords='python, library, telegram, async, asynchronous, webrtc, lib, voice-chat, '
+             'voip, group-chat, video-call, calls, pyrogram, pytgcalls, tgcalls ',
     description='A python binding for tgcalls',
-    long_description='',
+    long_description=readme,
     classifiers=[
         'Development Status :: 4 - Beta',
         'Natural Language :: English',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
         'Operating System :: OS Independent',
-        'Topic :: Software Development :: Libraries :: Python Modules',
-        'Topic :: Multimedia :: Sound/Audio',
         'Topic :: Internet',
+        'Topic :: Multimedia',
+        'Topic :: Multimedia :: Video',
+        'Topic :: Multimedia :: Video :: Capture',
+        'Topic :: Multimedia :: Sound/Audio',
+        'Topic :: Multimedia :: Sound/Audio :: Capture/Recording',
+        'Topic :: Communications',
+        'Topic :: Communications :: Internet Phone',
+        'Topic :: Communications :: Telephony',
+        "Topic :: Software Development :: Libraries",
+        "Topic :: Software Development :: Libraries :: Python Modules",
+        'Programming Language :: C++',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3 :: Only',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        "Programming Language :: Python :: Implementation",
+        "Programming Language :: Python :: Implementation :: CPython",
     ],
     ext_modules=[CMakeExtension('tgcalls')],
     cmdclass={'build_ext': CMakeBuild},
     zip_safe=False,
+    project_urls={
+        'Author': 'https://github.com/MarshalX',
+        'Telegram Channel': 'https://t.me/tgcallslib',
+        'Telegram Chat': 'https://t.me/tgcallschat',
+    }
 )

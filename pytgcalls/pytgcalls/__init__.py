@@ -20,3 +20,4 @@
 from pytgcalls.group_call import GroupCall
 
 __all__ = ['GroupCall']
+__version__ = '0.0.2'
