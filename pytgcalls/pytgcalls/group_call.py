@@ -42,6 +42,8 @@ class GroupCall:
         self.group_call = None
 
         self.chat_peer = None
+        self.full_chat = None
+
         self.my_ssrc = None
 
         self.enable_action = True
@@ -98,11 +100,18 @@ class GroupCall:
 
         return self.me
 
+    async def _get_group_participants(self):
+        return (await (self.client.send(functions.phone.GetGroupCall(
+            call=self.full_chat.call
+        )))).participants
+
     async def get_group_call(self, group: Union[str, int]):
         self.chat_peer = await self.client.resolve_peer(group)
-        self.group_call = (await (self.client.send(functions.channels.GetFullChannel(
+        self.full_chat = (await (self.client.send(functions.channels.GetFullChannel(
             channel=self.chat_peer
-        )))).full_chat.call
+        )))).full_chat
+
+        self.group_call = self.full_chat.call
 
         return self.group_call
 
@@ -217,7 +226,24 @@ class GroupCall:
         payload.fingerprints = fingerprints
         payload.candidates = candidates
 
-        self.native_instance.setJoinResponsePayload(payload)
+        call_participants = await self._get_group_participants()
+
+        participants = []
+        for participant in call_participants:
+            native_participant = tgcalls.GroupParticipantDescription()
+
+            # TODO DRY
+            ssrcs = participant.source
+            uint_ssrcs = ssrcs if ssrcs >= 0 else ssrcs + 2 ** 32
+            # tg r u kidding me? sometimes send int instead of uint
+
+            native_participant.audioSsrc = uint_ssrcs
+            native_participant.isRemoved = participant.left
+
+            participants.append(native_participant)
+
+        # TODO video payload
+        self.native_instance.setJoinResponsePayload(payload, participants)
 
     def emit_join_payload_callback(self, payload):
         if self.group_call is None:

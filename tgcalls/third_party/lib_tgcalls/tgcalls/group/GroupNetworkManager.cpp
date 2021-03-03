@@ -294,7 +294,8 @@ void GroupNetworkManager::start() {
     _dtlsSrtpTransport->SignalDtlsStateChange.connect(this, &GroupNetworkManager::DtlsStateChanged);
     _dtlsSrtpTransport->SignalReadyToSend.connect(this, &GroupNetworkManager::DtlsReadyToSend);
     // TODO uncomment when Telegram publish new version of tg_owt (webrtc)
-//    _dtlsSrtpTransport->SignalRtpPacketReceived.connect(this, &GroupNetworkManager::RtpPacketReceived_n);
+    // upd. updated by myself
+    _dtlsSrtpTransport->SignalRtpPacketReceived.connect(this, &GroupNetworkManager::RtpPacketReceived_n);
     _dtlsSrtpTransport->SignalRtcpPacketReceived.connect(this, &GroupNetworkManager::OnRtcpPacketReceived_n);
 
     const auto weak = std::weak_ptr<GroupNetworkManager>(shared_from_this());
