@@ -120,6 +120,34 @@ PYBIND11_MODULE(tgcalls, m) {
                 return repr.str();
             });
 
+    py::class_<tgcalls::GroupParticipantDescription>(m, "GroupParticipantDescription")
+            .def(py::init<>())
+            .def_readwrite("endpointId", &tgcalls::GroupParticipantDescription::endpointId)
+            .def_readwrite("audioSsrc", &tgcalls::GroupParticipantDescription::audioSsrc)
+            .def_readwrite("videoPayloadTypes", &tgcalls::GroupParticipantDescription::videoPayloadTypes)
+            .def_readwrite("videoExtensionMap", &tgcalls::GroupParticipantDescription::videoExtensionMap)
+            .def_readwrite("videoSourceGroups", &tgcalls::GroupParticipantDescription::videoSourceGroups)
+            .def_readwrite("isRemoved", &tgcalls::GroupParticipantDescription::isRemoved);
+
+    py::class_<tgcalls::GroupJoinPayloadVideoPayloadType>(m, "GroupJoinPayloadVideoPayloadType")
+            .def(py::init<>())
+            .def_readwrite("id", &tgcalls::GroupJoinPayloadVideoPayloadType::id)
+            .def_readwrite("name", &tgcalls::GroupJoinPayloadVideoPayloadType::name)
+            .def_readwrite("clockrate", &tgcalls::GroupJoinPayloadVideoPayloadType::clockrate)
+            .def_readwrite("channels", &tgcalls::GroupJoinPayloadVideoPayloadType::channels)
+            .def_readwrite("feedbackTypes", &tgcalls::GroupJoinPayloadVideoPayloadType::feedbackTypes)
+            .def_readwrite("parameters", &tgcalls::GroupJoinPayloadVideoPayloadType::parameters);
+
+    py::class_<tgcalls::GroupJoinPayloadVideoPayloadFeedbackType>(m, "GroupJoinPayloadVideoPayloadFeedbackType")
+            .def(py::init<>())
+            .def_readwrite("type", &tgcalls::GroupJoinPayloadVideoPayloadFeedbackType::type)
+            .def_readwrite("subtype", &tgcalls::GroupJoinPayloadVideoPayloadFeedbackType::subtype);
+
+    py::class_<tgcalls::GroupJoinPayloadVideoSourceGroup>(m, "GroupJoinPayloadVideoSourceGroup")
+            .def(py::init<>())
+            .def_readwrite("ssrcs", &tgcalls::GroupJoinPayloadVideoSourceGroup::ssrcs)
+            .def_readwrite("semantics", &tgcalls::GroupJoinPayloadVideoSourceGroup::semantics);
+
     py::class_<NativeInstance>(m, "NativeInstance")
             .def(py::init<>())
             .def("startCall", &NativeInstance::startCall)

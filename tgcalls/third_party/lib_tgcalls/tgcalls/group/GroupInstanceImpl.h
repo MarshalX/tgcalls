@@ -48,8 +48,11 @@ struct GroupInstanceDescriptor {
     std::function<void(GroupLevelsUpdate const &)> audioLevelsUpdated;
     std::string initialInputDeviceId;
     std::string initialOutputDeviceId;
+    bool useFileAudioDevice;
     bool debugIgnoreMissingSsrcs = false;
     std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory*)> createAudioDeviceModule;
+    std::function<std::string()> getInputFilename;
+    std::function<std::string()> getOutputFilename;
     std::shared_ptr<VideoCaptureInterface> videoCapture;
     std::function<void(std::vector<uint32_t> const &)> incomingVideoSourcesUpdated;
     std::function<void(std::vector<uint32_t> const &)> participantDescriptionsRequired;
@@ -173,6 +176,10 @@ public:
 
     void setIsMuted(bool isMuted);
     void setVideoCapture(std::shared_ptr<VideoCaptureInterface> videoCapture, std::function<void(GroupJoinPayload)> completion);
+
+    void reinitAudioInputDevice();
+    void reinitAudioOutputDevice();
+
     void setAudioOutputDevice(std::string id);
     void setAudioInputDevice(std::string id);
 

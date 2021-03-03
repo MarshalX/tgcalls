@@ -39,6 +39,8 @@ PRIVATE
     Message.h
     NetworkManager.cpp
     NetworkManager.h
+    StaticThreads.cpp
+    StaticThreads.h
     ThreadLocalObject.h
     VideoCaptureInterface.cpp
     VideoCaptureInterface.h
@@ -49,8 +51,12 @@ PRIVATE
     FileAudioDevice.cpp
     FileAudioDevice.h
 
+    group/GroupInstanceCustomImpl.cpp
+    group/GroupInstanceCustomImpl.h
     group/GroupInstanceImpl.cpp
     group/GroupInstanceImpl.h
+    group/GroupNetworkManager.cpp
+    group/GroupNetworkManager.h
 
     platform/PlatformInterface.h
 

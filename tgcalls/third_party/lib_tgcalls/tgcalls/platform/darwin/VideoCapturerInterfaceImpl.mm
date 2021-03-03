@@ -25,7 +25,8 @@
 
 #ifndef WEBRTC_IOS
 #import "VideoCameraCapturerMac.h"
-#import "DesktopSharingCapturer.h"
+// TODO uncomment when Telegram publish a part of code
+//#import "DesktopSharingCapturer.h"
 #else
 #import "VideoCameraCapturer.h"
 #endif
@@ -196,15 +197,16 @@
         _videoCapturer = [[VideoCameraCapturer alloc] initWithSource:source useFrontCamera:sourceDescription.isFrontCamera keepLandscape:sourceDescription.keepLandscape isActiveUpdated:isActiveUpdated orientationUpdated:orientationUpdated];
         [_videoCapturer startCaptureWithDevice:sourceDescription.device format:sourceDescription.format fps:30];
     #else
-        
-        if([sourceDescription.deviceId hasPrefix:@"desktop_capturer_"]) {
-            DesktopSharingCapturer *sharing = [[DesktopSharingCapturer alloc] initWithSource:source capturerKey:sourceDescription.deviceId];
-            _videoCapturer = sharing;
-        } else {
+
+        // TODO uncomment when Telegram publish a part of code
+//        if([sourceDescription.deviceId hasPrefix:@"desktop_capturer_"]) {
+//            DesktopSharingCapturer *sharing = [[DesktopSharingCapturer alloc] initWithSource:source capturerKey:sourceDescription.deviceId];
+//            _videoCapturer = sharing;
+//        } else {
             VideoCameraCapturer *camera = [[VideoCameraCapturer alloc] initWithSource:source isActiveUpdated:isActiveUpdated];
             [camera setupCaptureWithDevice:sourceDescription.device format:sourceDescription.format fps:30];
             _videoCapturer = camera;
-        }
+//        }
         
         
         
@@ -218,7 +220,8 @@
 - (void)dealloc {
     assert([NSThread isMainThread]);
 
-    [_videoCapturer stopCapture];
+    // TODO uncomment when Telegram publish a part of code
+//    [_videoCapturer stopCapture];
 }
 
 - (void)setIsEnabled:(bool)isEnabled {

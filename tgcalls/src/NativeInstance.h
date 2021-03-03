@@ -33,7 +33,7 @@ public:
     void removeSsrcs(std::vector<uint32_t> ssrcs);
 
     void receiveSignalingData(std::vector<uint8_t> &data) const;
-    void setJoinResponsePayload(tgcalls::GroupJoinResponsePayload payload) const;
+    void setJoinResponsePayload(tgcalls::GroupJoinResponsePayload payload, std::vector<tgcalls::GroupParticipantDescription> &&participants) const;
     void setSignalingDataEmittedCallback(const std::function<void(const std::vector<uint8_t> &data)> &f);
     void setEmitJoinPayloadCallback(const std::function<void(const tgcalls::GroupJoinPayload &payload)> &f);
 };

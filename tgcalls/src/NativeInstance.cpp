@@ -48,8 +48,8 @@ void NativeInstance::setEmitJoinPayloadCallback(const std::function<void(const t
     emitJoinPayloadCallback = f;
 }
 
-void NativeInstance::setJoinResponsePayload(tgcalls::GroupJoinResponsePayload payload) const {
-    instanceHolder.groupNativeInstance->setJoinResponsePayload(std::move(payload));
+void NativeInstance::setJoinResponsePayload(tgcalls::GroupJoinResponsePayload payload, std::vector<tgcalls::GroupParticipantDescription> &&participants) const {
+    instanceHolder.groupNativeInstance->setJoinResponsePayload(std::move(payload), std::move(participants));
 }
 
 void NativeInstance::setIsMuted(bool isMuted) const {
