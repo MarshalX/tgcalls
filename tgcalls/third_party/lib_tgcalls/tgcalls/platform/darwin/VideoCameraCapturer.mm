@@ -171,6 +171,7 @@ static UIDeviceOrientation deviceOrientation(UIInterfaceOrientation orientation)
     
     // Live on main thread.
     bool _isFrontCamera;
+    bool _keepLandscape;
     
     dispatch_queue_t _frameQueue;
 
@@ -214,11 +215,12 @@ static UIDeviceOrientation deviceOrientation(UIInterfaceOrientation orientation)
 
 @implementation VideoCameraCapturer
 
-- (instancetype)initWithSource:(rtc::scoped_refptr<webrtc::VideoTrackSourceInterface>)source useFrontCamera:(bool)useFrontCamera isActiveUpdated:(void (^)(bool))isActiveUpdated orientationUpdated:(void (^)(bool))orientationUpdated {
+- (instancetype)initWithSource:(rtc::scoped_refptr<webrtc::VideoTrackSourceInterface>)source useFrontCamera:(bool)useFrontCamera keepLandscape:(bool)keepLandscape isActiveUpdated:(void (^)(bool))isActiveUpdated orientationUpdated:(void (^)(bool))orientationUpdated {
     self = [super init];
     if (self != nil) {
         _source = source;
         _isFrontCamera = useFrontCamera;
+        _keepLandscape = keepLandscape;
         _isActiveValue = true;
         _inForegroundValue = true;
         _isPaused = false;
@@ -512,21 +514,44 @@ static UIDeviceOrientation deviceOrientation(UIInterfaceOrientation orientation)
     
     TGRTCCVPixelBuffer *uncroppedRtcPixelBuffer = rtcPixelBuffer;
     
+    if (_keepLandscape) {
+        switch (_rotation) {
+            case RTCVideoRotation_0:
+            case RTCVideoRotation_180:
+                _aspectRatio = 0.0f;
+                break;
+            default:
+                _aspectRatio = 1280.0f / 720.0f;
+                break;
+        }
+    }
+    
     if (_aspectRatio > FLT_EPSILON) {
         float aspect = 1.0f / _aspectRatio;
         
         int width = rtcPixelBuffer.width;
         int height = rtcPixelBuffer.height;
         
-        float aspectWidth = width;
-        float aspectHeight = ((float)(width)) / aspect;
-        int cropX = (int)((width - aspectWidth) / 2.0f);
-        int cropY = (int)((height - aspectHeight) / 2.0f);
+        int cropX = 0;
+        int cropY = 0;
         
-        width = (int)aspectWidth;
-        width &= ~1;
-        height = (int)aspectHeight;
-        height &= ~1;
+        if (_keepLandscape && width > height) {
+            float aspectWidth = 404.0f;
+            float aspectHeight = 720.0f;
+            cropX = (int)((width - aspectWidth) / 2.0f);
+            cropY = (int)((height - aspectHeight) / 2.0f);
+            width = aspectWidth;
+            height = aspectHeight;
+        } else {
+            float aspectWidth = width;
+            float aspectHeight = ((float)(width)) / aspect;
+            cropX = (int)((width - aspectWidth) / 2.0f);
+            cropY = (int)((height - aspectHeight) / 2.0f);
+            width = (int)aspectWidth;
+            width &= ~1;
+            height = (int)aspectHeight;
+            height &= ~1;
+        }
         
         height = MIN(rtcPixelBuffer.height, height + 16);
         

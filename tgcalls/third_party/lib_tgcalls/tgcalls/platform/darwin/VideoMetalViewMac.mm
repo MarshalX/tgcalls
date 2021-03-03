@@ -87,7 +87,7 @@ private:
 @implementation VideoMetalView
 
 + (bool)isSupported {
-    return [VideoMetalView isMetalAvailable];
+    return false;
 }
 
 - (instancetype)initWithFrame:(CGRect)frameRect {

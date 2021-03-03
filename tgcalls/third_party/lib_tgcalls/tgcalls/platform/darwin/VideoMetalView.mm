@@ -189,7 +189,7 @@ private:
     
     _metalView = [VideoMetalView createMetalView:self.bounds];
     _metalView.delegate = self;
-    _metalView.contentMode = UIViewContentModeScaleAspectFill;
+    _metalView.contentMode = UIViewContentModeScaleToFill;
     [self addSubview:_metalView];
     _videoFrameSize = CGSizeZero;
 }
@@ -348,9 +348,9 @@ private:
 - (void)setSize:(CGSize)size {
     assert([NSThread isMainThread]);
            
-   _videoFrameSize = size;
-   //CGSize drawableSize = [self drawableSize];
-   
+    _videoFrameSize = size;
+    _metalView.drawableSize = [self drawableSize];
+    
    //_metalView.drawableSize = drawableSize;
    //[self setNeedsLayout];
    //[strongSelf.delegate videoView:self didChangeVideoSize:size];

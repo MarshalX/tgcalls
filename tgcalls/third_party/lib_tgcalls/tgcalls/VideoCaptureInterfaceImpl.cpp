@@ -4,11 +4,12 @@
 #include "Manager.h"
 #include "MediaManager.h"
 #include "platform/PlatformInterface.h"
+#include "StaticThreads.h"
 
 namespace tgcalls {
 
 VideoCaptureInterfaceObject::VideoCaptureInterfaceObject(std::string deviceId, std::shared_ptr<PlatformContext> platformContext)
-: _videoSource(PlatformInterface::SharedInstance()->makeVideoSource(Manager::getMediaThread(), MediaManager::getWorkerThread())) {
+: _videoSource(PlatformInterface::SharedInstance()->makeVideoSource(StaticThreads::getMediaThread(), StaticThreads::getWorkerThread())) {
 	_platformContext = platformContext;
 
 	switchToDevice(deviceId);
@@ -102,7 +103,7 @@ void VideoCaptureInterfaceObject::setStateUpdated(std::function<void(VideoState)
 }
 
 VideoCaptureInterfaceImpl::VideoCaptureInterfaceImpl(std::string deviceId, std::shared_ptr<PlatformContext> platformContext) :
-_impl(Manager::getMediaThread(), [deviceId, platformContext]() {
+_impl(StaticThreads::getMediaThread(), [deviceId, platformContext]() {
 	return new VideoCaptureInterfaceObject(deviceId, platformContext);
 }) {
 }
