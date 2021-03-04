@@ -26,6 +26,7 @@ class GroupInstanceManager;
 
 struct GroupConfig {
     FilePath logPath;
+    bool logToStdErr;
 };
 
 struct GroupLevelValue {

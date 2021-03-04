@@ -432,16 +432,16 @@ async def main(client1, client2, make_out, make_inc):
     calls = []
     chats = ['@MarshalCm']
     for chat in chats:
-        group_call = pytgcalls.GroupCall(client2, 'input.raw', 'output.raw')
+        group_call = pytgcalls.GroupCall(client2, 'input.raw', 'output.raw', False, 'kek.log')
         calls.append(group_call)
 
-        await group_call.start(chat)
+        await group_call.start(chat, False)
 
-        await asyncio.sleep(10)
-        group_call.input_filename = 'inputGovno.raw'
-        await asyncio.sleep(15)
-        group_call.input_filename = 'input.raw'
-        await asyncio.sleep(10)
+        # await asyncio.sleep(10)
+        # group_call.input_filename = 'inputGovno.raw'
+        # await asyncio.sleep(15)
+        # group_call.input_filename = 'input.raw'
+        # await asyncio.sleep(10)
         # await group_call.stop()
 
     # group_call.native_instance.setAudioInputDevice('VB-Cable')

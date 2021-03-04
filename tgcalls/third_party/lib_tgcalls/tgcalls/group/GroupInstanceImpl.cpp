@@ -3119,7 +3119,7 @@ private:
 GroupInstanceImpl::GroupInstanceImpl(GroupInstanceDescriptor &&descriptor)
 : _logSink(std::make_unique<LogSinkImpl>(descriptor.config.logPath)) {
     rtc::LogMessage::LogToDebug(rtc::LS_INFO);
-    rtc::LogMessage::SetLogToStderr(true);
+    rtc::LogMessage::SetLogToStderr(descriptor.config.logToStdErr);
     if (_logSink) {
 		rtc::LogMessage::AddLogToStream(_logSink.get(), rtc::LS_INFO);
 	}

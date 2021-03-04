@@ -19,7 +19,7 @@
 
 import asyncio
 import json
-from typing import Union
+from typing import Union, List
 
 import pyrogram
 from pyrogram import raw
@@ -29,10 +29,29 @@ from pyrogram.raw import functions, types
 import tgcalls
 
 
+uint_ssrcs = lambda ssrcs: ssrcs if ssrcs >= 0 else ssrcs + 2 ** 32
+
+
+def parse_call_participant(participant_data):
+    native_participant = tgcalls.GroupParticipantDescription()
+
+    native_participant.audioSsrc = uint_ssrcs(participant_data.source)
+    native_participant.isRemoved = participant_data.left
+
+    return native_participant
+
+
 class GroupCall:
     SEND_ACTION_UPDATE_EACH = 0.45
 
-    def __init__(self, client: pyrogram.Client, input_filename: str = None, output_filename: str = None):
+    def __init__(
+        self,
+        client: pyrogram.Client,
+        input_filename: str = None,
+        output_filename: str = None,
+        enable_logs_to_console=False,
+        path_to_log_file='group_call.log'
+    ):
         self.client = client
 
         self.native_instance = tgcalls.NativeInstance()
@@ -47,6 +66,10 @@ class GroupCall:
         self.my_ssrc = None
 
         self.enable_action = True
+        self.enable_logs_to_console = enable_logs_to_console
+        self.path_to_log_file = path_to_log_file
+        self.__use_file_audio_device = True
+
         self.is_connected = False
 
         # feature of impl tgcalls
@@ -68,13 +91,11 @@ class GroupCall:
     async def _process_group_call_participants_update(self, update):
         ssrcs_to_remove = []
         for participant in update.participants:
-            ssrcs = participant.source
-            uint_ssrcs = ssrcs if ssrcs >= 0 else ssrcs + 2 ** 32
-            # tg r u kidding me? sometimes send int instead of uint
+            ssrcs = uint_ssrcs(participant.source)
 
             if participant.left:
-                ssrcs_to_remove.append(uint_ssrcs)
-            elif participant.user_id == self.me.id and uint_ssrcs != self.my_ssrc:
+                ssrcs_to_remove.append(ssrcs)
+            elif participant.user_id == self.me.id and ssrcs != self.my_ssrc:
                 # reconnect
                 await self._start_group_call()
 
@@ -131,8 +152,15 @@ class GroupCall:
 
     async def _start_group_call(self):
         self.native_instance.startGroupCall(
-            True, self.network_state_updated_callback,
-            self.__get_input_filename_callback, self.__get_output_filename_callback
+            self.enable_logs_to_console,
+            self.path_to_log_file,
+
+            self.__use_file_audio_device,
+
+            self.__network_state_updated_callback,
+            self.__participant_descriptions_required_callback,
+            self.__get_input_filename_callback,
+            self.__get_output_filename_callback
         )
 
     def set_is_mute(self, is_muted: bool):
@@ -174,7 +202,16 @@ class GroupCall:
     def __get_output_filename_callback(self):
         return self._output_filename
 
-    def network_state_updated_callback(self, state: bool):
+    def __participant_descriptions_required_callback(self, ssrcs_list: List[int]):
+        def _(future):
+            filtered_participants = [p for p in future.result() if p.source in ssrcs_list]
+            participants = [parse_call_participant(p) for p in filtered_participants]
+            self.native_instance.addParticipants(participants)
+
+        call_participants = asyncio.ensure_future(self._get_group_participants(), loop=self.client.loop)
+        call_participants.add_done_callback(_)
+
+    def __network_state_updated_callback(self, state: bool):
         self.is_connected = state
 
         if self.is_connected:
@@ -226,21 +263,7 @@ class GroupCall:
         payload.fingerprints = fingerprints
         payload.candidates = candidates
 
-        call_participants = await self._get_group_participants()
-
-        participants = []
-        for participant in call_participants:
-            native_participant = tgcalls.GroupParticipantDescription()
-
-            # TODO DRY
-            ssrcs = participant.source
-            uint_ssrcs = ssrcs if ssrcs >= 0 else ssrcs + 2 ** 32
-            # tg r u kidding me? sometimes send int instead of uint
-
-            native_participant.audioSsrc = uint_ssrcs
-            native_participant.isRemoved = participant.left
-
-            participants.append(native_participant)
+        participants = [parse_call_participant(p) for p in await self._get_group_participants()]
 
         # TODO video payload
         self.native_instance.setJoinResponsePayload(payload, participants)
