@@ -86,7 +86,7 @@ static CGSize aspectFilled(CGSize from, CGSize to) {
     return NSMakeSize(ceil(to.width * scale), ceil(to.height * scale));
 }
 static CGSize aspectFitted(CGSize from, CGSize to) {
-    CGFloat scale = MAX(from.width / MAX(1.0, to.width), from.height / MAX(1.0, to.height));
+    CGFloat scale = MIN(from.width / MAX(1.0, to.width), from.height / MAX(1.0, to.height));
     return NSMakeSize(ceil(to.width * scale), ceil(to.height * scale));
 }
 
@@ -160,7 +160,8 @@ static CVReturn OnDisplayLinkFired(CVDisplayLinkRef displayLink,
     NSRect frame = [self frame];
     [self ensureGLContext];
     CGLLockContext([[self openGLContext] CGLContextObj]);
-    glViewport(0, 0, frame.size.width, frame.size.height);
+    CGFloat scale = MAX([[self window] backingScaleFactor], 1);
+    glViewport(0, 0, frame.size.width * scale, frame.size.height * scale);
     CGLUnlockContext([[self openGLContext] CGLContextObj]);
 }
 
@@ -338,8 +339,8 @@ static CVReturn OnDisplayLinkFired(CVDisplayLinkRef displayLink,
         
         _glView = [[OpenGLVideoView alloc] initWithFrame:frame pixelFormat:format shader:shader];
         _glView.wantsLayer = YES;
-        self.layerContentsRedrawPolicy = NSViewLayerContentsRedrawDuringViewResize;
-        _glView.layerContentsRedrawPolicy = NSViewLayerContentsRedrawDuringViewResize;
+//        self.layerContentsRedrawPolicy = NSViewLayerContentsRedrawDuringViewResize;
+//        _glView.layerContentsRedrawPolicy = NSViewLayerContentsRedrawDuringViewResize;
 
         [self addSubview:_glView];
         
@@ -400,8 +401,10 @@ static CVReturn OnDisplayLinkFired(CVDisplayLinkRef displayLink,
         
         NSSize size = _currentSize;
         NSSize frameSize = self.frame.size;
-        if ( self.glView.layer.contentsGravity == kCAGravityResizeAspectFill) {
+        if ( [self.glView.layer.contentsGravity isEqualToString:kCAGravityResizeAspectFill]) {
             size = aspectFitted(frameSize, _currentSize);
+        } else if ([self.glView.layer.contentsGravity isEqualToString:kCAGravityResizeAspect]) {
+            size = aspectFilled(_currentSize, frameSize);
         } else {
             size = aspectFilled(frameSize, _currentSize);
         }

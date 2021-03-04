@@ -27,9 +27,10 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/time_utils.h"
+#include "rtc_base/thread.h"
 #include "sdk/objc/components/video_codec/nalu_rewriter.h"
 
-#include "Manager.h"
+#include "StaticThreads.h"
 
 @interface MarkedDecodedH2651RTCCVPixelBuffer : RTCCVPixelBuffer
 
@@ -142,7 +143,7 @@ static void tg_h265DecompressionOutputCallback(void* decoder,
 
 - (void)handleApplicationDidBecomeActive:(NSNotification *)notification {
     __weak TGRTCVideoDecoderH265 *weakSelf = self;
-    tgcalls::Manager::getMediaThread()->PostTask(RTC_FROM_HERE, [weakSelf]() {
+    tgcalls::StaticThreads::getMediaThread()->PostTask(RTC_FROM_HERE, [weakSelf]() {
         __strong TGRTCVideoDecoderH265 *strongSelf = weakSelf;
         if (strongSelf == nil) {
             return;

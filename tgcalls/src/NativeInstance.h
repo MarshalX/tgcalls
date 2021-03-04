@@ -16,8 +16,11 @@ public:
     NativeInstance();
 
     void startCall(vector<RtcServer> servers, std::array<uint8_t, 256> authKey, bool isOutgoing, std::string logPath);
-    void startGroupCall(bool useFileAudioDevice,
+    void startGroupCall(bool logToStdErr,
+                        string logPath,
+                        bool useFileAudioDevice,
                         std::function<void(bool)> &networkStateUpdated,
+                        std::function<void(std::vector<uint32_t> const &)> &participantDescriptionsRequired,
                         std::function<std::string()> &getInputFilename,
                         std::function<std::string()> &getOutputFilename);
     void stopGroupCall() const;
@@ -30,10 +33,11 @@ public:
     void setAudioOutputDevice(std::string id) const;
     void setAudioInputDevice(std::string id) const;
 
-    void removeSsrcs(std::vector<uint32_t> ssrcs);
+    void removeSsrcs(std::vector<uint32_t> ssrcs) const;
+    void addParticipants(std::vector<tgcalls::GroupParticipantDescription> &&participants) const;
 
     void receiveSignalingData(std::vector<uint8_t> &data) const;
-    void setJoinResponsePayload(tgcalls::GroupJoinResponsePayload payload) const;
+    void setJoinResponsePayload(tgcalls::GroupJoinResponsePayload payload, std::vector<tgcalls::GroupParticipantDescription> &&participants) const;
     void setSignalingDataEmittedCallback(const std::function<void(const std::vector<uint8_t> &data)> &f);
     void setEmitJoinPayloadCallback(const std::function<void(const tgcalls::GroupJoinPayload &payload)> &f);
 };
