@@ -1,18 +1,17 @@
-import os
-import json
 import asyncio
 import hashlib
+import os
 from random import randint
 from typing import Union
 
 import pyrogram
-from pyrogram import errors, raw
+from pyrogram import errors
 from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
 
 import pytgcalls
 import tgcalls
-from helpers import b2i, i2b, check_g, calc_fingerprint, generate_visualization
+from helpers import b2i, calc_fingerprint, check_g, generate_visualization, i2b
 
 
 class DH:
@@ -153,7 +152,7 @@ class Call:
         try:
             r = await self.client.send(functions.phone.DiscardCall(
                 peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash),
-                duration=0,   # TODO
+                duration=0,  # TODO
                 connection_id=0,
                 reason=reason
             ))
@@ -170,6 +169,7 @@ class Call:
                 peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash),
                 data=bytes(data)
             ))
+
         asyncio.ensure_future(_(), loop=self.client.loop)
 
     async def _initiate_encrypted_call(self) -> None:
@@ -275,7 +275,7 @@ class IncomingCall(Call):
             return False
 
         await self.get_dhc()
-        self.b = randint(2, self.dhc.p-1)
+        self.b = randint(2, self.dhc.p - 1)
         self.g_b = pow(self.dhc.g, self.b, self.dhc.p)
         self.g_a_hash = self.call.g_a_hash
 
@@ -355,6 +355,7 @@ class Tgcalls:
                     for handler in self.incoming_call_handlers:
                         asyncio.iscoroutinefunction(handler) and asyncio.ensure_future(handler(voip_call),
                                                                                        loop=self.client.loop)
+
                 asyncio.ensure_future(_(), loop=self.client.loop)
         raise pyrogram.ContinuePropagation
 
@@ -432,17 +433,27 @@ async def main(client1, client2, make_out, make_inc):
     calls = []
     chats = ['@MarshalCm']
     for chat in chats:
-        group_call = pytgcalls.GroupCall(client2, 'input.raw', 'output.raw', False, 'kek.log')
+        group_call = pytgcalls.GroupCall(client2, 'input.raw', 'output.raw', True, '')
         calls.append(group_call)
+
+        group_call.input_filename = 'input.raw'
 
         await group_call.start(chat, False)
 
-        # await asyncio.sleep(10)
-        # group_call.input_filename = 'inputGovno.raw'
-        # await asyncio.sleep(15)
-        # group_call.input_filename = 'input.raw'
-        # await asyncio.sleep(10)
+        while not group_call.is_connected:
+            await asyncio.sleep(1)
+
+        print('Connected')
+
+        await asyncio.sleep(3)
+
+        print('Reconnect')
+        await group_call.reconnect()
+
+        # TODO
         # await group_call.stop()
+        # await group_call.start(chat, False)
+
 
     # group_call.native_instance.setAudioInputDevice('VB-Cable')
     # group_call.native_instance.setAudioOutputDevice('default (Built-in Output)')
