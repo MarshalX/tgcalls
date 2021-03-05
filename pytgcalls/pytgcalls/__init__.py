@@ -17,7 +17,8 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
+from pytgcalls.group_call_native import GroupCallNative
 from pytgcalls.group_call import GroupCall
 
-__all__ = ['GroupCall']
-__version__ = '0.0.3'
+__all__ = ['GroupCallNative', 'GroupCall']
+__version__ = '0.0.4'

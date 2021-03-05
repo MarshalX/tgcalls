@@ -17,166 +17,64 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-import asyncio
-import json
-from typing import Union, List
+from typing import Union
 
 import pyrogram
-from pyrogram import raw
-from pyrogram.handlers import RawUpdateHandler
-from pyrogram.raw import functions, types
 
-import tgcalls
+from pytgcalls import GroupCallNative
 
 
-uint_ssrcs = lambda ssrcs: ssrcs if ssrcs >= 0 else ssrcs + 2 ** 32
-
-
-def parse_call_participant(participant_data):
-    native_participant = tgcalls.GroupParticipantDescription()
-
-    native_participant.audioSsrc = uint_ssrcs(participant_data.source)
-    native_participant.isRemoved = participant_data.left
-
-    return native_participant
-
-
-class GroupCall:
-    SEND_ACTION_UPDATE_EACH = 0.45
+class GroupCall(GroupCallNative):
 
     def __init__(
-        self,
-        client: pyrogram.Client,
-        input_filename: str = None,
-        output_filename: str = None,
-        enable_logs_to_console=False,
-        path_to_log_file='group_call.log'
+            self,
+            client: pyrogram.Client,
+            input_filename: str = '',
+            output_filename: str = '',
+            enable_logs_to_console=False,
+            path_to_log_file='group_call.log'
     ):
-        self.client = client
-
-        self.native_instance = tgcalls.NativeInstance()
-        self.native_instance.setEmitJoinPayloadCallback(self.emit_join_payload_callback)
-
-        self.me = None
-        self.group_call = None
-
-        self.chat_peer = None
-        self.full_chat = None
-
-        self.my_ssrc = None
-
-        self.enable_action = True
-        self.enable_logs_to_console = enable_logs_to_console
-        self.path_to_log_file = path_to_log_file
+        super().__init__(client, enable_logs_to_console, path_to_log_file)
         self.__use_file_audio_device = True
 
-        self.is_connected = False
-
-        # feature of impl tgcalls
-        self._input_filename = ''
-        if input_filename:
-            self._input_filename = input_filename
-        self._output_filename = ''
-        if output_filename:
-            self._output_filename = output_filename
-
-        self.update_to_handler = {
-            types.UpdateGroupCallParticipants: self._process_group_call_participants_update,
-            types.UpdateGroupCall: self._process_group_call_update,
-        }
-
-        self._update_handler = RawUpdateHandler(self.process_update)
-        self.client.add_handler(self._update_handler, -1)
-
-    async def _process_group_call_participants_update(self, update):
-        ssrcs_to_remove = []
-        for participant in update.participants:
-            ssrcs = uint_ssrcs(participant.source)
-
-            if participant.left:
-                ssrcs_to_remove.append(ssrcs)
-            elif participant.user_id == self.me.id and ssrcs != self.my_ssrc:
-                # reconnect
-                await self._start_group_call()
-
-        if ssrcs_to_remove:
-            self.native_instance.removeSsrcs(ssrcs_to_remove)
-
-    async def _process_group_call_update(self, update):
-        if update.call.params:
-            await self.set_join_response_payload(json.loads(update.call.params.data))
-
-    async def process_update(self, _, update, users, chats):
-        if type(update) not in self.update_to_handler.keys():
-            raise pyrogram.ContinuePropagation
-
-        if not self.group_call or not update.call or update.call.id != self.group_call.id:
-            raise pyrogram.ContinuePropagation
-        self.group_call = update.call
-
-        await self.update_to_handler[type(update)](update)
-
-    async def _get_me(self):
-        self.me = await self.client.get_me()
-
-        return self.me
-
-    async def _get_group_participants(self):
-        return (await (self.client.send(functions.phone.GetGroupCall(
-            call=self.full_chat.call
-        )))).participants
-
-    async def get_group_call(self, group: Union[str, int]):
-        self.chat_peer = await self.client.resolve_peer(group)
-        self.full_chat = (await (self.client.send(functions.channels.GetFullChannel(
-            channel=self.chat_peer
-        )))).full_chat
-
-        self.group_call = self.full_chat.call
-
-        return self.group_call
-
-    async def stop(self):
-        self.native_instance.stopGroupCall()
+        self._input_filename = input_filename
+        self._output_filename = output_filename
 
     async def start(self, group: Union[str, int], enable_action=True):
         self.enable_action = enable_action
 
-        await self._get_me()
+        await self.get_me()
         await self.get_group_call(group)
 
         if self.group_call is None:
             raise RuntimeError('Chat without voice chat')
 
-        await self._start_group_call()
-
-    async def _start_group_call(self):
-        self.native_instance.startGroupCall(
-            self.enable_logs_to_console,
-            self.path_to_log_file,
-
-            self.__use_file_audio_device,
-
-            self.__network_state_updated_callback,
-            self.__participant_descriptions_required_callback,
-            self.__get_input_filename_callback,
-            self.__get_output_filename_callback
+        await self._start_group_call(
+            self.__use_file_audio_device, self.__get_input_filename_callback, self.__get_output_filename_callback
         )
 
-    def set_is_mute(self, is_muted: bool):
-        self.native_instance.setIsMuted(is_muted)
+    async def reconnect(self):
+        await self.stop()
+
+        # TODO remove magic when .stop() will be fixed
+        # <-- magic part
+        self.client.remove_handler(self._update_handler, -1)
+
+        chat_peer = self.chat_peer
+        enable_action = self.enable_action
+
+        self = GroupCall(
+            self.client, self._input_filename, self._output_filename, self.enable_logs_to_console, self.path_to_log_file
+        )
+        # --> magic part
+
+        await self.start(chat_peer, enable_action)
 
     def stop_playout(self):
         self.input_filename = ''
 
     def stop_output(self):
         self.output_filename = ''
-
-    def restart_playout(self):
-        self.native_instance.reinitAudioInputDevice()
-
-    def restart_recording(self):
-        self.native_instance.reinitAudioOutputDevice()
 
     @property
     def input_filename(self):
@@ -185,7 +83,8 @@ class GroupCall:
     @input_filename.setter
     def input_filename(self, filename):
         self._input_filename = filename
-        self.restart_playout()
+        if self.is_connected:
+            self.restart_playout()
 
     @property
     def output_filename(self):
@@ -194,105 +93,11 @@ class GroupCall:
     @output_filename.setter
     def output_filename(self, filename):
         self._output_filename = filename
-        self.restart_recording()
+        if self.is_connected:
+            self.restart_recording()
 
     def __get_input_filename_callback(self):
         return self._input_filename
 
     def __get_output_filename_callback(self):
         return self._output_filename
-
-    def __participant_descriptions_required_callback(self, ssrcs_list: List[int]):
-        def _(future):
-            filtered_participants = [p for p in future.result() if p.source in ssrcs_list]
-            participants = [parse_call_participant(p) for p in filtered_participants]
-            self.native_instance.addParticipants(participants)
-
-        call_participants = asyncio.ensure_future(self._get_group_participants(), loop=self.client.loop)
-        call_participants.add_done_callback(_)
-
-    def __network_state_updated_callback(self, state: bool):
-        self.is_connected = state
-
-        if self.is_connected:
-            self.set_is_mute(False)
-            if self.enable_action:
-                self.start_status_worker()
-
-    async def audio_levels_updated_callback(self):
-        pass  # TODO
-
-    def start_status_worker(self):
-        async def worker():
-            while self.is_connected:
-                await self.send_speaking_group_call_action()
-                await asyncio.sleep(self.SEND_ACTION_UPDATE_EACH)
-
-        asyncio.ensure_future(worker(), loop=self.client.loop)
-
-    async def send_speaking_group_call_action(self):
-        await self.client.send(
-            raw.functions.messages.SetTyping(
-                peer=self.chat_peer,
-                action=raw.types.SpeakingInGroupCallAction()
-            )
-        )
-
-    async def set_join_response_payload(self, params):
-        params = params['transport']
-
-        candidates = []
-        for row_candidates in params.get('candidates', []):
-            candidate = tgcalls.GroupJoinResponseCandidate()
-            for key, value in row_candidates.items():
-                setattr(candidate, key, value)
-
-            candidates.append(candidate)
-
-        fingerprints = []
-        for row_fingerprint in params.get('fingerprints', []):
-            fingerprint = tgcalls.GroupJoinPayloadFingerprint()
-            for key, value in row_fingerprint.items():
-                setattr(fingerprint, key, value)
-
-            fingerprints.append(fingerprint)
-
-        payload = tgcalls.GroupJoinResponsePayload()
-        payload.ufrag = params.get('ufrag')
-        payload.pwd = params.get('pwd')
-        payload.fingerprints = fingerprints
-        payload.candidates = candidates
-
-        participants = [parse_call_participant(p) for p in await self._get_group_participants()]
-
-        # TODO video payload
-        self.native_instance.setJoinResponsePayload(payload, participants)
-
-    def emit_join_payload_callback(self, payload):
-        if self.group_call is None:
-            return
-
-        self.my_ssrc = payload.ssrc
-
-        fingerprints = [{
-            'hash': f.hash,
-            'setup': f.setup,
-            'fingerprint': f.fingerprint
-        } for f in payload.fingerprints]
-
-        params = {
-            'ufrag': payload.ufrag,
-            'pwd': payload.pwd,
-            'fingerprints': fingerprints,
-            'ssrc': payload.ssrc
-        }
-
-        async def _():
-            response = await self.client.send(functions.phone.JoinGroupCall(
-                call=self.group_call,
-                params=types.DataJSON(data=json.dumps(params)),
-                muted=True
-            ))
-            await self.client.handle_updates(response)
-
-        asyncio.ensure_future(_(), loop=self.client.loop)
