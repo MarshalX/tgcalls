@@ -58,8 +58,6 @@ class GroupCall(GroupCallNative):
 
         # TODO remove magic when .stop() will be fixed
         # <-- magic part
-        self.client.remove_handler(self._update_handler, -1)
-
         chat_peer = self.chat_peer
         enable_action = self.enable_action
 

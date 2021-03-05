@@ -139,6 +139,9 @@ class GroupCallNative:
         )))).participants
 
     async def leave_current_group_call(self):
+        if not self.full_chat.call or not self.my_ssrc:
+            return
+
         response = await self.client.send(functions.phone.LeaveGroupCall(
             call=self.full_chat.call,
             source=int_ssrcs(self.my_ssrc)
@@ -169,6 +172,7 @@ class GroupCallNative:
     async def stop(self):
         await self.leave_current_group_call()
         self.native_instance.stopGroupCall()
+        self.client.remove_handler(self._update_handler, -1)
 
         while self.is_connected:
             await asyncio.sleep(1)

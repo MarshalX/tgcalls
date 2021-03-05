@@ -423,6 +423,10 @@ async def start(client1, client2, make_out, make_inc):
             await call.discard_call()
 
 
+# import logging
+# logging.basicConfig(level=logging.DEBUG)
+
+
 async def main(client1, client2, make_out, make_inc):
     # await client1.start()
     await client2.start()
