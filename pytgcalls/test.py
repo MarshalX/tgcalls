@@ -423,6 +423,10 @@ async def start(client1, client2, make_out, make_inc):
             await call.discard_call()
 
 
+# import logging
+# logging.basicConfig(level=logging.DEBUG)
+
+
 async def main(client1, client2, make_out, make_inc):
     # await client1.start()
     await client2.start()
@@ -433,22 +437,29 @@ async def main(client1, client2, make_out, make_inc):
     calls = []
     chats = ['@MarshalCm']
     for chat in chats:
-        group_call = pytgcalls.GroupCall(client2, 'input.raw', 'output.raw', True, '')
+        group_call = pytgcalls.GroupCall(client2, 'input.raw', '', False, '')
         calls.append(group_call)
 
-        group_call.input_filename = 'input.raw'
+        # group_call.input_filename = 'input.raw'
 
         await group_call.start(chat, False)
+
+        print(await group_call.check_group_call())
 
         while not group_call.is_connected:
             await asyncio.sleep(1)
 
         print('Connected')
 
-        await asyncio.sleep(3)
+        print(await group_call.check_group_call())
 
-        print('Reconnect')
-        await group_call.reconnect()
+        await asyncio.sleep(5)
+
+        await group_call.stop()
+        print(await group_call.check_group_call())
+
+    # print('Reconnect')
+        # await group_call.reconnect()
 
         # TODO
         # await group_call.stop()

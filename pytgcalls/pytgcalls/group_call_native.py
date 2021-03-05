@@ -23,6 +23,7 @@ from typing import Callable, List, Union
 
 import pyrogram
 from pyrogram import raw
+from pyrogram.errors import BadRequest
 from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
 from pyrogram.raw.types import InputPeerChannel, InputPeerChat
@@ -30,6 +31,7 @@ from pyrogram.raw.types import InputPeerChannel, InputPeerChat
 import tgcalls
 
 uint_ssrcs = lambda ssrcs: ssrcs if ssrcs >= 0 else ssrcs + 2 ** 32
+int_ssrcs = lambda ssrcs: ssrcs if ssrcs < 2**31 else ssrcs - 2 ** 32
 
 
 def parse_call_participant(participant_data):
@@ -114,15 +116,35 @@ class GroupCallNative:
 
         return self.me
 
+    async def check_group_call(self) -> bool:
+        if not self.group_call or not self.my_ssrc:
+            return False
+
+        try:
+            in_group_call = (await (self.client.send(functions.phone.CheckGroupCall(
+                call=self.group_call,
+                source=int_ssrcs(self.my_ssrc)
+            ))))
+        except BadRequest as e:
+            if e.x != '[400 GROUPCALL_JOIN_MISSING]':
+                raise e
+
+            in_group_call = False
+
+        return in_group_call
+
     async def get_group_participants(self):
         return (await (self.client.send(functions.phone.GetGroupCall(
             call=self.full_chat.call
         )))).participants
 
     async def leave_current_group_call(self):
+        if not self.full_chat.call or not self.my_ssrc:
+            return
+
         response = await self.client.send(functions.phone.LeaveGroupCall(
-            call=self.group_call,
-            source=0
+            call=self.full_chat.call,
+            source=int_ssrcs(self.my_ssrc)
         ))
         await self.client.handle_updates(response)
 
@@ -150,6 +172,7 @@ class GroupCallNative:
     async def stop(self):
         await self.leave_current_group_call()
         self.native_instance.stopGroupCall()
+        self.client.remove_handler(self._update_handler, -1)
 
         while self.is_connected:
             await asyncio.sleep(1)
