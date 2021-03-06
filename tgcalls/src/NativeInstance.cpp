@@ -22,70 +22,88 @@ NativeInstance::NativeInstance() {
     tgcalls::Register<tgcalls::InstanceImpl>();
 }
 
+NativeInstance::~NativeInstance() {}
+
 void NativeInstance::startGroupCall(bool logToStdErr,
                                     string logPath,
                                     bool useFileAudioDevice,
+                                    std::function<void(tgcalls::GroupJoinPayload)> &emitJoinPayloadCallback,
                                     std::function<void(bool)> &networkStateUpdated,
                                     std::function<void(std::vector<uint32_t> const &)> &participantDescriptionsRequired,
                                     std::function<std::string()> &getInputFilename,
                                     std::function<std::string()> &getOutputFilename) {
+    // TODO move to the constructor
+    _emitJoinPayloadCallback = emitJoinPayloadCallback;
+    _networkStateUpdated = networkStateUpdated;
+    _participantDescriptionsRequired = participantDescriptionsRequired;
+
+    _getInputFilename = getInputFilename;
+    _getOutputFilename = getOutputFilename;
+
     tgcalls::GroupInstanceDescriptor descriptor {
         .config = tgcalls::GroupConfig {
             .logPath = {std::move(logPath)},
             .logToStdErr = logToStdErr,
         },
-        .networkStateUpdated = networkStateUpdated,
+        .networkStateUpdated = [=](bool is_connected) {
+            _networkStateUpdated(is_connected);
+        },
         .audioLevelsUpdated = [=](tgcalls::GroupLevelsUpdate const &update) {}, // TODO
         .useFileAudioDevice = useFileAudioDevice,
-        .getInputFilename = getInputFilename,
-        .getOutputFilename = getOutputFilename,
-        .participantDescriptionsRequired = participantDescriptionsRequired,
+        .getInputFilename = [=]() {
+            return _getInputFilename();
+        },
+        .getOutputFilename = [=]() {
+            return _getOutputFilename();
+        },
+        .participantDescriptionsRequired = [=](std::vector<uint32_t> const &ssrcs) {
+            _participantDescriptionsRequired(ssrcs);
+        },
     };
 
-    InstanceHolder holder = InstanceHolder();
-    holder.groupNativeInstance = std::make_unique<tgcalls::GroupInstanceImpl>(std::move(descriptor));
-    holder.groupNativeInstance->emitJoinPayload(emitJoinPayloadCallback);
-    instanceHolder = std::move(holder);
+    instanceHolder = std::make_unique<InstanceHolder>();
+    instanceHolder->groupNativeInstance = std::make_unique<tgcalls::GroupInstanceImpl>(std::move(descriptor));
+    instanceHolder->groupNativeInstance->emitJoinPayload([=](tgcalls::GroupJoinPayload payload) {
+        _emitJoinPayloadCallback(std::move(payload));
+    });
 };
 
 void NativeInstance::stopGroupCall() const {
-    instanceHolder.groupNativeInstance->stop();
-}
-
-void NativeInstance::setEmitJoinPayloadCallback(const std::function<void(const tgcalls::GroupJoinPayload &payload)> &f) {
-    emitJoinPayloadCallback = f;
+//    instanceHolder->groupNativeInstance->stop();
+// thank u tdesktop
+    instanceHolder->groupNativeInstance.reset();
 }
 
 void NativeInstance::setJoinResponsePayload(tgcalls::GroupJoinResponsePayload payload, std::vector<tgcalls::GroupParticipantDescription> &&participants) const {
-    instanceHolder.groupNativeInstance->setJoinResponsePayload(std::move(payload), std::move(participants));
+    instanceHolder->groupNativeInstance->setJoinResponsePayload(std::move(payload), std::move(participants));
 }
 
 void NativeInstance::setIsMuted(bool isMuted) const {
-    instanceHolder.groupNativeInstance->setIsMuted(isMuted);
+    instanceHolder->groupNativeInstance->setIsMuted(isMuted);
 }
 
 void NativeInstance::reinitAudioInputDevice() const {
-    instanceHolder.groupNativeInstance->reinitAudioInputDevice();
+    instanceHolder->groupNativeInstance->reinitAudioInputDevice();
 }
 
 void NativeInstance::reinitAudioOutputDevice() const {
-    instanceHolder.groupNativeInstance->reinitAudioOutputDevice();
+    instanceHolder->groupNativeInstance->reinitAudioOutputDevice();
 }
 
 void NativeInstance::setAudioOutputDevice(std::string id) const {
-    instanceHolder.groupNativeInstance->setAudioOutputDevice(std::move(id));
+    instanceHolder->groupNativeInstance->setAudioOutputDevice(std::move(id));
 }
 
 void NativeInstance::setAudioInputDevice(std::string id) const {
-    instanceHolder.groupNativeInstance->setAudioInputDevice(std::move(id));
+    instanceHolder->groupNativeInstance->setAudioInputDevice(std::move(id));
 }
 
 void NativeInstance::removeSsrcs(std::vector<uint32_t> ssrcs) const {
-    instanceHolder.groupNativeInstance->removeSsrcs(std::move(ssrcs));
+    instanceHolder->groupNativeInstance->removeSsrcs(std::move(ssrcs));
 }
 
 void NativeInstance::addParticipants(std::vector<tgcalls::GroupParticipantDescription> &&participants) const {
-    instanceHolder.groupNativeInstance->addParticipants(std::move(participants));
+    instanceHolder->groupNativeInstance->addParticipants(std::move(participants));
 }
 
 void NativeInstance::startCall(vector<RtcServer> servers, std::array<uint8_t, 256> authKey, bool isOutgoing, string logPath) {
@@ -196,18 +214,16 @@ void NativeInstance::startCall(vector<RtcServer> servers, std::array<uint8_t, 25
         }
     }
 
-    InstanceHolder holder = InstanceHolder();
-    holder.nativeInstance = tgcalls::Meta::Create("3.0.0", std::move(descriptor));
-    holder._videoCapture = videoCapture;
-    holder.nativeInstance->setNetworkType(tgcalls::NetworkType::WiFi);
-    holder.nativeInstance->setRequestedVideoAspect(1);
-    holder.nativeInstance->setMuteMicrophone(false);
-
-    instanceHolder = std::move(holder);
+    instanceHolder = std::make_unique<InstanceHolder>();
+    instanceHolder->nativeInstance = tgcalls::Meta::Create("3.0.0", std::move(descriptor));
+    instanceHolder->_videoCapture = videoCapture;
+    instanceHolder->nativeInstance->setNetworkType(tgcalls::NetworkType::WiFi);
+    instanceHolder->nativeInstance->setRequestedVideoAspect(1);
+    instanceHolder->nativeInstance->setMuteMicrophone(false);
 }
 
 void NativeInstance::receiveSignalingData(std::vector<uint8_t> &data) const {
-    instanceHolder.nativeInstance->receiveSignalingData(data);
+    instanceHolder->nativeInstance->receiveSignalingData(data);
 }
 
 void NativeInstance::setSignalingDataEmittedCallback(const std::function<void(const std::vector<uint8_t> &data)> &f) {

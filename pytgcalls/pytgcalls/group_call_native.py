@@ -54,7 +54,7 @@ class GroupCallNative:
     ):
         self.client = client
 
-        self.native_instance = self.__setup_native_instance()
+        self.native_instance = None
 
         self.me = None
         self.group_call = None
@@ -76,11 +76,9 @@ class GroupCallNative:
         }
 
         self._update_handler = RawUpdateHandler(self._process_update)
-        self.client.add_handler(self._update_handler, -1)
 
     def __setup_native_instance(self):
         native_instance = tgcalls.NativeInstance()
-        native_instance.setEmitJoinPayloadCallback(self.__emit_join_payload_callback)
 
         return native_instance
 
@@ -94,7 +92,7 @@ class GroupCallNative:
             elif participant.user_id == self.me.id and ssrcs != self.my_ssrc:
                 await self.reconnect()
 
-        if ssrcs_to_remove:
+        if ssrcs_to_remove and self.native_instance:
             self.native_instance.removeSsrcs(ssrcs_to_remove)
 
     async def _process_group_call_update(self, update):
@@ -171,22 +169,34 @@ class GroupCallNative:
 
     async def stop(self):
         await self.leave_current_group_call()
-        self.native_instance.stopGroupCall()
+
+        self.my_ssrc = self.group_call = self.chat_peer = self.full_chat = None
+        self.is_connected = False
+
         self.client.remove_handler(self._update_handler, -1)
+        del self.native_instance
 
-        while self.is_connected:
-            await asyncio.sleep(1)
+    async def start(self, group: Union[str, int], enable_action=True):
+        if self.is_connected:
+            await self.stop()
 
-        # TODO
-        # del self.native_instance
-        # self.native_instance = self.__setup_native_instance()
+        self.client.add_handler(self._update_handler, -1)
+        self.native_instance = self.__setup_native_instance()
 
-    async def start(self):
-        raise NotImplementedError()
+        self.enable_action = enable_action
+
+        await self.get_me()
+        await self.get_group_call(group)
+
+        if self.group_call is None:
+            raise RuntimeError('Chat without a voice chat')
 
     async def reconnect(self):
+        chat_peer = self.chat_peer
+        enable_action = self.enable_action
+
         await self.stop()
-        await self.start()
+        await self.start(chat_peer, enable_action)
 
     async def _start_group_call(
             self,
@@ -194,12 +204,14 @@ class GroupCallNative:
             get_input_filename_callback: Callable,
             get_output_filename_callback: Callable
     ):
+        # TODO move callbacks to __setup_native_instance
         self.native_instance.startGroupCall(
             self.enable_logs_to_console,
             self.path_to_log_file,
 
             use_file_audio_device,
 
+            self.__emit_join_payload_callback,
             self.__network_state_updated_callback,
             self.__participant_descriptions_required_callback,
             get_input_filename_callback,
