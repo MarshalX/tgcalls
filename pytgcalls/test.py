@@ -434,37 +434,25 @@ async def main(client1, client2, make_out, make_inc):
     while not client2.is_connected:
         await asyncio.sleep(1)
 
-    calls = []
-    chats = ['@MarshalCm']
+    chats = ['@MarshalCm', '@MarshalCh'] * 10
+    group_call = pytgcalls.GroupCall(client2, 'input.raw', 'output.raw', False, '')
     for chat in chats:
-        group_call = pytgcalls.GroupCall(client2, 'input.raw', '', False, '')
-        calls.append(group_call)
-
-        # group_call.input_filename = 'input.raw'
-
         await group_call.start(chat, False)
 
-        print(await group_call.check_group_call())
-
         while not group_call.is_connected:
+            print('Wait')
             await asyncio.sleep(1)
 
         print('Connected')
 
-        print(await group_call.check_group_call())
+        # print(await group_call.check_group_call())
 
-        await asyncio.sleep(5)
-
-        await group_call.stop()
-        print(await group_call.check_group_call())
-
-    # print('Reconnect')
+        await asyncio.sleep(10)
         # await group_call.reconnect()
+        # await asyncio.sleep(10000)
 
-        # TODO
         # await group_call.stop()
         # await group_call.start(chat, False)
-
 
     # group_call.native_instance.setAudioInputDevice('VB-Cable')
     # group_call.native_instance.setAudioOutputDevice('default (Built-in Output)')

@@ -296,7 +296,7 @@ int32_t FileAudioDevice::StopRecording() {
     }
     _inputFile.Close();
 
-    RTC_LOG(LS_INFO) << "Stopped recording from input file: " << _getInputFilename();
+    RTC_LOG(LS_INFO) << "Stopped recording from input file";
     return 0;
 }
 

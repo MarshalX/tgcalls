@@ -41,32 +41,11 @@ class GroupCall(GroupCallNative):
         self._output_filename = output_filename
 
     async def start(self, group: Union[str, int], enable_action=True):
-        self.enable_action = enable_action
-
-        await self.get_me()
-        await self.get_group_call(group)
-
-        if self.group_call is None:
-            raise RuntimeError('Chat without voice chat')
+        await super().start(group, enable_action)
 
         await self._start_group_call(
             self.__use_file_audio_device, self.__get_input_filename_callback, self.__get_output_filename_callback
         )
-
-    async def reconnect(self):
-        await self.stop()
-
-        # TODO remove magic when .stop() will be fixed
-        # <-- magic part
-        chat_peer = self.chat_peer
-        enable_action = self.enable_action
-
-        self = GroupCall(
-            self.client, self._input_filename, self._output_filename, self.enable_logs_to_console, self.path_to_log_file
-        )
-        # --> magic part
-
-        await self.start(chat_peer, enable_action)
 
     def stop_playout(self):
         self.input_filename = ''

@@ -162,6 +162,5 @@ PYBIND11_MODULE(tgcalls, m) {
             .def("addParticipants", &NativeInstance::addParticipants)
             .def("setJoinResponsePayload", &NativeInstance::setJoinResponsePayload)
             .def("receiveSignalingData", &NativeInstance::receiveSignalingData)
-            .def("setSignalingDataEmittedCallback", &NativeInstance::setSignalingDataEmittedCallback)
-            .def("setEmitJoinPayloadCallback", &NativeInstance::setEmitJoinPayloadCallback);
+            .def("setSignalingDataEmittedCallback", &NativeInstance::setSignalingDataEmittedCallback);
 }

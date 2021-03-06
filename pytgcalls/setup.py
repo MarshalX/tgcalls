@@ -23,7 +23,7 @@ setup(
     long_description=readme,
     long_description_content_type='text/markdown',
     packages=packages,
-    install_requires=['tgcalls == 0.0.3', 'pyrogram >= 1.1.13'],
+    install_requires=['tgcalls == 0.0.4', 'pyrogram >= 1.1.13'],
     python_requires="~=3.6",
     include_package_data=True,
     classifiers=[
