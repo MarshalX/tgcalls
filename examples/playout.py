@@ -39,6 +39,12 @@ async def main(client):
     # to mute yourself:
     # group_call.set_is_mute(True)
 
+    # to leave a VC
+    # group_call.stop()
+
+    # to rejoin
+    # group_call.rejoin()
+
     await pyrogram.idle()
 
 
