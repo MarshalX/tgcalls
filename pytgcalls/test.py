@@ -5,11 +5,11 @@ from random import randint
 from typing import Union
 
 import pyrogram
-from pyrogram import errors
+from pyrogram import errors, filters
 from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
 
-import pytgcalls
+from pytgcalls import GroupCall, GroupCallAction
 import tgcalls
 from helpers import b2i, calc_fingerprint, check_g, generate_visualization, i2b
 
@@ -423,8 +423,17 @@ async def start(client1, client2, make_out, make_inc):
             await call.discard_call()
 
 
-# import logging
-# logging.basicConfig(level=logging.DEBUG)
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+for name, logger in logging.root.manager.loggerDict.items():
+    if name.startswith('pyrogram'):
+        logger.disabled = True
+
+
+async def network_status_changed_handler(gc: GroupCall, is_connected: bool):
+    if is_connected:
+        print('Connected')
 
 
 async def main(client1, client2, make_out, make_inc):
@@ -434,25 +443,41 @@ async def main(client1, client2, make_out, make_inc):
     while not client2.is_connected:
         await asyncio.sleep(1)
 
+    @client2.on_message(filters.text & filters.outgoing & ~filters.edited & filters.command('test', prefixes='!'))
+    async def test(client, message):
+        group_call = GroupCall(client, output_filename='output.raw')
+        await group_call.start(message.chat.id)
+
+        group_call.add_handler(
+            network_status_changed_handler,
+            GroupCallAction.NETWORK_STATUS_CHANGED
+        )
+
+
+    '''
+    
     chats = ['@MarshalCm', '@MarshalCh'] * 10
+    chats = ['@MarshalCm']
     group_call = pytgcalls.GroupCall(client2, 'input.raw', 'output.raw', False, '')
     for chat in chats:
         await group_call.start(chat, False)
-
+    #
         while not group_call.is_connected:
-            print('Wait')
+    #         print('Wait')
             await asyncio.sleep(1)
-
+    #
         print('Connected')
 
         # print(await group_call.check_group_call())
 
-        await asyncio.sleep(10)
+        # await asyncio.sleep(10)
         # await group_call.reconnect()
-        # await asyncio.sleep(10000)
+        await asyncio.sleep(10000)
 
         # await group_call.stop()
         # await group_call.start(chat, False)
+
+    '''
 
     # group_call.native_instance.setAudioInputDevice('VB-Cable')
     # group_call.native_instance.setAudioOutputDevice('default (Built-in Output)')

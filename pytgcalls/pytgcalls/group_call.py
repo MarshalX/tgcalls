@@ -1,5 +1,5 @@
 #  tgcalls - Python binding for tgcalls (c++ lib by Telegram)
-#  pytgcalls - library connecting python binding for tgcalls and pyrogram
+#  pytgcalls - Library connecting python binding for tgcalls and Pyrogram
 #  Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>
 #
 #  This file is part of tgcalls and pytgcalls.
@@ -37,8 +37,8 @@ class GroupCall(GroupCallNative):
         super().__init__(client, enable_logs_to_console, path_to_log_file)
         self.__use_file_audio_device = True
 
-        self._input_filename = input_filename
-        self._output_filename = output_filename
+        self._input_filename = input_filename or ''
+        self._output_filename = output_filename or ''
 
     async def start(self, group: Union[str, int], enable_action=True):
         await super().start(group, enable_action)
@@ -59,7 +59,7 @@ class GroupCall(GroupCallNative):
 
     @input_filename.setter
     def input_filename(self, filename):
-        self._input_filename = filename
+        self._input_filename = filename or ''
         if self.is_connected:
             self.restart_playout()
 
@@ -69,7 +69,7 @@ class GroupCall(GroupCallNative):
 
     @output_filename.setter
     def output_filename(self, filename):
-        self._output_filename = filename
+        self._output_filename = filename or ''
         if self.is_connected:
             self.restart_recording()
 
