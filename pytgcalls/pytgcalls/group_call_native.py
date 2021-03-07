@@ -60,7 +60,7 @@ class GroupCallNative:
 
         self.native_instance = None
 
-        self.me = None
+        self.my_user_id = None
         self.group_call = None
 
         self.chat_peer = None
@@ -102,7 +102,7 @@ class GroupCallNative:
 
             if participant.left:
                 ssrcs_to_remove.append(ssrcs)
-            elif participant.user_id == self.me.id and ssrcs != self.my_ssrc:
+            elif participant.user_id == self.my_user_id and ssrcs != self.my_ssrc:
                 logger.debug('Reconnect. Not equal ssrcs.')
                 await self.reconnect()
 
@@ -124,11 +124,6 @@ class GroupCallNative:
         self.group_call = update.call
 
         await self.update_to_handler[type(update)](update)
-
-    async def get_me(self):
-        self.me = await self.client.get_me()
-
-        return self.me
 
     async def check_group_call(self) -> bool:
         if not self.group_call or not self.my_ssrc:
@@ -202,7 +197,7 @@ class GroupCallNative:
 
         self.enable_action = enable_action
 
-        await self.get_me()
+        self.my_user_id = await self.client.storage.user_id()
         await self.get_group_call(group)
 
         if self.group_call is None:
