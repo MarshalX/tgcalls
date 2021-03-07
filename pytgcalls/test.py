@@ -442,35 +442,39 @@ async def main(client1, client2, make_out, make_inc):
                        & filters.outgoing
                        & ~filters.edited
                        & filters.command("test", prefixes="/"))
-    async def test(c, message):
-        group_call = pytgcalls.GroupCall(client2, output_filename='output.raw')
+    async def test(client, message):
+        group_call = pytgcalls.GroupCall(client, output_filename='output.raw')
         await group_call.start(message.chat.id)
 
+        @group_call.on_network_status_changed
+        async def network_status_changed_handler(gc: pytgcalls.GroupCall, is_connected: bool):
+            if is_connected:
+                await gc.reconnect()
+
+    '''
+    
+    chats = ['@MarshalCm', '@MarshalCh'] * 10
+    chats = ['@MarshalCm']
+    group_call = pytgcalls.GroupCall(client2, 'input.raw', 'output.raw', False, '')
+    for chat in chats:
+        await group_call.start(chat, False)
+    #
         while not group_call.is_connected:
-            print('Wait')
-            await asyncio.sleep(1)
-
-        print('Connected')
-
-    # chats = ['@MarshalCm', '@MarshalCh'] * 10
-    # group_call = pytgcalls.GroupCall(client2, 'input.raw', 'output.raw', False, '')
-    # for chat in chats:
-    #     await group_call.start(chat, False)
-    #
-    #     while not group_call.is_connected:
     #         print('Wait')
-    #         await asyncio.sleep(1)
+            await asyncio.sleep(1)
     #
-    #     print('Connected')
+        print('Connected')
 
         # print(await group_call.check_group_call())
 
         # await asyncio.sleep(10)
         # await group_call.reconnect()
-        # await asyncio.sleep(10000)
+        await asyncio.sleep(10000)
 
         # await group_call.stop()
         # await group_call.start(chat, False)
+
+    '''
 
     # group_call.native_instance.setAudioInputDevice('VB-Cable')
     # group_call.native_instance.setAudioOutputDevice('default (Built-in Output)')

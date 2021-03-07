@@ -17,10 +17,10 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-import json
 import asyncio
+import json
 import logging
-from typing import Callable, List, Union
+from typing import Callable, List, TYPE_CHECKING, Union
 
 import pyrogram
 from pyrogram import raw
@@ -31,11 +31,15 @@ from pyrogram.raw.types import InputPeerChannel, InputPeerChat
 
 import tgcalls
 
+if TYPE_CHECKING:
+    from pytgcalls import GroupCall
+
+from .dispatcher import Dispatcher, GroupCallAction
+
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 uint_ssrcs = lambda ssrcs: ssrcs if ssrcs >= 0 else ssrcs + 2 ** 32
-int_ssrcs = lambda ssrcs: ssrcs if ssrcs < 2**31 else ssrcs - 2 ** 32
+int_ssrcs = lambda ssrcs: ssrcs if ssrcs < 2 ** 31 else ssrcs - 2 ** 32
 
 
 def parse_call_participant(participant_data):
@@ -58,7 +62,7 @@ class GroupCallNative:
     ):
         self.client = client
 
-        self.native_instance = None
+        self.__native_instance = None
 
         self.my_user_id = None
         self.group_call = None
@@ -74,22 +78,26 @@ class GroupCallNative:
 
         self.is_connected = False
 
-        self.update_to_handler = {
+        self.dispatcher = Dispatcher(GroupCallAction)
+
+        self._update_to_handler = {
             types.UpdateGroupCallParticipants: self._process_group_call_participants_update,
             types.UpdateGroupCall: self._process_group_call_update,
         }
 
+        self._handler_group = None
         self._update_handler = RawUpdateHandler(self._process_update)
 
-    def __del__(self):
-        self.client.remove_handler(self._update_handler, -1)
-        del self.native_instance
-        logger.debug('GroupCall deleted.')
+    def __deinit_native_instance(self):
+        tmp = self.__native_instance
+        self.__native_instance = None
+        del tmp
+        logger.debug('Native instance destroyed.')
 
     def __setup_native_instance(self):
         logger.debug('Create a new native instance..')
         native_instance = tgcalls.NativeInstance()
-        logger.debug('Native instance created')
+        logger.debug('Native instance created.')
 
         return native_instance
 
@@ -106,9 +114,9 @@ class GroupCallNative:
                 logger.debug('Reconnect. Not equal ssrcs.')
                 await self.reconnect()
 
-        if ssrcs_to_remove and self.native_instance:
+        if ssrcs_to_remove:
             logger.debug(f'Remove ssrcs {ssrcs_to_remove}.')
-            self.native_instance.removeSsrcs(ssrcs_to_remove)
+            self.__native_instance.removeSsrcs(ssrcs_to_remove)
 
     async def _process_group_call_update(self, update):
         logger.debug('Group call update..')
@@ -116,14 +124,18 @@ class GroupCallNative:
             await self.__set_join_response_payload(json.loads(update.call.params.data))
 
     async def _process_update(self, _, update, users, chats):
-        if type(update) not in self.update_to_handler.keys():
+        if type(update) not in self._update_to_handler.keys() or not self.__native_instance:
             raise pyrogram.ContinuePropagation
 
         if not self.group_call or not update.call or update.call.id != self.group_call.id:
             raise pyrogram.ContinuePropagation
         self.group_call = update.call
 
-        await self.update_to_handler[type(update)](update)
+        await self._update_to_handler[type(update)](update)
+
+    def on_network_status_changed(self, func: Callable[['GroupCall', bool], None]):
+        self.dispatcher.add_handler(func, GroupCallAction.NETWORK_STATUS_CHANGED)
+        return func
 
     async def check_group_call(self) -> bool:
         if not self.group_call or not self.my_ssrc:
@@ -178,30 +190,43 @@ class GroupCallNative:
 
         return self.group_call
 
+    async def __set_and_get_handler_group(self) -> int:
+        if self.group_call.id > 0:
+            self._handler_group = -self.group_call.id
+        self._handler_group = self.group_call.id
+
+        return self._handler_group
+
+    def remove_handler(self):
+        if self._handler_group:
+            self.client.remove_handler(self._update_handler, self._handler_group)
+            self._handler_group = None
+
     async def stop(self):
         await self.leave_current_group_call()
 
         self.my_ssrc = self.group_call = self.chat_peer = self.full_chat = None
         self.is_connected = False
 
-        self.client.remove_handler(self._update_handler, -1)
-        del self.native_instance
-        logger.debug('Native instance destroyed.')
+        self.remove_handler()
+        self.__deinit_native_instance()
+        logger.debug('GroupCall stop.')
 
     async def start(self, group: Union[str, int], enable_action=True):
         if self.is_connected:
             await self.stop()
 
-        self.client.add_handler(self._update_handler, -1)
-        self.native_instance = self.__setup_native_instance()
-
-        self.enable_action = enable_action
-
-        self.my_user_id = await self.client.storage.user_id()
         await self.get_group_call(group)
 
         if self.group_call is None:
             raise RuntimeError('Chat without a voice chat')
+
+        handler_group = await self.__set_and_get_handler_group()
+        self.client.add_handler(self._update_handler, handler_group)
+        self.__native_instance = self.__setup_native_instance()
+
+        self.enable_action = enable_action
+        self.my_user_id = await self.client.storage.user_id()
 
     async def reconnect(self):
         chat_peer = self.chat_peer
@@ -218,7 +243,7 @@ class GroupCallNative:
     ):
         logger.debug('Start native group call..')
         # TODO move callbacks to __setup_native_instance
-        self.native_instance.startGroupCall(
+        self.__native_instance.startGroupCall(
             self.enable_logs_to_console,
             self.path_to_log_file,
 
@@ -233,13 +258,13 @@ class GroupCallNative:
 
     def set_is_mute(self, is_muted: bool):
         logger.debug(f'Set is muted is {is_muted} now.')
-        self.native_instance.setIsMuted(is_muted)
+        self.__native_instance.setIsMuted(is_muted)
 
     def restart_playout(self):
-        self.native_instance.reinitAudioInputDevice()
+        self.__native_instance.reinitAudioInputDevice()
 
     def restart_recording(self):
-        self.native_instance.reinitAudioOutputDevice()
+        self.__native_instance.reinitAudioOutputDevice()
 
     def __participant_descriptions_required_callback(self, ssrcs_list: List[int]):
         logger.debug('Participant descriptions required..')
@@ -247,7 +272,7 @@ class GroupCallNative:
         def _(future):
             filtered_participants = [p for p in future.result() if p.source in ssrcs_list]
             participants = [parse_call_participant(p) for p in filtered_participants]
-            self.native_instance.addParticipants(participants)
+            self.__native_instance.addParticipants(participants)
 
             logger.debug(f'Add description of {len(participants)} participant(s).')
 
@@ -262,6 +287,8 @@ class GroupCallNative:
             self.set_is_mute(False)
             if self.enable_action:
                 self.__start_status_worker()
+
+        self.dispatcher.trigger_handlers(GroupCallAction.NETWORK_STATUS_CHANGED, self, state)
 
         logger.debug(f'New network state is {self.is_connected}.')
 
@@ -314,7 +341,7 @@ class GroupCallNative:
         participants = [parse_call_participant(p) for p in await self.get_group_participants()]
 
         # TODO video payload
-        self.native_instance.setJoinResponsePayload(payload, participants)
+        self.__native_instance.setJoinResponsePayload(payload, participants)
         logger.debug('Join response payload was set.')
 
     def __emit_join_payload_callback(self, payload):

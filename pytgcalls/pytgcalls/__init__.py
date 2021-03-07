@@ -19,6 +19,7 @@
 
 from pytgcalls.group_call_native import GroupCallNative
 from pytgcalls.group_call import GroupCall
+from pytgcalls.dispatcher import Dispatcher, GroupCallAction
 
-__all__ = ['GroupCallNative', 'GroupCall']
+__all__ = ['GroupCallNative', 'GroupCall', 'Dispatcher', 'GroupCallAction']
 __version__ = '0.0.6'
