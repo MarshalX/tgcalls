@@ -5,7 +5,7 @@ from random import randint
 from typing import Union
 
 import pyrogram
-from pyrogram import errors
+from pyrogram import errors, filters
 from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
 
@@ -423,8 +423,12 @@ async def start(client1, client2, make_out, make_inc):
             await call.discard_call()
 
 
-# import logging
-# logging.basicConfig(level=logging.DEBUG)
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+for name, logger in logging.root.manager.loggerDict.items():
+    if name.startswith('pyrogram'):
+        logger.disabled = True
 
 
 async def main(client1, client2, make_out, make_inc):
@@ -434,10 +438,13 @@ async def main(client1, client2, make_out, make_inc):
     while not client2.is_connected:
         await asyncio.sleep(1)
 
-    chats = ['@MarshalCm', '@MarshalCh'] * 10
-    group_call = pytgcalls.GroupCall(client2, 'input.raw', 'output.raw', False, '')
-    for chat in chats:
-        await group_call.start(chat, False)
+    @client2.on_message(filters.text
+                       & filters.outgoing
+                       & ~filters.edited
+                       & filters.command("test", prefixes="/"))
+    async def test(c, message):
+        group_call = pytgcalls.GroupCall(client2, output_filename='output.raw')
+        await group_call.start(message.chat.id)
 
         while not group_call.is_connected:
             print('Wait')
@@ -445,9 +452,20 @@ async def main(client1, client2, make_out, make_inc):
 
         print('Connected')
 
+    # chats = ['@MarshalCm', '@MarshalCh'] * 10
+    # group_call = pytgcalls.GroupCall(client2, 'input.raw', 'output.raw', False, '')
+    # for chat in chats:
+    #     await group_call.start(chat, False)
+    #
+    #     while not group_call.is_connected:
+    #         print('Wait')
+    #         await asyncio.sleep(1)
+    #
+    #     print('Connected')
+
         # print(await group_call.check_group_call())
 
-        await asyncio.sleep(10)
+        # await asyncio.sleep(10)
         # await group_call.reconnect()
         # await asyncio.sleep(10000)
 

@@ -17,8 +17,9 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-import asyncio
 import json
+import asyncio
+import logging
 from typing import Callable, List, Union
 
 import pyrogram
@@ -29,6 +30,9 @@ from pyrogram.raw import functions, types
 from pyrogram.raw.types import InputPeerChannel, InputPeerChat
 
 import tgcalls
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 uint_ssrcs = lambda ssrcs: ssrcs if ssrcs >= 0 else ssrcs + 2 ** 32
 int_ssrcs = lambda ssrcs: ssrcs if ssrcs < 2**31 else ssrcs - 2 ** 32
@@ -77,12 +81,21 @@ class GroupCallNative:
 
         self._update_handler = RawUpdateHandler(self._process_update)
 
+    def __del__(self):
+        self.client.remove_handler(self._update_handler, -1)
+        del self.native_instance
+        logger.debug('GroupCall deleted.')
+
     def __setup_native_instance(self):
+        logger.debug('Create a new native instance..')
         native_instance = tgcalls.NativeInstance()
+        logger.debug('Native instance created')
 
         return native_instance
 
     async def _process_group_call_participants_update(self, update):
+        logger.debug('Group call participants update..')
+
         ssrcs_to_remove = []
         for participant in update.participants:
             ssrcs = uint_ssrcs(participant.source)
@@ -90,12 +103,15 @@ class GroupCallNative:
             if participant.left:
                 ssrcs_to_remove.append(ssrcs)
             elif participant.user_id == self.me.id and ssrcs != self.my_ssrc:
+                logger.debug('Reconnect. Not equal ssrcs.')
                 await self.reconnect()
 
         if ssrcs_to_remove and self.native_instance:
+            logger.debug(f'Remove ssrcs {ssrcs_to_remove}.')
             self.native_instance.removeSsrcs(ssrcs_to_remove)
 
     async def _process_group_call_update(self, update):
+        logger.debug('Group call update..')
         if update.call.params:
             await self.__set_join_response_payload(json.loads(update.call.params.data))
 
@@ -175,6 +191,7 @@ class GroupCallNative:
 
         self.client.remove_handler(self._update_handler, -1)
         del self.native_instance
+        logger.debug('Native instance destroyed.')
 
     async def start(self, group: Union[str, int], enable_action=True):
         if self.is_connected:
@@ -204,6 +221,7 @@ class GroupCallNative:
             get_input_filename_callback: Callable,
             get_output_filename_callback: Callable
     ):
+        logger.debug('Start native group call..')
         # TODO move callbacks to __setup_native_instance
         self.native_instance.startGroupCall(
             self.enable_logs_to_console,
@@ -219,6 +237,7 @@ class GroupCallNative:
         )
 
     def set_is_mute(self, is_muted: bool):
+        logger.debug(f'Set is muted is {is_muted} now.')
         self.native_instance.setIsMuted(is_muted)
 
     def restart_playout(self):
@@ -228,15 +247,20 @@ class GroupCallNative:
         self.native_instance.reinitAudioOutputDevice()
 
     def __participant_descriptions_required_callback(self, ssrcs_list: List[int]):
+        logger.debug('Participant descriptions required..')
+
         def _(future):
             filtered_participants = [p for p in future.result() if p.source in ssrcs_list]
             participants = [parse_call_participant(p) for p in filtered_participants]
             self.native_instance.addParticipants(participants)
 
+            logger.debug(f'Add description of {len(participants)} participant(s).')
+
         call_participants = asyncio.ensure_future(self.get_group_participants(), loop=self.client.loop)
         call_participants.add_done_callback(_)
 
     def __network_state_updated_callback(self, state: bool):
+        logger.debug('Network state updated..')
         self.is_connected = state
 
         if self.is_connected:
@@ -244,11 +268,14 @@ class GroupCallNative:
             if self.enable_action:
                 self.__start_status_worker()
 
+        logger.debug(f'New network state is {self.is_connected}.')
+
     async def audio_levels_updated_callback(self):
         pass  # TODO
 
     def __start_status_worker(self):
         async def worker():
+            logger.debug('Start worker started..')
             while self.is_connected:
                 await self.send_speaking_group_call_action()
                 await asyncio.sleep(self.SEND_ACTION_UPDATE_EACH)
@@ -264,6 +291,7 @@ class GroupCallNative:
         )
 
     async def __set_join_response_payload(self, params):
+        logger.debug('Set join response payload..')
         params = params['transport']
 
         candidates = []
@@ -292,8 +320,10 @@ class GroupCallNative:
 
         # TODO video payload
         self.native_instance.setJoinResponsePayload(payload, participants)
+        logger.debug('Join response payload was set.')
 
     def __emit_join_payload_callback(self, payload):
+        logger.debug('Emit join payload..')
         if self.group_call is None:
             return
 
@@ -319,5 +349,6 @@ class GroupCallNative:
                 muted=True
             ))
             await self.client.handle_updates(response)
+            logger.debug(f'Successfully connected to VC with ssrcs={self.my_ssrc}.')
 
         asyncio.ensure_future(_(), loop=self.client.loop)
