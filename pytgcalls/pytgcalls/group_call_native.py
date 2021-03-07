@@ -116,7 +116,7 @@ class GroupCallNative:
 
         if ssrcs_to_remove:
             logger.debug(f'Remove ssrcs {ssrcs_to_remove}.')
-            self.__native_instance.removeSsrcs(ssrcs_to_remove)
+            self.__native_instance and self.__native_instance.removeSsrcs(ssrcs_to_remove)
 
     async def _process_group_call_update(self, update):
         logger.debug('Group call update..')
@@ -272,7 +272,7 @@ class GroupCallNative:
         def _(future):
             filtered_participants = [p for p in future.result() if p.source in ssrcs_list]
             participants = [parse_call_participant(p) for p in filtered_participants]
-            self.__native_instance.addParticipants(participants)
+            self.__native_instance and self.__native_instance.addParticipants(participants)
 
             logger.debug(f'Add description of {len(participants)} participant(s).')
 
@@ -341,7 +341,7 @@ class GroupCallNative:
         participants = [parse_call_participant(p) for p in await self.get_group_participants()]
 
         # TODO video payload
-        self.__native_instance.setJoinResponsePayload(payload, participants)
+        self.__native_instance and self.__native_instance.setJoinResponsePayload(payload, participants)
         logger.debug('Join response payload was set.')
 
     def __emit_join_payload_callback(self, payload):
