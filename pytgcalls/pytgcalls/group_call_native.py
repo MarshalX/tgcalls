@@ -272,7 +272,7 @@ class GroupCallNative(GroupCallDispatcherMixin):
         logger.debug('Participant descriptions required..')
 
         def _(future):
-            filtered_participants = [p for p in future.result() if p.source in ssrcs_list]
+            filtered_participants = [p for p in future.result() if uint_ssrcs(p.source) in ssrcs_list]
             participants = [parse_call_participant(p) for p in filtered_participants]
             self.__native_instance and self.__native_instance.addParticipants(participants)
 
