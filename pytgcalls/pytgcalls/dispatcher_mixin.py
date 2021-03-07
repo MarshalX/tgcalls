@@ -17,10 +17,19 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-from pytgcalls.group_call_native import GroupCallNative, GroupCallAction
-from pytgcalls.group_call import GroupCall
-from pytgcalls.dispatcher import Dispatcher
-from pytgcalls.dispatcher_mixin import DispatcherMixin
+from .dispatcher import Dispatcher
 
-__all__ = ['GroupCallNative', 'GroupCall', 'Dispatcher', 'DispatcherMixin', 'GroupCallAction']
-__version__ = '0.0.7'
+
+class DispatcherMixin:
+
+    def __init__(self, actions):
+        self._dispatcher = Dispatcher(actions)
+
+    def add_handler(self, callback, action) -> bool:
+        return self._dispatcher.add_handler(callback, action)
+
+    def remove_handler(self, callback, action) -> bool:
+        return self._dispatcher.remove_handler(callback, action)
+
+    def trigger_handlers(self, action, instance, *args, **kwargs):
+        return self._dispatcher.trigger_handlers(action, instance, *args, **kwargs)

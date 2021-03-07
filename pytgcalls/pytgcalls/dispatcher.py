@@ -1,12 +1,26 @@
+#  tgcalls - Python binding for tgcalls (c++ lib by Telegram)
+#  pytgcalls - Library connecting python binding for tgcalls and Pyrogram
+#  Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>
+#
+#  This file is part of tgcalls and pytgcalls.
+#
+#  tgcalls and pytgcalls is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU Lesser General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  tgcalls and pytgcalls is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Lesser General Public License for more details.
+#
+#  You should have received a copy of the GNU Lesser General Public License v3
+#  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
+
 import asyncio
 import logging
-from enum import Enum
 
 logger = logging.getLogger(__name__)
-
-
-class GroupCallAction(Enum):
-    NETWORK_STATUS_CHANGED = 0
 
 
 class Dispatcher:
@@ -19,7 +33,7 @@ class Dispatcher:
         logger.debug('Build storage of handlers for dispatcher.')
         return {action: [] for action in self.actions}
 
-    def add_handler(self, callback, action) -> bool:
+    def add_handler(self, callback, action):
         logger.debug('Add handler..')
         if not asyncio.iscoroutinefunction(callback):
             raise RuntimeError('Sync callback does not supported')
@@ -28,14 +42,14 @@ class Dispatcher:
             handlers = self.__action_to_handlers[action]
             if callback in handlers:
                 logger.debug('Handler already exists.')
-                return False
+                return callback
 
             handlers.append(callback)
         except KeyError:
             raise RuntimeError('Invalid action')
 
         logger.debug('Handler added.')
-        return True
+        return callback
 
     def remove_handler(self, callback, action) -> bool:
         logger.debug('Remove handler..')

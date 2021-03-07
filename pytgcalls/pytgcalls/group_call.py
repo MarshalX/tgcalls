@@ -1,5 +1,5 @@
 #  tgcalls - Python binding for tgcalls (c++ lib by Telegram)
-#  pytgcalls - library connecting python binding for tgcalls and pyrogram
+#  pytgcalls - Library connecting python binding for tgcalls and Pyrogram
 #  Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>
 #
 #  This file is part of tgcalls and pytgcalls.

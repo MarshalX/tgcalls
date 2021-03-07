@@ -1,5 +1,5 @@
 #  tgcalls - Python binding for tgcalls (c++ lib by Telegram)
-#  pytgcalls - library connecting python binding for tgcalls and pyrogram
+#  pytgcalls - Library connecting python binding for tgcalls and Pyrogram
 #  Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>
 #
 #  This file is part of tgcalls and pytgcalls.
@@ -20,7 +20,8 @@
 import asyncio
 import json
 import logging
-from typing import Callable, List, TYPE_CHECKING, Union
+from enum import Enum
+from typing import Callable, List, Union
 
 import pyrogram
 from pyrogram import raw
@@ -30,16 +31,22 @@ from pyrogram.raw import functions, types
 from pyrogram.raw.types import InputPeerChannel, InputPeerChat
 
 import tgcalls
-
-if TYPE_CHECKING:
-    from pytgcalls import GroupCall
-
-from .dispatcher import Dispatcher, GroupCallAction
+from .dispatcher_mixin import DispatcherMixin
 
 logger = logging.getLogger(__name__)
 
 uint_ssrcs = lambda ssrcs: ssrcs if ssrcs >= 0 else ssrcs + 2 ** 32
 int_ssrcs = lambda ssrcs: ssrcs if ssrcs < 2 ** 31 else ssrcs - 2 ** 32
+
+
+class GroupCallAction(Enum):
+    NETWORK_STATUS_CHANGED = 0
+
+
+class GroupCallDispatcherMixin(DispatcherMixin):
+
+    def on_network_status_changed(self, func: callable):
+        return self.add_handler(func, GroupCallAction.NETWORK_STATUS_CHANGED)
 
 
 def parse_call_participant(participant_data):
@@ -51,7 +58,7 @@ def parse_call_participant(participant_data):
     return native_participant
 
 
-class GroupCallNative:
+class GroupCallNative(GroupCallDispatcherMixin):
     SEND_ACTION_UPDATE_EACH = 0.45
 
     def __init__(
@@ -60,6 +67,7 @@ class GroupCallNative:
             enable_logs_to_console: bool,
             path_to_log_file: str
     ):
+        super().__init__(GroupCallAction)
         self.client = client
 
         self.__native_instance = None
@@ -77,8 +85,6 @@ class GroupCallNative:
         self.path_to_log_file = path_to_log_file
 
         self.is_connected = False
-
-        self.dispatcher = Dispatcher(GroupCallAction)
 
         self._update_to_handler = {
             types.UpdateGroupCallParticipants: self._process_group_call_participants_update,
@@ -132,10 +138,6 @@ class GroupCallNative:
         self.group_call = update.call
 
         await self._update_to_handler[type(update)](update)
-
-    def on_network_status_changed(self, func: Callable[['GroupCall', bool], None]):
-        self.dispatcher.add_handler(func, GroupCallAction.NETWORK_STATUS_CHANGED)
-        return func
 
     async def check_group_call(self) -> bool:
         if not self.group_call or not self.my_ssrc:
@@ -197,7 +199,7 @@ class GroupCallNative:
 
         return self._handler_group
 
-    def remove_handler(self):
+    def remove_update_handler(self):
         if self._handler_group:
             self.client.remove_handler(self._update_handler, self._handler_group)
             self._handler_group = None
@@ -208,7 +210,7 @@ class GroupCallNative:
         self.my_ssrc = self.group_call = self.chat_peer = self.full_chat = None
         self.is_connected = False
 
-        self.remove_handler()
+        self.remove_update_handler()
         self.__deinit_native_instance()
         logger.debug('GroupCall stop.')
 
@@ -257,7 +259,7 @@ class GroupCallNative:
         )
 
     def set_is_mute(self, is_muted: bool):
-        logger.debug(f'Set is muted is {is_muted} now.')
+        logger.debug(f'Set is muted. New value: {is_muted}.')
         self.__native_instance.setIsMuted(is_muted)
 
     def restart_playout(self):
@@ -281,14 +283,18 @@ class GroupCallNative:
 
     def __network_state_updated_callback(self, state: bool):
         logger.debug('Network state updated..')
-        self.is_connected = state
 
+        if self.is_connected == state:
+            logger.debug('Network state is same. Do nothing.')
+            return
+
+        self.is_connected = state
         if self.is_connected:
             self.set_is_mute(False)
             if self.enable_action:
                 self.__start_status_worker()
 
-        self.dispatcher.trigger_handlers(GroupCallAction.NETWORK_STATUS_CHANGED, self, state)
+        self.trigger_handlers(GroupCallAction.NETWORK_STATUS_CHANGED, self, state)
 
         logger.debug(f'New network state is {self.is_connected}.')
 
@@ -297,7 +303,7 @@ class GroupCallNative:
 
     def __start_status_worker(self):
         async def worker():
-            logger.debug('Start worker started..')
+            logger.debug('Start status (call action) worker..')
             while self.is_connected:
                 await self.send_speaking_group_call_action()
                 await asyncio.sleep(self.SEND_ACTION_UPDATE_EACH)

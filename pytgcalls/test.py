@@ -9,7 +9,7 @@ from pyrogram import errors, filters
 from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
 
-import pytgcalls
+from pytgcalls import GroupCall, GroupCallAction
 import tgcalls
 from helpers import b2i, calc_fingerprint, check_g, generate_visualization, i2b
 
@@ -431,6 +431,11 @@ for name, logger in logging.root.manager.loggerDict.items():
         logger.disabled = True
 
 
+async def network_status_changed_handler(gc: GroupCall, is_connected: bool):
+    if is_connected:
+        print('Connected')
+
+
 async def main(client1, client2, make_out, make_inc):
     # await client1.start()
     await client2.start()
@@ -438,18 +443,16 @@ async def main(client1, client2, make_out, make_inc):
     while not client2.is_connected:
         await asyncio.sleep(1)
 
-    @client2.on_message(filters.text
-                       & filters.outgoing
-                       & ~filters.edited
-                       & filters.command("test", prefixes="/"))
+    @client2.on_message(filters.text & filters.outgoing & ~filters.edited & filters.command('test', prefixes='!'))
     async def test(client, message):
-        group_call = pytgcalls.GroupCall(client, output_filename='output.raw')
+        group_call = GroupCall(client, output_filename='output.raw')
         await group_call.start(message.chat.id)
 
-        @group_call.on_network_status_changed
-        async def network_status_changed_handler(gc: pytgcalls.GroupCall, is_connected: bool):
-            if is_connected:
-                await gc.reconnect()
+        group_call.add_handler(
+            network_status_changed_handler,
+            GroupCallAction.NETWORK_STATUS_CHANGED
+        )
+
 
     '''
     
