@@ -545,7 +545,7 @@ static std::string createSdp(uint32_t sessionId, GroupJoinResponsePayload const 
             if (!stream.isVideo) {
                 appendSdp(sdp, "a=rtpmap:111 opus/48000/2");
                 appendSdp(sdp, "a=rtpmap:126 telephone-event/8000");
-                appendSdp(sdp, "a=fmtp:111 minptime=10; useinbandfec=1");
+                appendSdp(sdp, "a=fmtp:111 minptime=10; useinbandfec=0; stereo=1; cbr=1; usedtx=0; maxaveragebitrate=510000");
                 appendSdp(sdp, "a=rtcp:1 IN IP4 0.0.0.0");
                 appendSdp(sdp, "a=rtcp-mux");
                 appendSdp(sdp, "a=rtcp-rsize");
@@ -1694,11 +1694,11 @@ public:
 
         webrtc::field_trial::InitFieldTrialsFromString(
             //"WebRTC-Audio-SendSideBwe/Enabled/"
-            "WebRTC-Audio-Allocation/min:32kbps,max:32kbps/"
+            "WebRTC-Audio-Allocation/min:128kbps,max:512kbps/"
             "WebRTC-Audio-OpusMinPacketLossRate/Enabled-1/"
             //"WebRTC-FlexFEC-03/Enabled/"
             //"WebRTC-FlexFEC-03-Advertised/Enabled/"
-            "WebRTC-PcFactoryDefaultBitrates/min:32kbps,start:32kbps,max:32kbps/"
+            "WebRTC-PcFactoryDefaultBitrates/min:128kbps,start:128kbps,max:512kbps/"
             "WebRTC-Video-DiscardPacketsWithUnknownSsrc/Enabled/"
             "WebRTC-Video-BufferPacketsWithUnknownSsrc/Enabled/"
         );
@@ -1780,13 +1780,19 @@ public:
 
         webrtc::AudioProcessing::Config audioConfig;
 		webrtc::AudioProcessing::Config::NoiseSuppression noiseSuppression;
-		noiseSuppression.enabled = true;
-		noiseSuppression.level = webrtc::AudioProcessing::Config::NoiseSuppression::kHigh;
-		audioConfig.noise_suppression = noiseSuppression;
+		noiseSuppression.enabled = false;
+        noiseSuppression.level = webrtc::AudioProcessing::Config::NoiseSuppression::kHigh;
+//		audioConfig.noise_suppression = noiseSuppression;
 
-		audioConfig.high_pass_filter.enabled = true;
+        audioConfig.echo_canceller.enabled = false;
+        audioConfig.voice_detection.enabled = false;
+        audioConfig.gain_controller1.enabled = false;
+        audioConfig.gain_controller2.enabled = false;
+		audioConfig.noise_suppression.enabled = false;
+        audioConfig.residual_echo_detector.enabled = false;
+        audioConfig.high_pass_filter.enabled = false;
 
-//        apm->ApplyConfig(audioConfig);
+        apm->ApplyConfig(audioConfig);
 
         mediaDeps.audio_processing = apm;
 

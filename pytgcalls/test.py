@@ -431,7 +431,7 @@ for name, logger in logging.root.manager.loggerDict.items():
         logger.disabled = True
 
 
-async def network_status_changed_handler(gc: GroupCall, is_connected: bool):
+async def network_status_changed_handler(group_call: GroupCall, is_connected: bool):
     if is_connected:
         print('Connected')
 
@@ -443,15 +443,15 @@ async def main(client1, client2, make_out, make_inc):
     while not client2.is_connected:
         await asyncio.sleep(1)
 
-    @client2.on_message(filters.text & filters.outgoing & ~filters.edited & filters.command('test', prefixes='!'))
-    async def test(client, message):
-        group_call = GroupCall(client, output_filename='output.raw')
-        await group_call.start(message.chat.id)
+    # @client2.on_message(filters.text & filters.outgoing & ~filters.edited & filters.command('test', prefixes='!'))
+    # async def test(client, message):
+    group_call = GroupCall(client2, 'input.raw', '', True, '')
+    await group_call.start('@MarshalCm')
 
-        group_call.add_handler(
-            network_status_changed_handler,
-            GroupCallAction.NETWORK_STATUS_CHANGED
-        )
+    group_call.add_handler(
+        network_status_changed_handler,
+        GroupCallAction.NETWORK_STATUS_CHANGED
+    )
 
 
     '''
