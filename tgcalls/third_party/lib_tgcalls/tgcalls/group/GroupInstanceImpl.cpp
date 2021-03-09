@@ -1694,11 +1694,11 @@ public:
 
         webrtc::field_trial::InitFieldTrialsFromString(
             //"WebRTC-Audio-SendSideBwe/Enabled/"
-            "WebRTC-Audio-Allocation/min:128kbps,max:512kbps/"
+            "WebRTC-Audio-Allocation/min:32kbps,max:512kbps/"
             "WebRTC-Audio-OpusMinPacketLossRate/Enabled-1/"
             //"WebRTC-FlexFEC-03/Enabled/"
             //"WebRTC-FlexFEC-03-Advertised/Enabled/"
-            "WebRTC-PcFactoryDefaultBitrates/min:128kbps,start:128kbps,max:512kbps/"
+            "WebRTC-PcFactoryDefaultBitrates/min:32kbps,start:128kbps,max:512kbps/"
             "WebRTC-Video-DiscardPacketsWithUnknownSsrc/Enabled/"
             "WebRTC-Video-BufferPacketsWithUnknownSsrc/Enabled/"
         );
@@ -1821,7 +1821,7 @@ public:
         webrtc::PeerConnectionInterface::RTCConfiguration config;
         config.sdp_semantics = webrtc::SdpSemantics::kUnifiedPlan;
         //config.continual_gathering_policy = webrtc::PeerConnectionInterface::ContinualGatheringPolicy::GATHER_CONTINUALLY;
-        config.audio_jitter_buffer_fast_accelerate = true;
+        config.audio_jitter_buffer_fast_accelerate = false;
         config.prioritize_most_likely_ice_candidate_pairs = true;
         config.presume_writable_when_fully_relayed = true;
         //config.audio_jitter_buffer_enable_rtx_handling = true;
@@ -1883,13 +1883,22 @@ public:
         assert(_peerConnection != nullptr);
 
         cricket::AudioOptions options;
-        rtc::scoped_refptr<webrtc::AudioSourceInterface> audioSource = _nativeFactory->CreateAudioSource(options);
+        options.noise_suppression = false;
+        options.residual_echo_detector = false;
+        options.auto_gain_control = false;
+        options.echo_cancellation = false;
+        options.highpass_filter = false;
+        options.typing_detection = false;
+        options.audio_jitter_buffer_enable_rtx_handling = false;
+//        options.audio_network_adaptor = false;
+
+        _audioSource = _nativeFactory->CreateAudioSource(options);
         std::stringstream name;
         name << "audio";
         name << 0;
         std::vector<std::string> streamIds;
         streamIds.push_back(name.str());
-        _localAudioTrack = _nativeFactory->CreateAudioTrack(name.str(), audioSource);
+        _localAudioTrack = _nativeFactory->CreateAudioTrack(name.str(), _audioSource);
         _localAudioTrack->set_enabled(false);
         auto addedAudioTrack = _peerConnection->AddTrack(_localAudioTrack, streamIds);
 
@@ -2007,6 +2016,13 @@ public:
         }
     }
 
+    void setMyVolume(double volume) {
+	    // this is not working TODO
+        _audioSource->SetVolume(volume);
+        _localAudioTrack->GetSource()->SetVolume(volume);
+        RTC_LOG(LoggingSeverity::WARNING) << "setMyVolume: " << volume;
+	}
+
     void setVolume(uint32_t ssrc, double volume) {
         auto current = _audioTrackVolumes.find(ssrc);
         bool updated = false;
@@ -2020,6 +2036,9 @@ public:
             }
         }
         if (updated) {
+            if (ssrc == _mainStreamAudioSsrc) {
+                setMyVolume(volume);
+            }
             _audioTrackVolumes[ssrc] = volume;
             auto track = _audioTracks.find(ssrc);
             if (track != _audioTracks.end()) {
@@ -3084,6 +3103,7 @@ private:
     std::unique_ptr<AudioTrackSinkInterfaceImpl> _localAudioTrackSink;
     rtc::scoped_refptr<webrtc::AudioTrackInterface> _localAudioTrack;
     rtc::scoped_refptr<webrtc::RtpSenderInterface> _localAudioTrackSender;
+    rtc::scoped_refptr<webrtc::AudioSourceInterface> _audioSource;
 
     rtc::scoped_refptr<webrtc::VideoTrackInterface> _localVideoTrack;
     rtc::scoped_refptr<webrtc::RtpTransceiverInterface> _localVideoTrackTransceiver;

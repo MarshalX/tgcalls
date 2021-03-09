@@ -154,6 +154,7 @@ PYBIND11_MODULE(tgcalls, m) {
             .def("startGroupCall", &NativeInstance::startGroupCall)
             .def("stopGroupCall", &NativeInstance::stopGroupCall)
             .def("setIsMuted", &NativeInstance::setIsMuted)
+            .def("setVolume", &NativeInstance::setVolume)
             .def("reinitAudioInputDevice", &NativeInstance::reinitAudioInputDevice)
             .def("reinitAudioOutputDevice", &NativeInstance::reinitAudioOutputDevice)
             .def("setAudioOutputDevice", &NativeInstance::setAudioOutputDevice)

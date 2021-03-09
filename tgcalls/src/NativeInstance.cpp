@@ -82,6 +82,10 @@ void NativeInstance::setIsMuted(bool isMuted) const {
     instanceHolder->groupNativeInstance->setIsMuted(isMuted);
 }
 
+void NativeInstance::setVolume(uint32_t ssrc, double volume) const {
+    instanceHolder->groupNativeInstance->setVolume(ssrc, volume);
+}
+
 void NativeInstance::reinitAudioInputDevice() const {
     instanceHolder->groupNativeInstance->reinitAudioInputDevice();
 }
