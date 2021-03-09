@@ -35,8 +35,8 @@ from .dispatcher_mixin import DispatcherMixin
 
 logger = logging.getLogger(__name__)
 
-uint_ssrcs = lambda ssrcs: ssrcs if ssrcs >= 0 else ssrcs + 2 ** 32
-int_ssrcs = lambda ssrcs: ssrcs if ssrcs < 2 ** 31 else ssrcs - 2 ** 32
+uint_ssrc = lambda ssrc: ssrc if ssrc >= 0 else ssrc + 2 ** 32
+int_ssrc = lambda ssrc: ssrc if ssrc < 2 ** 31 else ssrc - 2 ** 32
 
 
 class GroupCallAction(Enum):
@@ -52,7 +52,7 @@ class GroupCallDispatcherMixin(DispatcherMixin):
 def parse_call_participant(participant_data):
     native_participant = tgcalls.GroupParticipantDescription()
 
-    native_participant.audioSsrc = uint_ssrcs(participant_data.source)
+    native_participant.audioSsrc = uint_ssrc(participant_data.source)
     native_participant.isRemoved = participant_data.left
 
     return native_participant
@@ -112,12 +112,12 @@ class GroupCallNative(GroupCallDispatcherMixin):
 
         ssrcs_to_remove = []
         for participant in update.participants:
-            ssrcs = uint_ssrcs(participant.source)
+            ssrc = uint_ssrc(participant.source)
 
             if participant.left:
-                ssrcs_to_remove.append(ssrcs)
-            elif participant.user_id == self.my_user_id and ssrcs != self.my_ssrc:
-                logger.debug('Reconnect. Not equal ssrcs.')
+                ssrcs_to_remove.append(ssrc)
+            elif participant.user_id == self.my_user_id and ssrc != self.my_ssrc:
+                logger.debug('Reconnect. Not equal ssrc.')
                 await self.reconnect()
 
         if ssrcs_to_remove:
@@ -146,7 +146,7 @@ class GroupCallNative(GroupCallDispatcherMixin):
         try:
             in_group_call = (await (self.client.send(functions.phone.CheckGroupCall(
                 call=self.group_call,
-                source=int_ssrcs(self.my_ssrc)
+                source=int_ssrc(self.my_ssrc)
             ))))
         except BadRequest as e:
             if e.x != '[400 GROUPCALL_JOIN_MISSING]':
@@ -167,7 +167,22 @@ class GroupCallNative(GroupCallDispatcherMixin):
 
         response = await self.client.send(functions.phone.LeaveGroupCall(
             call=self.full_chat.call,
-            source=int_ssrcs(self.my_ssrc)
+            source=int_ssrc(self.my_ssrc)
+        ))
+        await self.client.handle_updates(response)
+
+    async def edit_group_call(self, volume: int = None, muted=False):
+        user_id = await self.client.storage.get_peer_by_id(self.my_user_id)
+        await self.edit_group_call_member(user_id, volume, muted)
+
+    async def edit_group_call_member(self, user_id, volume: int = None, muted=False):
+        # there is bug in telegram. can't accept volume = 100 :D
+
+        response = await self.client.send(functions.phone.EditGroupCallMember(
+            call=self.full_chat.call,
+            user_id=user_id,
+            muted=muted,
+            volume=max(1, volume * 100) if volume is not None else None
         ))
         await self.client.handle_updates(response)
 
@@ -262,6 +277,18 @@ class GroupCallNative(GroupCallDispatcherMixin):
         logger.debug(f'Set is muted. New value: {is_muted}.')
         self.__native_instance.setIsMuted(is_muted)
 
+    def __set_volume(self, ssrc, volume):
+        self.__native_instance.setVolume(ssrc, volume)
+
+    async def set_my_volume(self, volume):
+        # Required "Manage Voice Chats" admin permission
+
+        volume = max(1, min(int(volume), 200))
+        logger.debug(f'Set my value. New value: {volume}.')
+
+        await self.edit_group_call(volume)
+        self.__native_instance.setVolume(uint_ssrc(self.my_ssrc), volume / 100)
+
     def restart_playout(self):
         self.__native_instance.reinitAudioInputDevice()
 
@@ -272,7 +299,7 @@ class GroupCallNative(GroupCallDispatcherMixin):
         logger.debug('Participant descriptions required..')
 
         def _(future):
-            filtered_participants = [p for p in future.result() if uint_ssrcs(p.source) in ssrcs_list]
+            filtered_participants = [p for p in future.result() if uint_ssrc(p.source) in ssrcs_list]
             participants = [parse_call_participant(p) for p in filtered_participants]
             self.__native_instance and self.__native_instance.addParticipants(participants)
 
@@ -377,6 +404,6 @@ class GroupCallNative(GroupCallDispatcherMixin):
                 muted=True
             ))
             await self.client.handle_updates(response)
-            logger.debug(f'Successfully connected to VC with ssrcs={self.my_ssrc}.')
+            logger.debug(f'Successfully connected to VC with ssrc={self.my_ssrc}.')
 
         asyncio.ensure_future(_(), loop=self.client.loop)

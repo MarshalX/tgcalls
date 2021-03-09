@@ -54,6 +54,15 @@ async def start_playout(client, message: Message):
     group_call.input_filename = input_filename
 
 
+@Client.on_message(main_filter & cmd_filter('volume'))
+@init_client_and_delete_message
+async def volume(_, message):
+    if len(message.command) < 2:
+        await message.reply_text('You forgot to pass volume (1-200)')
+
+    await group_call.set_my_volume(message.command[1])
+
+
 @Client.on_message(main_filter & cmd_filter('join'))
 @init_client_and_delete_message
 async def start(_, message: Message):

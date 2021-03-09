@@ -32,6 +32,7 @@ public:
     void stopGroupCall() const;
 
     void setIsMuted(bool isMuted) const;
+    void setVolume(uint32_t ssrc, double volume) const;
 
     void reinitAudioInputDevice() const;
     void reinitAudioOutputDevice() const;

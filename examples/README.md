@@ -8,7 +8,7 @@ without worrying about copyrights.
 
 An example of a smart plugin for Pyrogram. Plays a music by replaying
 to contained audio message via the command `!play`. Has the following commands:
-`!join`, `!leave`, `!rejoin`, `!replay`, `!stop`, `!mute`, `!unmute`.
+`!join`, `!leave`, `!rejoin`, `!replay`, `!stop`, `!volume`, `!mute`, `!unmute`.
 Reacts only to commands from the owner.
 
 ### [playout.py](playout.py)
