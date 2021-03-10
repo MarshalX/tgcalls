@@ -11,6 +11,10 @@ to contained audio message via the command `!play`. Has the following commands:
 `!join`, `!leave`, `!rejoin`, `!replay`, `!stop`, `!volume`, `!mute`, `!unmute`.
 Reacts only to commands from the owner.
 
+### [radio_as_smart_plugin.py](radio_as_smart_plugin.py)
+
+Example of using stream url in the set of voice chats (many VC at the same time).
+
 ### [playout.py](playout.py)
 
 An example of joining a voice chat and playing music. 
