@@ -12,6 +12,12 @@
 <style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
 <style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
 <style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<link rel="preconnect" href="https://www.google.com">
+<script async src="https://cse.google.com/cse.js?cx=017837193012385208679:pey8ky8gdqw"></script>
+<style>
+.gsc-control-cse {padding:0 !important;margin-top:1em}
+body.gsc-overflow-hidden #sidebar {overflow: visible;}
+</style>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
 <script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
 </head>
@@ -55,11 +61,21 @@ from pytgcalls import GroupCallNative, GroupCallNativeAction, GroupCallNativeDis
 
 class GroupCallAction(GroupCallNativeAction):
     PLAYOUT_ENDED = Action()
+    &#39;&#39;&#39;When a input file is ended.&#39;&#39;&#39;
 
 
 class GroupCallDispatcherMixin(GroupCallNativeDispatcherMixin):
 
     def on_playout_ended(self, func: callable):
+        &#34;&#34;&#34;When a input file is ended.
+
+        Args:
+            func (`function`): A functions that accept group_call and filename args.
+
+        Returns:
+            `function`: passed to args callback function.
+        &#34;&#34;&#34;
+
         return self.add_handler(func, GroupCallAction.PLAYOUT_ENDED)
 
 
@@ -78,6 +94,7 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
         super(GroupCallDispatcherMixin, self).__init__(GroupCallAction)
 
         self.play_on_repeat = play_on_repeat
+        &#39;&#39;&#39;When the file ends, play it again&#39;&#39;&#39;
 
         self._input_filename = input_filename or &#39;&#39;
         self._output_filename = output_filename or &#39;&#39;
@@ -97,13 +114,19 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
         await self._start_group_call(self.__create_file_audio_device_descriptor())
 
     def stop_playout(self):
+        &#34;&#34;&#34;Stop playing of file.&#34;&#34;&#34;
+
         self.input_filename = &#39;&#39;
 
     def stop_output(self):
+        &#34;&#34;&#34;Stop recordingto file.&#34;&#34;&#34;
+
         self.output_filename = &#39;&#39;
 
     @property
     def input_filename(self):
+        &#34;&#34;&#34;Input filename (or path) to play.&#34;&#34;&#34;
+
         return self._input_filename
 
     @input_filename.setter
@@ -114,6 +137,8 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
 
     @property
     def output_filename(self):
+        &#34;&#34;&#34;Output filename (or path) to record.&#34;&#34;&#34;
+
         return self._output_filename
 
     @output_filename.setter
@@ -169,6 +194,7 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
         super(GroupCallDispatcherMixin, self).__init__(GroupCallAction)
 
         self.play_on_repeat = play_on_repeat
+        &#39;&#39;&#39;When the file ends, play it again&#39;&#39;&#39;
 
         self._input_filename = input_filename or &#39;&#39;
         self._output_filename = output_filename or &#39;&#39;
@@ -188,13 +214,19 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
         await self._start_group_call(self.__create_file_audio_device_descriptor())
 
     def stop_playout(self):
+        &#34;&#34;&#34;Stop playing of file.&#34;&#34;&#34;
+
         self.input_filename = &#39;&#39;
 
     def stop_output(self):
+        &#34;&#34;&#34;Stop recordingto file.&#34;&#34;&#34;
+
         self.output_filename = &#39;&#39;
 
     @property
     def input_filename(self):
+        &#34;&#34;&#34;Input filename (or path) to play.&#34;&#34;&#34;
+
         return self._input_filename
 
     @input_filename.setter
@@ -205,6 +237,8 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
 
     @property
     def output_filename(self):
+        &#34;&#34;&#34;Output filename (or path) to record.&#34;&#34;&#34;
+
         return self._output_filename
 
     @output_filename.setter
@@ -232,40 +266,313 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
 <li><a title="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNativeDispatcherMixin">GroupCallNativeDispatcherMixin</a></li>
 <li><a title="pytgcalls.dispatcher_mixin.DispatcherMixin" href="dispatcher_mixin.html#pytgcalls.dispatcher_mixin.DispatcherMixin">DispatcherMixin</a></li>
 </ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="pytgcalls.group_call.GroupCall.SEND_ACTION_UPDATE_EACH"><code class="name">var <span class="ident">SEND_ACTION_UPDATE_EACH</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.SEND_ACTION_UPDATE_EACH" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.SEND_ACTION_UPDATE_EACH">SEND_ACTION_UPDATE_EACH</a></code>
+</p>
+<div class="desc inherited"><p>How often to send speaking action to chat</p></div>
+</dd>
+</dl>
 <h3>Instance variables</h3>
 <dl>
+<dt id="pytgcalls.group_call.GroupCall.chat_peer"><code class="name">var <span class="ident">chat_peer</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.chat_peer" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.chat_peer">chat_peer</a></code>
+</p>
+<div class="desc inherited"><p>Chat peer where bot is now</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.client"><code class="name">var <span class="ident">client</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.client" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.client">client</a></code>
+</p>
+<div class="desc inherited"><p>Client of Pyrogram</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.enable_action"><code class="name">var <span class="ident">enable_action</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.enable_action" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.enable_action">enable_action</a></code>
+</p>
+<div class="desc inherited"><p>Is enable sending of speaking action</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.enable_logs_to_console"><code class="name">var <span class="ident">enable_logs_to_console</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.enable_logs_to_console" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.enable_logs_to_console">enable_logs_to_console</a></code>
+</p>
+<div class="desc inherited"><p>Is enable logs to stderr from tgcalls</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.full_chat"><code class="name">var <span class="ident">full_chat</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.full_chat" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.full_chat">full_chat</a></code>
+</p>
+<div class="desc inherited"><p>Full chat information</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.group_call"><code class="name">var <span class="ident">group_call</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.group_call" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.group_call">group_call</a></code>
+</p>
+<div class="desc inherited"><p>Instance of Pyrogram's group call</p></div>
+</dd>
 <dt id="pytgcalls.group_call.GroupCall.input_filename"><code class="name">var <span class="ident">input_filename</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Input filename (or path) to play.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@property
 def input_filename(self):
+    &#34;&#34;&#34;Input filename (or path) to play.&#34;&#34;&#34;
+
     return self._input_filename</code></pre>
 </details>
 </dd>
+<dt id="pytgcalls.group_call.GroupCall.is_connected"><code class="name">var <span class="ident">is_connected</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.is_connected" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.is_connected">is_connected</a></code>
+</p>
+<div class="desc inherited"><p>Is connected to voice chat via tgcalls</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.my_ssrc"><code class="name">var <span class="ident">my_ssrc</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.my_ssrc" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.my_ssrc">my_ssrc</a></code>
+</p>
+<div class="desc inherited"><p>Client SSRC (Synchronization Source)</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.my_user_id"><code class="name">var <span class="ident">my_user_id</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.my_user_id" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.my_user_id">my_user_id</a></code>
+</p>
+<div class="desc inherited"><p>Client user account ID</p></div>
+</dd>
 <dt id="pytgcalls.group_call.GroupCall.output_filename"><code class="name">var <span class="ident">output_filename</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Output filename (or path) to record.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@property
 def output_filename(self):
+    &#34;&#34;&#34;Output filename (or path) to record.&#34;&#34;&#34;
+
     return self._output_filename</code></pre>
 </details>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.path_to_log_file"><code class="name">var <span class="ident">path_to_log_file</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.path_to_log_file" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.path_to_log_file">path_to_log_file</a></code>
+</p>
+<div class="desc inherited"><p>Path to log file for logs of tgcalls</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.play_on_repeat"><code class="name">var <span class="ident">play_on_repeat</span></code></dt>
+<dd>
+<div class="desc"><p>When the file ends, play it again</p></div>
 </dd>
 </dl>
 <h3>Methods</h3>
 <dl>
+<dt id="pytgcalls.group_call.GroupCall.add_handler"><code class="name flex">
+<span>def <span class="ident">add_handler</span></span>(<span>self, callback, action) ‑> <built-in function callable></span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.add_handler" href="dispatcher_mixin.html#pytgcalls.group_call_native.GroupCallNative.add_handler">add_handler</a></code>
+</p>
+<div class="desc inherited"><p>Register new handler …</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.check_group_call"><code class="name flex">
+<span>async def <span class="ident">check_group_call</span></span>(<span>self) ‑> bool</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.check_group_call" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.check_group_call">check_group_call</a></code>
+</p>
+<div class="desc inherited"><p>Check if client is in a voice chat …</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.edit_group_call"><code class="name flex">
+<span>async def <span class="ident">edit_group_call</span></span>(<span>self, volume: int = None, muted=False)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.edit_group_call" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.edit_group_call">edit_group_call</a></code>
+</p>
+<div class="desc inherited"><p>Edit own settings of group call …</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.edit_group_call_member"><code class="name flex">
+<span>async def <span class="ident">edit_group_call_member</span></span>(<span>self, user_id, volume: int = None, muted=False)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.edit_group_call_member" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.edit_group_call_member">edit_group_call_member</a></code>
+</p>
+<div class="desc inherited"><p>Edit setting of user in voice chat (required voice chat management permission) …</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.get_group_call"><code class="name flex">
+<span>async def <span class="ident">get_group_call</span></span>(<span>self, group: Union[str, int, pyrogram.raw.types.input_peer_channel.InputPeerChannel, pyrogram.raw.types.input_peer_chat.InputPeerChat])</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.get_group_call" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.get_group_call">get_group_call</a></code>
+</p>
+<div class="desc inherited"><p>Get group call input of chat …</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.get_group_call_participants"><code class="name flex">
+<span>async def <span class="ident">get_group_call_participants</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.get_group_call_participants" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.get_group_call_participants">get_group_call_participants</a></code>
+</p>
+<div class="desc inherited"><p>Get group call participants of current chat.</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.leave_current_group_call"><code class="name flex">
+<span>async def <span class="ident">leave_current_group_call</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.leave_current_group_call" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.leave_current_group_call">leave_current_group_call</a></code>
+</p>
+<div class="desc inherited"><p>Leave group call from server side (MTProto part).</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.on_network_status_changed"><code class="name flex">
+<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: <built-in function callable>) ‑> <built-in function callable></span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.on_network_status_changed" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.on_network_status_changed">on_network_status_changed</a></code>
+</p>
+<div class="desc inherited"><p>When a status of network will be changed …</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.on_playout_ended"><code class="name flex">
+<span>def <span class="ident">on_playout_ended</span></span>(<span>self, func: <built-in function callable>)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call.GroupCallDispatcherMixin" href="#pytgcalls.group_call.GroupCallDispatcherMixin">GroupCallDispatcherMixin</a></code>.<code><a title="pytgcalls.group_call.GroupCallDispatcherMixin.on_playout_ended" href="#pytgcalls.group_call.GroupCallDispatcherMixin.on_playout_ended">on_playout_ended</a></code>
+</p>
+<div class="desc inherited"><p>When a input file is ended …</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.reconnect"><code class="name flex">
+<span>async def <span class="ident">reconnect</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.reconnect" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.reconnect">reconnect</a></code>
+</p>
+<div class="desc inherited"><p>Reconnect to current voice chat.</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.remove_handler"><code class="name flex">
+<span>def <span class="ident">remove_handler</span></span>(<span>self, callback, action) ‑> bool</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.remove_handler" href="dispatcher_mixin.html#pytgcalls.group_call_native.GroupCallNative.remove_handler">remove_handler</a></code>
+</p>
+<div class="desc inherited"><p>Unregister the handler …</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.remove_update_handler"><code class="name flex">
+<span>def <span class="ident">remove_update_handler</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.remove_update_handler" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.remove_update_handler">remove_update_handler</a></code>
+</p>
+<div class="desc inherited"><p>Remove pytgcalls handler in pyrogram client.</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.restart_playout"><code class="name flex">
+<span>def <span class="ident">restart_playout</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.restart_playout" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.restart_playout">restart_playout</a></code>
+</p>
+<div class="desc inherited"><p>Start play current inputfile from start or just reload file audio device …</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.restart_recording"><code class="name flex">
+<span>def <span class="ident">restart_recording</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.restart_recording" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.restart_recording">restart_recording</a></code>
+</p>
+<div class="desc inherited"><p>Start recording to outpufile from begin or just restart recording device …</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.send_speaking_group_call_action"><code class="name flex">
+<span>async def <span class="ident">send_speaking_group_call_action</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.send_speaking_group_call_action" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.send_speaking_group_call_action">send_speaking_group_call_action</a></code>
+</p>
+<div class="desc inherited"><p>Send speaking action to current chat.</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.set_is_mute"><code class="name flex">
+<span>def <span class="ident">set_is_mute</span></span>(<span>self, is_muted: bool)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.set_is_mute" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.set_is_mute">set_is_mute</a></code>
+</p>
+<div class="desc inherited"><p>Set is mute …</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.set_my_volume"><code class="name flex">
+<span>async def <span class="ident">set_my_volume</span></span>(<span>self, volume)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.set_my_volume" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.set_my_volume">set_my_volume</a></code>
+</p>
+<div class="desc inherited"><p>Set volume for current client …</p></div>
+</dd>
 <dt id="pytgcalls.group_call.GroupCall.start"><code class="name flex">
 <span>async def <span class="ident">start</span></span>(<span>self, group: Union[str, int], enable_action=True)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.start" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.start">start</a></code>
+</p>
+<div class="desc inherited"><p>Start voice chat (join and play/record from initial values) …</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
@@ -276,16 +583,28 @@ def output_filename(self):
     await self._start_group_call(self.__create_file_audio_device_descriptor())</code></pre>
 </details>
 </dd>
+<dt id="pytgcalls.group_call.GroupCall.stop"><code class="name flex">
+<span>async def <span class="ident">stop</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.stop" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.stop">stop</a></code>
+</p>
+<div class="desc inherited"><p>Properly stop tgcalls, remove pyrogram handler, leave from server side.</p></div>
+</dd>
 <dt id="pytgcalls.group_call.GroupCall.stop_output"><code class="name flex">
 <span>def <span class="ident">stop_output</span></span>(<span>self)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Stop recordingto file.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def stop_output(self):
+    &#34;&#34;&#34;Stop recordingto file.&#34;&#34;&#34;
+
     self.output_filename = &#39;&#39;</code></pre>
 </details>
 </dd>
@@ -293,14 +612,26 @@ def output_filename(self):
 <span>def <span class="ident">stop_playout</span></span>(<span>self)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>Stop playing of file.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def stop_playout(self):
+    &#34;&#34;&#34;Stop playing of file.&#34;&#34;&#34;
+
     self.input_filename = &#39;&#39;</code></pre>
 </details>
+</dd>
+<dt id="pytgcalls.group_call.GroupCall.trigger_handlers"><code class="name flex">
+<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action, instance, *args, **kwargs)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.trigger_handlers" href="dispatcher_mixin.html#pytgcalls.group_call_native.GroupCallNative.trigger_handlers">trigger_handlers</a></code>
+</p>
+<div class="desc inherited"><p>Unregister the handler …</p></div>
 </dd>
 </dl>
 </dd>
@@ -314,7 +645,8 @@ def output_filename(self):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class GroupCallAction(GroupCallNativeAction):
-    PLAYOUT_ENDED = Action()</code></pre>
+    PLAYOUT_ENDED = Action()
+    &#39;&#39;&#39;When a input file is ended.&#39;&#39;&#39;</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -322,9 +654,17 @@ def output_filename(self):
 </ul>
 <h3>Class variables</h3>
 <dl>
+<dt id="pytgcalls.group_call.GroupCallAction.NETWORK_STATUS_CHANGED"><code class="name">var <span class="ident">NETWORK_STATUS_CHANGED</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNativeAction" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNativeAction">GroupCallNativeAction</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNativeAction.NETWORK_STATUS_CHANGED" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNativeAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code>
+</p>
+<div class="desc inherited"><p>When a status of network will be changed.</p></div>
+</dd>
 <dt id="pytgcalls.group_call.GroupCallAction.PLAYOUT_ENDED"><code class="name">var <span class="ident">PLAYOUT_ENDED</span></code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>When a input file is ended.</p></div>
 </dd>
 </dl>
 </dd>
@@ -341,6 +681,15 @@ def output_filename(self):
 <pre><code class="python">class GroupCallDispatcherMixin(GroupCallNativeDispatcherMixin):
 
     def on_playout_ended(self, func: callable):
+        &#34;&#34;&#34;When a input file is ended.
+
+        Args:
+            func (`function`): A functions that accept group_call and filename args.
+
+        Returns:
+            `function`: passed to args callback function.
+        &#34;&#34;&#34;
+
         return self.add_handler(func, GroupCallAction.PLAYOUT_ENDED)</code></pre>
 </details>
 <h3>Ancestors</h3>
@@ -354,18 +703,71 @@ def output_filename(self):
 </ul>
 <h3>Methods</h3>
 <dl>
+<dt id="pytgcalls.group_call.GroupCallDispatcherMixin.add_handler"><code class="name flex">
+<span>def <span class="ident">add_handler</span></span>(<span>self, callback, action) ‑> <built-in function callable></span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNativeDispatcherMixin">GroupCallNativeDispatcherMixin</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin.add_handler" href="dispatcher_mixin.html#pytgcalls.group_call_native.GroupCallNativeDispatcherMixin.add_handler">add_handler</a></code>
+</p>
+<div class="desc inherited"><p>Register new handler …</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCallDispatcherMixin.on_network_status_changed"><code class="name flex">
+<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: <built-in function callable>) ‑> <built-in function callable></span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNativeDispatcherMixin">GroupCallNativeDispatcherMixin</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin.on_network_status_changed" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNativeDispatcherMixin.on_network_status_changed">on_network_status_changed</a></code>
+</p>
+<div class="desc inherited"><p>When a status of network will be changed …</p></div>
+</dd>
 <dt id="pytgcalls.group_call.GroupCallDispatcherMixin.on_playout_ended"><code class="name flex">
 <span>def <span class="ident">on_playout_ended</span></span>(<span>self, func: <built-in function callable>)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>When a input file is ended.</p>
+<h2 id="args">Args</h2>
+<p>func (<code>function</code>): A functions that accept group_call and filename args.</p>
+<h2 id="returns">Returns</h2>
+<p><code>function</code>: passed to args callback function.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def on_playout_ended(self, func: callable):
+    &#34;&#34;&#34;When a input file is ended.
+
+    Args:
+        func (`function`): A functions that accept group_call and filename args.
+
+    Returns:
+        `function`: passed to args callback function.
+    &#34;&#34;&#34;
+
     return self.add_handler(func, GroupCallAction.PLAYOUT_ENDED)</code></pre>
 </details>
+</dd>
+<dt id="pytgcalls.group_call.GroupCallDispatcherMixin.remove_handler"><code class="name flex">
+<span>def <span class="ident">remove_handler</span></span>(<span>self, callback, action) ‑> bool</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNativeDispatcherMixin">GroupCallNativeDispatcherMixin</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin.remove_handler" href="dispatcher_mixin.html#pytgcalls.group_call_native.GroupCallNativeDispatcherMixin.remove_handler">remove_handler</a></code>
+</p>
+<div class="desc inherited"><p>Unregister the handler …</p></div>
+</dd>
+<dt id="pytgcalls.group_call.GroupCallDispatcherMixin.trigger_handlers"><code class="name flex">
+<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action, instance, *args, **kwargs)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNativeDispatcherMixin">GroupCallNativeDispatcherMixin</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin.trigger_handlers" href="dispatcher_mixin.html#pytgcalls.group_call_native.GroupCallNativeDispatcherMixin.trigger_handlers">trigger_handlers</a></code>
+</p>
+<div class="desc inherited"><p>Unregister the handler …</p></div>
 </dd>
 </dl>
 </dd>
@@ -378,6 +780,10 @@ def output_filename(self):
 <img src="https://github.com/MarshalX/tgcalls/raw/main/.github/images/pytgcalls.png" alt="pytgcalls">
 </a>
 <br>
+<a href="https://github.com/MarshalX/tgcalls/tree/main/examples">
+Examples
+</a>
+•
 <a href="https://pypi.org/project/pytgcalls/">
 PyPi
 </a>
@@ -386,6 +792,10 @@ PyPi
 Sources
 </a>
 </p>
+<div class="gcse-search" style="height: 70px"
+data-as_oq="site:tgcalls.org"
+data-gaCategoryParameter="pytgcalls.group_call">
+</div>
 <h1>Index</h1>
 <div class="toc">
 <ul></ul>
@@ -401,23 +811,59 @@ Sources
 <li>
 <h4><code><a title="pytgcalls.group_call.GroupCall" href="#pytgcalls.group_call.GroupCall">GroupCall</a></code></h4>
 <ul class="">
+<li><code><a title="pytgcalls.group_call.GroupCall.SEND_ACTION_UPDATE_EACH" href="group_call_native.html#pytgcalls.group_call.GroupCall.SEND_ACTION_UPDATE_EACH">SEND_ACTION_UPDATE_EACH</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.add_handler" href="dispatcher_mixin.html#pytgcalls.group_call.GroupCall.add_handler">add_handler</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.chat_peer" href="group_call_native.html#pytgcalls.group_call.GroupCall.chat_peer">chat_peer</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.check_group_call" href="group_call_native.html#pytgcalls.group_call.GroupCall.check_group_call">check_group_call</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.client" href="group_call_native.html#pytgcalls.group_call.GroupCall.client">client</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.edit_group_call" href="group_call_native.html#pytgcalls.group_call.GroupCall.edit_group_call">edit_group_call</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.edit_group_call_member" href="group_call_native.html#pytgcalls.group_call.GroupCall.edit_group_call_member">edit_group_call_member</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.enable_action" href="group_call_native.html#pytgcalls.group_call.GroupCall.enable_action">enable_action</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.enable_logs_to_console" href="group_call_native.html#pytgcalls.group_call.GroupCall.enable_logs_to_console">enable_logs_to_console</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.full_chat" href="group_call_native.html#pytgcalls.group_call.GroupCall.full_chat">full_chat</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.get_group_call" href="group_call_native.html#pytgcalls.group_call.GroupCall.get_group_call">get_group_call</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.get_group_call_participants" href="group_call_native.html#pytgcalls.group_call.GroupCall.get_group_call_participants">get_group_call_participants</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.group_call" href="group_call_native.html#pytgcalls.group_call.GroupCall.group_call">group_call</a></code></li>
 <li><code><a title="pytgcalls.group_call.GroupCall.input_filename" href="#pytgcalls.group_call.GroupCall.input_filename">input_filename</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.is_connected" href="group_call_native.html#pytgcalls.group_call.GroupCall.is_connected">is_connected</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.leave_current_group_call" href="group_call_native.html#pytgcalls.group_call.GroupCall.leave_current_group_call">leave_current_group_call</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.my_ssrc" href="group_call_native.html#pytgcalls.group_call.GroupCall.my_ssrc">my_ssrc</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.my_user_id" href="group_call_native.html#pytgcalls.group_call.GroupCall.my_user_id">my_user_id</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.on_network_status_changed" href="group_call_native.html#pytgcalls.group_call.GroupCall.on_network_status_changed">on_network_status_changed</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.on_playout_ended" href="#pytgcalls.group_call.GroupCall.on_playout_ended">on_playout_ended</a></code></li>
 <li><code><a title="pytgcalls.group_call.GroupCall.output_filename" href="#pytgcalls.group_call.GroupCall.output_filename">output_filename</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.path_to_log_file" href="group_call_native.html#pytgcalls.group_call.GroupCall.path_to_log_file">path_to_log_file</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.play_on_repeat" href="#pytgcalls.group_call.GroupCall.play_on_repeat">play_on_repeat</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.reconnect" href="group_call_native.html#pytgcalls.group_call.GroupCall.reconnect">reconnect</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.remove_handler" href="dispatcher_mixin.html#pytgcalls.group_call.GroupCall.remove_handler">remove_handler</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.remove_update_handler" href="group_call_native.html#pytgcalls.group_call.GroupCall.remove_update_handler">remove_update_handler</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.restart_playout" href="group_call_native.html#pytgcalls.group_call.GroupCall.restart_playout">restart_playout</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.restart_recording" href="group_call_native.html#pytgcalls.group_call.GroupCall.restart_recording">restart_recording</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.send_speaking_group_call_action" href="group_call_native.html#pytgcalls.group_call.GroupCall.send_speaking_group_call_action">send_speaking_group_call_action</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.set_is_mute" href="group_call_native.html#pytgcalls.group_call.GroupCall.set_is_mute">set_is_mute</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.set_my_volume" href="group_call_native.html#pytgcalls.group_call.GroupCall.set_my_volume">set_my_volume</a></code></li>
 <li><code><a title="pytgcalls.group_call.GroupCall.start" href="#pytgcalls.group_call.GroupCall.start">start</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.stop" href="group_call_native.html#pytgcalls.group_call.GroupCall.stop">stop</a></code></li>
 <li><code><a title="pytgcalls.group_call.GroupCall.stop_output" href="#pytgcalls.group_call.GroupCall.stop_output">stop_output</a></code></li>
 <li><code><a title="pytgcalls.group_call.GroupCall.stop_playout" href="#pytgcalls.group_call.GroupCall.stop_playout">stop_playout</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCall.trigger_handlers" href="dispatcher_mixin.html#pytgcalls.group_call.GroupCall.trigger_handlers">trigger_handlers</a></code></li>
 </ul>
 </li>
 <li>
 <h4><code><a title="pytgcalls.group_call.GroupCallAction" href="#pytgcalls.group_call.GroupCallAction">GroupCallAction</a></code></h4>
 <ul class="">
+<li><code><a title="pytgcalls.group_call.GroupCallAction.NETWORK_STATUS_CHANGED" href="group_call_native.html#pytgcalls.group_call.GroupCallAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code></li>
 <li><code><a title="pytgcalls.group_call.GroupCallAction.PLAYOUT_ENDED" href="#pytgcalls.group_call.GroupCallAction.PLAYOUT_ENDED">PLAYOUT_ENDED</a></code></li>
 </ul>
 </li>
 <li>
 <h4><code><a title="pytgcalls.group_call.GroupCallDispatcherMixin" href="#pytgcalls.group_call.GroupCallDispatcherMixin">GroupCallDispatcherMixin</a></code></h4>
 <ul class="">
+<li><code><a title="pytgcalls.group_call.GroupCallDispatcherMixin.add_handler" href="dispatcher_mixin.html#pytgcalls.group_call.GroupCallDispatcherMixin.add_handler">add_handler</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCallDispatcherMixin.on_network_status_changed" href="group_call_native.html#pytgcalls.group_call.GroupCallDispatcherMixin.on_network_status_changed">on_network_status_changed</a></code></li>
 <li><code><a title="pytgcalls.group_call.GroupCallDispatcherMixin.on_playout_ended" href="#pytgcalls.group_call.GroupCallDispatcherMixin.on_playout_ended">on_playout_ended</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCallDispatcherMixin.remove_handler" href="dispatcher_mixin.html#pytgcalls.group_call.GroupCallDispatcherMixin.remove_handler">remove_handler</a></code></li>
+<li><code><a title="pytgcalls.group_call.GroupCallDispatcherMixin.trigger_handlers" href="dispatcher_mixin.html#pytgcalls.group_call.GroupCallDispatcherMixin.trigger_handlers">trigger_handlers</a></code></li>
 </ul>
 </li>
 </ul>
