@@ -20,7 +20,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install pdoc3 pyrogram
-          pdoc pytgcalls/pytgcalls --html -c show_inherited_members=True --force
+          pdoc pytgcalls/pytgcalls --html -c show_inherited_members=True --force --template-dir pytgcalls/pdoc
           mv html/pytgcalls/* html
       - name: Deploy
         uses: JamesIves/github-pages-deploy-action@4.1.0
