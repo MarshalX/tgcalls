@@ -25,4 +25,4 @@ from pytgcalls.dispatcher_mixin import DispatcherMixin
 
 __all__ = ['GroupCallNative', 'GroupCall', 'Dispatcher', 'DispatcherMixin', 'Action',
            'GroupCallNativeAction', 'GroupCallNativeDispatcherMixin', 'GroupCallAction']
-__version__ = '0.0.10'
+__version__ = '0.0.11'
