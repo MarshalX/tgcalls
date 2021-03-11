@@ -20,8 +20,7 @@
 import asyncio
 import json
 import logging
-from enum import Enum
-from typing import Callable, List, Union
+from typing import List, Union
 
 import pyrogram
 from pyrogram import raw
@@ -31,6 +30,7 @@ from pyrogram.raw import functions, types
 from pyrogram.raw.types import InputPeerChannel, InputPeerChat
 
 import tgcalls
+from .action import Action
 from .dispatcher_mixin import DispatcherMixin
 
 logger = logging.getLogger(__name__)
@@ -39,14 +39,14 @@ uint_ssrc = lambda ssrc: ssrc if ssrc >= 0 else ssrc + 2 ** 32
 int_ssrc = lambda ssrc: ssrc if ssrc < 2 ** 31 else ssrc - 2 ** 32
 
 
-class GroupCallAction(Enum):
-    NETWORK_STATUS_CHANGED = 0
+class GroupCallNativeAction:
+    NETWORK_STATUS_CHANGED = Action()
 
 
-class GroupCallDispatcherMixin(DispatcherMixin):
+class GroupCallNativeDispatcherMixin(DispatcherMixin):
 
     def on_network_status_changed(self, func: callable):
-        return self.add_handler(func, GroupCallAction.NETWORK_STATUS_CHANGED)
+        return self.add_handler(func, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
 
 
 def parse_call_participant(participant_data):
@@ -58,7 +58,7 @@ def parse_call_participant(participant_data):
     return native_participant
 
 
-class GroupCallNative(GroupCallDispatcherMixin):
+class GroupCallNative(GroupCallNativeDispatcherMixin):
     SEND_ACTION_UPDATE_EACH = 0.45
 
     def __init__(
@@ -67,7 +67,7 @@ class GroupCallNative(GroupCallDispatcherMixin):
             enable_logs_to_console: bool,
             path_to_log_file: str
     ):
-        super().__init__(GroupCallAction)
+        super().__init__(GroupCallNativeAction)
         self.client = client
 
         self.__native_instance = None
@@ -100,9 +100,16 @@ class GroupCallNative(GroupCallDispatcherMixin):
         del tmp
         logger.debug('Native instance destroyed.')
 
-    def __setup_native_instance(self):
+    def __create_and_setup_native_instance(self):
         logger.debug('Create a new native instance..')
-        native_instance = tgcalls.NativeInstance()
+        native_instance = tgcalls.NativeInstance(self.enable_logs_to_console, self.path_to_log_file)
+
+        native_instance.setupGroupCall(
+            self.__emit_join_payload_callback,
+            self.__network_state_updated_callback,
+            self.__participant_descriptions_required_callback
+        )
+
         logger.debug('Native instance created.')
 
         return native_instance
@@ -240,7 +247,7 @@ class GroupCallNative(GroupCallDispatcherMixin):
 
         handler_group = await self.__set_and_get_handler_group()
         self.client.add_handler(self._update_handler, handler_group)
-        self.__native_instance = self.__setup_native_instance()
+        self.__native_instance = self.__create_and_setup_native_instance()
 
         self.enable_action = enable_action
         self.my_user_id = await self.client.storage.user_id()
@@ -252,26 +259,9 @@ class GroupCallNative(GroupCallDispatcherMixin):
         await self.stop()
         await self.start(chat_peer, enable_action)
 
-    async def _start_group_call(
-            self,
-            use_file_audio_device: bool,
-            get_input_filename_callback: Callable,
-            get_output_filename_callback: Callable
-    ):
+    async def _start_group_call(self, *args):
         logger.debug('Start native group call..')
-        # TODO move callbacks to __setup_native_instance
-        self.__native_instance.startGroupCall(
-            self.enable_logs_to_console,
-            self.path_to_log_file,
-
-            use_file_audio_device,
-
-            self.__emit_join_payload_callback,
-            self.__network_state_updated_callback,
-            self.__participant_descriptions_required_callback,
-            get_input_filename_callback,
-            get_output_filename_callback
-        )
+        self.__native_instance.startGroupCall(*args)
 
     def set_is_mute(self, is_muted: bool):
         logger.debug(f'Set is muted. New value: {is_muted}.')
@@ -321,7 +311,7 @@ class GroupCallNative(GroupCallDispatcherMixin):
             if self.enable_action:
                 self.__start_status_worker()
 
-        self.trigger_handlers(GroupCallAction.NETWORK_STATUS_CHANGED, self, state)
+        self.trigger_handlers(GroupCallNativeAction.NETWORK_STATUS_CHANGED, self, state)
 
         logger.debug(f'New network state is {self.is_connected}.')
 

@@ -21,10 +21,21 @@ from typing import Union
 
 import pyrogram
 
-from pytgcalls import GroupCallNative
+import tgcalls
+from pytgcalls import GroupCallNative, GroupCallNativeAction, GroupCallNativeDispatcherMixin, Action
 
 
-class GroupCall(GroupCallNative):
+class GroupCallAction(GroupCallNativeAction):
+    PLAYOUT_ENDED = Action()
+
+
+class GroupCallDispatcherMixin(GroupCallNativeDispatcherMixin):
+
+    def on_playout_ended(self, func: callable):
+        return self.add_handler(func, GroupCallAction.PLAYOUT_ENDED)
+
+
+class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
 
     def __init__(
             self,
@@ -32,20 +43,30 @@ class GroupCall(GroupCallNative):
             input_filename: str = '',
             output_filename: str = '',
             enable_logs_to_console=False,
-            path_to_log_file='group_call.log'
+            path_to_log_file='group_call.log',
+            play_on_repeat=True
     ):
         super().__init__(client, enable_logs_to_console, path_to_log_file)
-        self.__use_file_audio_device = True
+        super(GroupCallDispatcherMixin, self).__init__(GroupCallAction)
+
+        self.play_on_repeat = play_on_repeat
 
         self._input_filename = input_filename or ''
         self._output_filename = output_filename or ''
 
+    def __create_file_audio_device_descriptor(self):
+        file_audio_device_descriptor = tgcalls.FileAudioDeviceDescriptor()
+        file_audio_device_descriptor.getInputFilename = self.__get_input_filename_callback
+        file_audio_device_descriptor.getOutputFilename = self.__get_output_filename_callback
+        file_audio_device_descriptor.isEndlessPlayout = self.__is_endless_playout_callback
+        file_audio_device_descriptor.playoutEndedCallback = self.__playout_ended_callback
+
+        return file_audio_device_descriptor
+
     async def start(self, group: Union[str, int], enable_action=True):
         await super().start(group, enable_action)
 
-        await self._start_group_call(
-            self.__use_file_audio_device, self.__get_input_filename_callback, self.__get_output_filename_callback
-        )
+        await self._start_group_call(self.__create_file_audio_device_descriptor())
 
     def stop_playout(self):
         self.input_filename = ''
@@ -78,3 +99,9 @@ class GroupCall(GroupCallNative):
 
     def __get_output_filename_callback(self):
         return self._output_filename
+
+    def __is_endless_playout_callback(self):
+        return self.play_on_repeat
+
+    def __playout_ended_callback(self, input_filename: str):
+        self.trigger_handlers(GroupCallAction.PLAYOUT_ENDED, self, input_filename)

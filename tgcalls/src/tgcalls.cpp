@@ -148,9 +148,17 @@ PYBIND11_MODULE(tgcalls, m) {
             .def_readwrite("ssrcs", &tgcalls::GroupJoinPayloadVideoSourceGroup::ssrcs)
             .def_readwrite("semantics", &tgcalls::GroupJoinPayloadVideoSourceGroup::semantics);
 
-    py::class_<NativeInstance>(m, "NativeInstance")
+    py::class_<FileAudioDeviceDescriptor>(m, "FileAudioDeviceDescriptor")
             .def(py::init<>())
+            .def_readwrite("getInputFilename", &FileAudioDeviceDescriptor::_getInputFilename)
+            .def_readwrite("getOutputFilename", &FileAudioDeviceDescriptor::_getOutputFilename)
+            .def_readwrite("isEndlessPlayout", &FileAudioDeviceDescriptor::_isEndlessPlayout)
+            .def_readwrite("playoutEndedCallback", &FileAudioDeviceDescriptor::_playoutEndedCallback);
+
+    py::class_<NativeInstance>(m, "NativeInstance")
+            .def(py::init<bool, string>())
             .def("startCall", &NativeInstance::startCall)
+            .def("setupGroupCall", &NativeInstance::setupGroupCall)
             .def("startGroupCall", &NativeInstance::startGroupCall)
             .def("stopGroupCall", &NativeInstance::stopGroupCall)
             .def("setIsMuted", &NativeInstance::setIsMuted)

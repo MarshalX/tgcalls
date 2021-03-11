@@ -17,12 +17,10 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-from pytgcalls.group_call_native import GroupCallNative, GroupCallNativeAction, GroupCallNativeDispatcherMixin
-from pytgcalls.action import Action
-from pytgcalls.group_call import GroupCall, GroupCallAction
-from pytgcalls.dispatcher import Dispatcher
-from pytgcalls.dispatcher_mixin import DispatcherMixin
 
-__all__ = ['GroupCallNative', 'GroupCall', 'Dispatcher', 'DispatcherMixin', 'Action',
-           'GroupCallNativeAction', 'GroupCallNativeDispatcherMixin', 'GroupCallAction']
-__version__ = '0.0.11'
+class Action:
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    def __get__(self, instance, owner):
+        return self.name

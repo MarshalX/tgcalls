@@ -31,10 +31,10 @@ class Dispatcher:
 
     def __build_handler_storage(self):
         logger.debug('Build storage of handlers for dispatcher.')
-        return {action: [] for action in self.actions}
+        return {action: [] for action in dir(self.actions) if not action.startswith('_')}
 
     def add_handler(self, callback, action):
-        logger.debug('Add handler..')
+        logger.debug(f'Add handler to {action} action..')
         if not asyncio.iscoroutinefunction(callback):
             raise RuntimeError('Sync callback does not supported')
 
@@ -52,7 +52,7 @@ class Dispatcher:
         return callback
 
     def remove_handler(self, callback, action) -> bool:
-        logger.debug('Remove handler..')
+        logger.debug(f'Remove handler of {action} action..')
         try:
             handlers = self.__action_to_handlers[action]
             for i in range(len(handlers)):

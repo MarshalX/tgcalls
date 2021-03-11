@@ -1585,11 +1585,9 @@ public:
     _participantDescriptionsRequired(descriptor.participantDescriptionsRequired),
     _initialInputDeviceId(descriptor.initialInputDeviceId),
     _initialOutputDeviceId(descriptor.initialOutputDeviceId),
-    _useFileAudioDevice(descriptor.useFileAudioDevice),
     _createAudioDeviceModule(descriptor.createAudioDeviceModule),
     _videoCapture(descriptor.videoCapture),
-    _getInputFilename(descriptor.getInputFilename),
-    _getOutputFilename(descriptor.getOutputFilename) {
+    _getFileAudioDeviceDescriptor(descriptor.getFileAudioDeviceDescriptor) {
 		auto generator = std::mt19937(std::random_device()());
 		auto distribution = std::uniform_int_distribution<uint32_t>();
 		do {
@@ -1627,11 +1625,7 @@ public:
         _allOtherSsrcs.emplace_back(_fakeIncomingSsrc);*/
     }
 
-    bool createAudioDeviceModule(
-            const webrtc::PeerConnectionFactoryDependencies &dependencies,
-            bool useFileAudioDevice,
-            std::function<std::string()> getInputFilename,
-            std::function<std::string()> getOutputFilename) {
+    bool createAudioDeviceModule(const webrtc::PeerConnectionFactoryDependencies &dependencies) {
         _adm_thread = dependencies.worker_thread;
         if (!_adm_thread) {
             return false;
@@ -1641,8 +1635,7 @@ public:
                 return WrappedAudioDeviceModuleImpl::Create(
                     layer,
                     dependencies.task_queue_factory.get(),
-                    getInputFilename,
-                    getOutputFilename); // TODO rewrite hardcode
+                    _getFileAudioDeviceDescriptor);
             };
 			const auto finalize = [&](const rtc::scoped_refptr<webrtc::AudioDeviceModule> &result) {
 				_adm_use_withAudioDeviceModule = new rtc::RefCountedObject<WrappedAudioDeviceModule>(result);
@@ -1657,7 +1650,7 @@ public:
             if (_createAudioDeviceModule
                 && check(_createAudioDeviceModule(dependencies.task_queue_factory.get()))) {
                 return;
-            } else if (useFileAudioDevice
+            } else if (_getFileAudioDeviceDescriptor
                      && check(create(webrtc::AudioDeviceModule::kDummyAudio))) {
                 return;
             } else if (check(create(webrtc::AudioDeviceModule::kPlatformDefaultAudio))) {
@@ -1711,7 +1704,7 @@ public:
         dependencies.signaling_thread = StaticThreads::getMediaThread();
         dependencies.task_queue_factory = webrtc::CreateDefaultTaskQueueFactory();
 
-        if (!createAudioDeviceModule(dependencies, _useFileAudioDevice, _getInputFilename, _getOutputFilename)) {
+        if (!createAudioDeviceModule(dependencies)) {
             return;
         }
 
@@ -3074,8 +3067,6 @@ private:
     std::string _initialInputDeviceId;
     std::string _initialOutputDeviceId;
 
-    bool _useFileAudioDevice;
-
     uint32_t _sessionId = 6543245;
     uint32_t _mainStreamAudioSsrc = 0;
     absl::optional<GroupJoinPayload> _joinPayload;
@@ -3138,8 +3129,7 @@ private:
 
     std::unique_ptr<ErrorParsingLogSink> _errorParsingLogSink;
 
-    std::function<std::string()> _getInputFilename;
-    std::function<std::string()> _getOutputFilename;
+    std::function<FileAudioDeviceDescriptor&()> _getFileAudioDeviceDescriptor;
 };
 
 GroupInstanceImpl::GroupInstanceImpl(GroupInstanceDescriptor &&descriptor)
