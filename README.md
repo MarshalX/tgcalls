@@ -9,6 +9,10 @@
         Examples
     </a>
     •
+    <a href="https://tgcalls.org">
+        Documentation
+    </a>
+    •
     <a href="https://t.me/tgcallslib">
         Channel
     </a>
@@ -28,13 +32,10 @@ app = Client('pytgcalls')
 group_call = GroupCall(app, 'input.raw')
 
 
-@app.on_message(filters.private & filters.command('join'))
-async def join(client, message):
-    if len(message.command) < 2:
-        await message.reply_text('You forgot to input chat id')
-    else:
-        chat_id = message.command[1]
-        await group_call.start(chat_id)
+@app.on_message(filters.outgoing & filters.command('join'))
+async def join(_, message):
+    await group_call.start(message.chat.id)
+    await message.reply_text('Successfully joined!')
 
 
 app.run()
@@ -49,13 +50,14 @@ broadcast in voice chats, make and receive private calls.
 
 ### Features
 - Python solution.
-- Join to voice chats.
+- Work with voice chats.
+- Multiply chats.
 - Payout from file.
 - Output (recording) to file.
 - Change files at runtime.
-- Speaking status with levels inside and outside of VC.
 - Stop payout/output.
-- Multiply chats.
+- Speaking status with levels inside and outside of VC.
+- Mute, unmute, volume control, handlers and more...
 
 ### Requirements
 
@@ -68,14 +70,13 @@ broadcast in voice chats, make and receive private calls.
 - Incoming and Outgoing calls (already there and working, but not in release).
 - Video calls (video from/to a file etc).
 - Additional things for working with ffmpeg.
-- Convenient callbacks and methods.
 - Windows and macOS Python wheels
 [and more...](https://github.com/MarshalX/tgcalls/issues)
 
 ### Installing
 
 ``` bash
-pip3 install pytgcalls
+pip3 install pytgcalls -U
 ```
 
 <hr>
@@ -126,6 +127,10 @@ along with MTProto.
         <img src="https://github.com/MarshalX/tgcalls/raw/main/.github/images/pytgcalls.png" alt="pytgcalls">
     </a>
     <br>
+    <a href="https://tgcalls.org">
+        Documentation
+    </a>
+    •
     <a href="https://pypi.org/project/pytgcalls/">
         PyPi
     </a>
@@ -142,10 +147,13 @@ Python binding together with MTProto.
 A Pyrogram was chosen as a library for working with MTProto. 
 You can easily write your own implementation to work with Telethon.
 
+### Learning by example
+
+Visit [this page](https://github.com/MarshalX/tgcalls/tree/main/examples) to discover the official examples.
+
 ### Documentation
 
-Temporarily, instead of documentation, you can use [an example](examples/playout.py) 
-describing the methods. There are not many of them.
+`pytgcalls`'s documentation lives at [tgcalls.org](https://tgcalls.org).
 
 ### Audio file formats
 
