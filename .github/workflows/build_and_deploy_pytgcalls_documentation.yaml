@@ -1,8 +1,8 @@
 name: Build and deploy pytgcalls documentation to GitHub Pages
 on:
   push:
-#    branches:
-#      - main
+    branches:
+      - main
     paths:
       - '.github/workflows/build_and_deploy_pytgcalls_documentation.yaml'
       - 'pytgcalls/**'
