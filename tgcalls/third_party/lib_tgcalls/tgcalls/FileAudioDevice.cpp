@@ -484,8 +484,11 @@ bool FileAudioDevice::RecThreadProcess() {
             if (_inputFile.Read(_recordingBuffer, kRecordingBufferSize) > 0) {
                 _ptrAudioBuffer->SetRecordedBuffer(_recordingBuffer,
                                                    _recordingFramesIn10MS);
-            } else {
+            } else if (_getFileAudioDeviceDescriptor()._isEndlessPlayout()) {
                 _inputFile.Rewind();
+            } else {
+                mutex_.Unlock();
+                return false;
             }
             _lastCallRecordMillis = currentTime;
             mutex_.Unlock();

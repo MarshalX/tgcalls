@@ -7,4 +7,6 @@ class FileAudioDeviceDescriptor {
 public:
     std::function<std::string()> _getInputFilename = nullptr;
     std::function<std::string()> _getOutputFilename = nullptr;
+
+    std::function<bool()> _isEndlessPlayout = nullptr;
 };

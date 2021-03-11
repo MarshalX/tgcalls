@@ -33,9 +33,12 @@ class GroupCall(GroupCallNative):
             input_filename: str = '',
             output_filename: str = '',
             enable_logs_to_console=False,
-            path_to_log_file='group_call.log'
+            path_to_log_file='group_call.log',
+            play_on_repeat=True
     ):
         super().__init__(client, enable_logs_to_console, path_to_log_file)
+
+        self.play_on_repeat = play_on_repeat
 
         self._input_filename = input_filename or ''
         self._output_filename = output_filename or ''
@@ -44,6 +47,7 @@ class GroupCall(GroupCallNative):
         file_audio_device_descriptor = tgcalls.FileAudioDeviceDescriptor()
         file_audio_device_descriptor.getInputFilename = self.__get_input_filename_callback
         file_audio_device_descriptor.getOutputFilename = self.__get_output_filename_callback
+        file_audio_device_descriptor.isEndlessPlayout = self.__is_endless_playout_callback
 
         return file_audio_device_descriptor
 
@@ -83,3 +87,6 @@ class GroupCall(GroupCallNative):
 
     def __get_output_filename_callback(self):
         return self._output_filename
+
+    def __is_endless_playout_callback(self):
+        return self.play_on_repeat

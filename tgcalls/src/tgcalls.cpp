@@ -151,7 +151,8 @@ PYBIND11_MODULE(tgcalls, m) {
     py::class_<FileAudioDeviceDescriptor>(m, "FileAudioDeviceDescriptor")
             .def(py::init<>())
             .def_readwrite("getInputFilename", &FileAudioDeviceDescriptor::_getInputFilename)
-            .def_readwrite("getOutputFilename", &FileAudioDeviceDescriptor::_getOutputFilename);
+            .def_readwrite("getOutputFilename", &FileAudioDeviceDescriptor::_getOutputFilename)
+            .def_readwrite("isEndlessPlayout", &FileAudioDeviceDescriptor::_isEndlessPlayout);
 
     py::class_<NativeInstance>(m, "NativeInstance")
             .def(py::init<bool, string>())
