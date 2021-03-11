@@ -8,6 +8,7 @@ list(APPEND SOURCES
     ${src_loc}/RtcServer.h
     ${src_loc}/RtcServer.cpp
     ${src_loc}/InstanceHolder.h
+    ${src_loc}/FileAudioDeviceDescriptor.h
 )
 
 pybind11_add_module(tgcalls ${SOURCES})

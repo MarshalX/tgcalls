@@ -18,6 +18,7 @@
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/system/file_wrapper.h"
 #include "rtc_base/time_utils.h"
+#include "../../../src/FileAudioDeviceDescriptor.h"
 
 namespace rtc {
     class PlatformThread;
@@ -35,8 +36,7 @@ public:
     // The input file should be a readable 48k stereo raw file, and the output
     // file should point to a writable location. The output format will also be
     // 48k stereo raw audio.
-    FileAudioDevice(std::function<std::string()> getInputFilename,
-                    std::function<std::string()> getOutputFilename);
+    FileAudioDevice(std::function<FileAudioDeviceDescriptor&()> getFileAudioDeviceDescriptor);
 
     virtual ~FileAudioDevice();
 
@@ -198,8 +198,7 @@ private:
     webrtc::FileWrapper _outputFile;
     webrtc::FileWrapper _inputFile;
 
-    std::function<std::string()> _getInputFilename;
-    std::function<std::string()> _getOutputFilename;
+    std::function<FileAudioDeviceDescriptor&()> _getFileAudioDeviceDescriptor;
 };
 
 
@@ -208,12 +207,10 @@ public:
     static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> Create(
             AudioLayer audio_layer,
             webrtc::TaskQueueFactory* task_queue_factory,
-            std::function<std::string()> getInputFilename,
-            std::function<std::string()> getOutputFilename);
+            std::function<FileAudioDeviceDescriptor&()> getFileAudioDeviceDescriptor);
 
     static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> CreateForTest(
             AudioLayer audio_layer,
             webrtc::TaskQueueFactory* task_queue_factory,
-            std::function<std::string()> getInputFilename,
-            std::function<std::string()> getOutputFilename);
+            std::function<FileAudioDeviceDescriptor&()> getFileAudioDeviceDescriptor);
 };

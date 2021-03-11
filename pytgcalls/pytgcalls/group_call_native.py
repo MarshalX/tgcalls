@@ -100,9 +100,16 @@ class GroupCallNative(GroupCallDispatcherMixin):
         del tmp
         logger.debug('Native instance destroyed.')
 
-    def __setup_native_instance(self):
+    def __create_and_setup_native_instance(self):
         logger.debug('Create a new native instance..')
-        native_instance = tgcalls.NativeInstance()
+        native_instance = tgcalls.NativeInstance(self.enable_logs_to_console, self.path_to_log_file)
+
+        native_instance.setupGroupCall(
+            self.__emit_join_payload_callback,
+            self.__network_state_updated_callback,
+            self.__participant_descriptions_required_callback
+        )
+
         logger.debug('Native instance created.')
 
         return native_instance
@@ -240,7 +247,7 @@ class GroupCallNative(GroupCallDispatcherMixin):
 
         handler_group = await self.__set_and_get_handler_group()
         self.client.add_handler(self._update_handler, handler_group)
-        self.__native_instance = self.__setup_native_instance()
+        self.__native_instance = self.__create_and_setup_native_instance()
 
         self.enable_action = enable_action
         self.my_user_id = await self.client.storage.user_id()
@@ -252,26 +259,9 @@ class GroupCallNative(GroupCallDispatcherMixin):
         await self.stop()
         await self.start(chat_peer, enable_action)
 
-    async def _start_group_call(
-            self,
-            use_file_audio_device: bool,
-            get_input_filename_callback: Callable,
-            get_output_filename_callback: Callable
-    ):
+    async def _start_group_call(self, *args):
         logger.debug('Start native group call..')
-        # TODO move callbacks to __setup_native_instance
-        self.__native_instance.startGroupCall(
-            self.enable_logs_to_console,
-            self.path_to_log_file,
-
-            use_file_audio_device,
-
-            self.__emit_join_payload_callback,
-            self.__network_state_updated_callback,
-            self.__participant_descriptions_required_callback,
-            get_input_filename_callback,
-            get_output_filename_callback
-        )
+        self.__native_instance.startGroupCall(*args)
 
     def set_is_mute(self, is_muted: bool):
         logger.debug(f'Set is muted. New value: {is_muted}.')

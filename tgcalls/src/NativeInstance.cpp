@@ -3,6 +3,7 @@
 #include <tgcalls/group/GroupInstanceImpl.h>
 
 #include "NativeInstance.h"
+#include "FileAudioDeviceDescriptor.h"
 
 namespace py = pybind11;
 
@@ -11,7 +12,8 @@ std::string copyright = "Copyright (C) 2020-2021 Il`ya (Marshal) <https://github
 auto noticeDisplayed = false;
 
 
-NativeInstance::NativeInstance() {
+NativeInstance::NativeInstance(bool logToStdErr, string logPath):
+    _logToStdErr(logToStdErr), _logPath(std::move(logPath)) {
     if (!noticeDisplayed) {
         py::print("tgcalls BETA, " + copyright);
         py::print("Licensed under the terms of the " + license + "\n\n");
@@ -24,41 +26,34 @@ NativeInstance::NativeInstance() {
 
 NativeInstance::~NativeInstance() {}
 
-void NativeInstance::startGroupCall(bool logToStdErr,
-                                    string logPath,
-                                    bool useFileAudioDevice,
-                                    std::function<void(tgcalls::GroupJoinPayload)> &emitJoinPayloadCallback,
-                                    std::function<void(bool)> &networkStateUpdated,
-                                    std::function<void(std::vector<uint32_t> const &)> &participantDescriptionsRequired,
-                                    std::function<std::string()> &getInputFilename,
-                                    std::function<std::string()> &getOutputFilename) {
-    // TODO move to the constructor
-    _emitJoinPayloadCallback = emitJoinPayloadCallback;
-    _networkStateUpdated = networkStateUpdated;
-    _participantDescriptionsRequired = participantDescriptionsRequired;
+void NativeInstance::setupGroupCall(
+        std::function<void(tgcalls::GroupJoinPayload)> &emitJoinPayloadCallback,
+        std::function<void(bool)> &networkStateUpdated,
+        std::function<void(std::vector<uint32_t> const &)> &participantDescriptionsRequired
+) {
+   _emitJoinPayloadCallback = emitJoinPayloadCallback;
+   _networkStateUpdated = networkStateUpdated;
+   _participantDescriptionsRequired = participantDescriptionsRequired;
+}
 
-    _getInputFilename = getInputFilename;
-    _getOutputFilename = getOutputFilename;
+void NativeInstance::startGroupCall(FileAudioDeviceDescriptor &fileAudioDeviceDescriptor) {
+    _fileAudioDeviceDescriptor = fileAudioDeviceDescriptor;
 
     tgcalls::GroupInstanceDescriptor descriptor {
         .config = tgcalls::GroupConfig {
-            .logPath = {std::move(logPath)},
-            .logToStdErr = logToStdErr,
+            .logPath = {std::move(_logPath)},
+            .logToStdErr = _logToStdErr,
         },
         .networkStateUpdated = [=](bool is_connected) {
             _networkStateUpdated(is_connected);
         },
-        .audioLevelsUpdated = [=](tgcalls::GroupLevelsUpdate const &update) {}, // TODO
-        .useFileAudioDevice = useFileAudioDevice,
-        .getInputFilename = [=]() {
-            return _getInputFilename();
-        },
-        .getOutputFilename = [=]() {
-            return _getOutputFilename();
-        },
+        .audioLevelsUpdated = [=](tgcalls::GroupLevelsUpdate const &update) {}, // TODO may be
         .participantDescriptionsRequired = [=](std::vector<uint32_t> const &ssrcs) {
             _participantDescriptionsRequired(ssrcs);
         },
+        .getFileAudioDeviceDescriptor = [=]() -> FileAudioDeviceDescriptor& {
+            return _fileAudioDeviceDescriptor;
+        }
     };
 
     instanceHolder = std::make_unique<InstanceHolder>();
