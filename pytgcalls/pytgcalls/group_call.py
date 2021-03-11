@@ -27,11 +27,21 @@ from pytgcalls import GroupCallNative, GroupCallNativeAction, GroupCallNativeDis
 
 class GroupCallAction(GroupCallNativeAction):
     PLAYOUT_ENDED = Action()
+    '''When a input file is ended.'''
 
 
 class GroupCallDispatcherMixin(GroupCallNativeDispatcherMixin):
 
     def on_playout_ended(self, func: callable):
+        """When a input file is ended.
+
+        Args:
+            func (`function`): A functions that accept group_call and filename args.
+
+        Returns:
+            `function`: passed to args callback function.
+        """
+
         return self.add_handler(func, GroupCallAction.PLAYOUT_ENDED)
 
 
@@ -50,6 +60,7 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
         super(GroupCallDispatcherMixin, self).__init__(GroupCallAction)
 
         self.play_on_repeat = play_on_repeat
+        '''When the file ends, play it again'''
 
         self._input_filename = input_filename or ''
         self._output_filename = output_filename or ''
@@ -69,13 +80,19 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
         await self._start_group_call(self.__create_file_audio_device_descriptor())
 
     def stop_playout(self):
+        """Stop playing of file."""
+
         self.input_filename = ''
 
     def stop_output(self):
+        """Stop recordingto file."""
+
         self.output_filename = ''
 
     @property
     def input_filename(self):
+        """Input filename (or path) to play."""
+
         return self._input_filename
 
     @input_filename.setter
@@ -86,6 +103,8 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
 
     @property
     def output_filename(self):
+        """Output filename (or path) to record."""
+
         return self._output_filename
 
     @output_filename.setter

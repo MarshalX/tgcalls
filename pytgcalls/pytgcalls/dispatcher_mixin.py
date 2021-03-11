@@ -25,11 +25,43 @@ class DispatcherMixin:
     def __init__(self, actions):
         self._dispatcher = Dispatcher(actions)
 
-    def add_handler(self, callback, action) -> bool:
+    def add_handler(self, callback, action) -> callable:
+        """Register new handler.
+
+        Args:
+            callback (`function`): Callback function.
+            action (`str`): Action.
+
+        Returns:
+            `function`: original callback.
+        """
+
         return self._dispatcher.add_handler(callback, action)
 
     def remove_handler(self, callback, action) -> bool:
+        """Unregister the handler.
+
+        Args:
+            callback (`function`): Callback function.
+            action (`str`): Action.
+
+        Returns:
+            `bool`: Return `True` if success.
+        """
+
         return self._dispatcher.remove_handler(callback, action)
 
     def trigger_handlers(self, action, instance, *args, **kwargs):
+        """Unregister the handler.
+
+        Args:
+            action (`str`): Action.
+            instance (`GroupCall`): Instance of GroupCall.
+            *args (`list`, optional): Arbitrary callback arguments.
+            **kwargs (`dict`, optional): Arbitrary callback arguments.
+
+        Returns:
+            `bool`: Return `True` if success.
+        """
+
         return self._dispatcher.trigger_handlers(action, instance, *args, **kwargs)

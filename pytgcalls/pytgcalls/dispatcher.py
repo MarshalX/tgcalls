@@ -33,7 +33,7 @@ class Dispatcher:
         logger.debug('Build storage of handlers for dispatcher.')
         return {action: [] for action in dir(self.actions) if not action.startswith('_')}
 
-    def add_handler(self, callback, action):
+    def add_handler(self, callback, action) -> callable:
         logger.debug(f'Add handler to {action} action..')
         if not asyncio.iscoroutinefunction(callback):
             raise RuntimeError('Sync callback does not supported')
