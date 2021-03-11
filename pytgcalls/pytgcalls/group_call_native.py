@@ -20,8 +20,7 @@
 import asyncio
 import json
 import logging
-from enum import Enum
-from typing import Callable, List, Union
+from typing import List, Union
 
 import pyrogram
 from pyrogram import raw
@@ -31,6 +30,7 @@ from pyrogram.raw import functions, types
 from pyrogram.raw.types import InputPeerChannel, InputPeerChat
 
 import tgcalls
+from .action import Action
 from .dispatcher_mixin import DispatcherMixin
 
 logger = logging.getLogger(__name__)
@@ -39,14 +39,14 @@ uint_ssrc = lambda ssrc: ssrc if ssrc >= 0 else ssrc + 2 ** 32
 int_ssrc = lambda ssrc: ssrc if ssrc < 2 ** 31 else ssrc - 2 ** 32
 
 
-class GroupCallAction(Enum):
-    NETWORK_STATUS_CHANGED = 0
+class GroupCallNativeAction:
+    NETWORK_STATUS_CHANGED = Action()
 
 
-class GroupCallDispatcherMixin(DispatcherMixin):
+class GroupCallNativeDispatcherMixin(DispatcherMixin):
 
     def on_network_status_changed(self, func: callable):
-        return self.add_handler(func, GroupCallAction.NETWORK_STATUS_CHANGED)
+        return self.add_handler(func, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
 
 
 def parse_call_participant(participant_data):
@@ -58,7 +58,7 @@ def parse_call_participant(participant_data):
     return native_participant
 
 
-class GroupCallNative(GroupCallDispatcherMixin):
+class GroupCallNative(GroupCallNativeDispatcherMixin):
     SEND_ACTION_UPDATE_EACH = 0.45
 
     def __init__(
@@ -67,7 +67,7 @@ class GroupCallNative(GroupCallDispatcherMixin):
             enable_logs_to_console: bool,
             path_to_log_file: str
     ):
-        super().__init__(GroupCallAction)
+        super().__init__(GroupCallNativeAction)
         self.client = client
 
         self.__native_instance = None
@@ -311,7 +311,7 @@ class GroupCallNative(GroupCallDispatcherMixin):
             if self.enable_action:
                 self.__start_status_worker()
 
-        self.trigger_handlers(GroupCallAction.NETWORK_STATUS_CHANGED, self, state)
+        self.trigger_handlers(GroupCallNativeAction.NETWORK_STATUS_CHANGED, self, state)
 
         logger.debug(f'New network state is {self.is_connected}.')
 

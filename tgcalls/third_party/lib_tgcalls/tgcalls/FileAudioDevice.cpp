@@ -479,6 +479,7 @@ bool FileAudioDevice::RecThreadProcess() {
     int64_t currentTime = rtc::TimeMillis();
     mutex_.Lock();
 
+    auto inputFilename = _getFileAudioDeviceDescriptor()._getInputFilename();
     if (_lastCallRecordMillis == 0 || currentTime - _lastCallRecordMillis >= 10) {
         if (_inputFile.is_open()) {
             if (_inputFile.Read(_recordingBuffer, kRecordingBufferSize) > 0) {
@@ -486,8 +487,17 @@ bool FileAudioDevice::RecThreadProcess() {
                                                    _recordingFramesIn10MS);
             } else if (_getFileAudioDeviceDescriptor()._isEndlessPlayout()) {
                 _inputFile.Rewind();
+
+                if (_getFileAudioDeviceDescriptor()._playoutEndedCallback) {
+                    _getFileAudioDeviceDescriptor()._playoutEndedCallback(inputFilename);
+                }
             } else {
                 mutex_.Unlock();
+
+                if (_getFileAudioDeviceDescriptor()._playoutEndedCallback) {
+                    _getFileAudioDeviceDescriptor()._playoutEndedCallback(inputFilename);
+                }
+
                 return false;
             }
             _lastCallRecordMillis = currentTime;
