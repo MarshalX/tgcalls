@@ -50,26 +50,30 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
     def __init__(
             self,
             client: pyrogram.Client,
-            input_filename: str = '',
-            output_filename: str = '',
+            input_filename: str = None,
+            output_filename: str = None,
+            play_on_repeat=True,
             enable_logs_to_console=False,
-            path_to_log_file='group_call.log',
-            play_on_repeat=True
+            path_to_log_file='group_call.log'
     ):
         super().__init__(client, enable_logs_to_console, path_to_log_file)
         super(GroupCallDispatcherMixin, self).__init__(GroupCallAction)
 
         self.play_on_repeat = play_on_repeat
         '''When the file ends, play it again'''
+        self.__is_playout_paused = False
+        self.__is_recording_paused = False
 
-        self._input_filename = input_filename or ''
-        self._output_filename = output_filename or ''
+        self.__input_filename = input_filename or ''
+        self.__output_filename = output_filename or ''
 
     def __create_file_audio_device_descriptor(self):
         file_audio_device_descriptor = tgcalls.FileAudioDeviceDescriptor()
         file_audio_device_descriptor.getInputFilename = self.__get_input_filename_callback
         file_audio_device_descriptor.getOutputFilename = self.__get_output_filename_callback
         file_audio_device_descriptor.isEndlessPlayout = self.__is_endless_playout_callback
+        file_audio_device_descriptor.isPlayoutPaused = self.__is_playout_paused_callback
+        file_audio_device_descriptor.isRecordingPaused = self.__is_recording_paused_callback
         file_audio_device_descriptor.playoutEndedCallback = self.__playout_ended_callback
 
         return file_audio_device_descriptor
@@ -85,7 +89,7 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
         self.input_filename = ''
 
     def stop_output(self):
-        """Stop recordingto file."""
+        """Stop recording to file."""
 
         self.output_filename = ''
 
@@ -93,11 +97,11 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
     def input_filename(self):
         """Input filename (or path) to play."""
 
-        return self._input_filename
+        return self.__input_filename
 
     @input_filename.setter
     def input_filename(self, filename):
-        self._input_filename = filename or ''
+        self.__input_filename = filename or ''
         if self.is_connected:
             self.restart_playout()
 
@@ -105,22 +109,44 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
     def output_filename(self):
         """Output filename (or path) to record."""
 
-        return self._output_filename
+        return self.__output_filename
 
     @output_filename.setter
     def output_filename(self, filename):
-        self._output_filename = filename or ''
+        self.__output_filename = filename or ''
         if self.is_connected:
             self.restart_recording()
 
+    def pause_playout(self):
+        """Pause playout (playing from file)."""
+        self.__is_playout_paused = True
+
+    def resume_playout(self):
+        """Resume playout (playing from file)."""
+        self.__is_playout_paused = False
+
+    def pause_recording(self):
+        """Pause recording (output to file)."""
+        self.__is_recording_paused = True
+
+    def resume_recording(self):
+        """Resume recording (output to file)."""
+        self.__is_recording_paused = False
+
     def __get_input_filename_callback(self):
-        return self._input_filename
+        return self.__input_filename
 
     def __get_output_filename_callback(self):
-        return self._output_filename
+        return self.__output_filename
 
     def __is_endless_playout_callback(self):
         return self.play_on_repeat
+
+    def __is_playout_paused_callback(self):
+        return self.__is_playout_paused
+
+    def __is_recording_paused_callback(self):
+        return self.__is_recording_paused
 
     def __playout_ended_callback(self, input_filename: str):
         self.trigger_handlers(GroupCallAction.PLAYOUT_ENDED, self, input_filename)

@@ -445,7 +445,7 @@ async def main(client1, client2, make_out, make_inc):
 
     # @client2.on_message(filters.text & filters.outgoing & ~filters.edited & filters.command('test', prefixes='!'))
     # async def test(client, message):
-    group_call = GroupCall(client2, '6s.raw', '', False, '')
+    group_call = GroupCall(client2, '6s.raw')
     await group_call.start('@MarshalCm')
 
     group_call.add_handler(
@@ -457,12 +457,12 @@ async def main(client1, client2, make_out, make_inc):
     async def playout_ended_handler(group_call, filename):
         print(f'{filename} is ended')
 
-    group_call.play_on_repeat = False
-    await asyncio.sleep(15)
-    group_call.restart_playout()
-    await asyncio.sleep(15)
-    group_call.play_on_repeat = True
-    group_call.restart_playout()
+    await asyncio.sleep(10)
+    group_call.pause_playout()
+    group_call.pause_recording()
+    await asyncio.sleep(5)
+    group_call.resume_playout()
+    group_call.resume_recording()
 
     '''
     

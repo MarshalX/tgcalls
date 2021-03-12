@@ -455,7 +455,7 @@ bool FileAudioDevice::PlayThreadProcess() {
 
         _playoutFramesLeft = _ptrAudioBuffer->GetPlayoutData(_playoutBuffer);
         RTC_DCHECK_EQ(_playoutFramesIn10MS, _playoutFramesLeft);
-        if (_outputFile.is_open()) {
+        if (!_getFileAudioDeviceDescriptor()._isRecordingPaused() && _outputFile.is_open()) {
             _outputFile.Write(_playoutBuffer, kPlayoutBufferSize);
         }
         _lastCallPlayoutMillis = currentTime;
@@ -481,7 +481,7 @@ bool FileAudioDevice::RecThreadProcess() {
 
     auto inputFilename = _getFileAudioDeviceDescriptor()._getInputFilename();
     if (_lastCallRecordMillis == 0 || currentTime - _lastCallRecordMillis >= 10) {
-        if (_inputFile.is_open()) {
+        if (!_getFileAudioDeviceDescriptor()._isPlayoutPaused() && _inputFile.is_open()) {
             if (_inputFile.Read(_recordingBuffer, kRecordingBufferSize) > 0) {
                 _ptrAudioBuffer->SetRecordedBuffer(_recordingBuffer,
                                                    _recordingFramesIn10MS);
