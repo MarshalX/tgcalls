@@ -63,7 +63,7 @@ from pytgcalls.dispatcher_mixin import DispatcherMixin
 
 __all__ = [&#39;GroupCallNative&#39;, &#39;GroupCall&#39;, &#39;Dispatcher&#39;, &#39;DispatcherMixin&#39;, &#39;Action&#39;, &#39;GroupCallNativeAction&#39;,
            &#39;GroupCallNativeDispatcherMixin&#39;, &#39;GroupCallAction&#39;, &#39;GroupCallDispatcherMixin&#39;]
-__version__ = &#39;0.0.11&#39;
+__version__ = &#39;0.0.12&#39;
 __pdoc__ = {
     &#39;Action&#39;: False,
     &#39;Dispatcher&#39;: False,
@@ -109,7 +109,7 @@ __pdoc__ = {
 <dl>
 <dt id="pytgcalls.GroupCall"><code class="flex name class">
 <span>class <span class="ident">GroupCall</span></span>
-<span>(</span><span>client: pyrogram.client.Client, input_filename: str = '', output_filename: str = '', enable_logs_to_console=False, path_to_log_file='group_call.log', play_on_repeat=True)</span>
+<span>(</span><span>client: pyrogram.client.Client, input_filename: str = None, output_filename: str = None, play_on_repeat=True, enable_logs_to_console=False, path_to_log_file='group_call.log')</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -122,26 +122,30 @@ __pdoc__ = {
     def __init__(
             self,
             client: pyrogram.Client,
-            input_filename: str = &#39;&#39;,
-            output_filename: str = &#39;&#39;,
+            input_filename: str = None,
+            output_filename: str = None,
+            play_on_repeat=True,
             enable_logs_to_console=False,
-            path_to_log_file=&#39;group_call.log&#39;,
-            play_on_repeat=True
+            path_to_log_file=&#39;group_call.log&#39;
     ):
         super().__init__(client, enable_logs_to_console, path_to_log_file)
         super(GroupCallDispatcherMixin, self).__init__(GroupCallAction)
 
         self.play_on_repeat = play_on_repeat
         &#39;&#39;&#39;When the file ends, play it again&#39;&#39;&#39;
+        self.__is_playout_paused = False
+        self.__is_recording_paused = False
 
-        self._input_filename = input_filename or &#39;&#39;
-        self._output_filename = output_filename or &#39;&#39;
+        self.__input_filename = input_filename or &#39;&#39;
+        self.__output_filename = output_filename or &#39;&#39;
 
     def __create_file_audio_device_descriptor(self):
         file_audio_device_descriptor = tgcalls.FileAudioDeviceDescriptor()
         file_audio_device_descriptor.getInputFilename = self.__get_input_filename_callback
         file_audio_device_descriptor.getOutputFilename = self.__get_output_filename_callback
         file_audio_device_descriptor.isEndlessPlayout = self.__is_endless_playout_callback
+        file_audio_device_descriptor.isPlayoutPaused = self.__is_playout_paused_callback
+        file_audio_device_descriptor.isRecordingPaused = self.__is_recording_paused_callback
         file_audio_device_descriptor.playoutEndedCallback = self.__playout_ended_callback
 
         return file_audio_device_descriptor
@@ -157,7 +161,7 @@ __pdoc__ = {
         self.input_filename = &#39;&#39;
 
     def stop_output(self):
-        &#34;&#34;&#34;Stop recordingto file.&#34;&#34;&#34;
+        &#34;&#34;&#34;Stop recording to file.&#34;&#34;&#34;
 
         self.output_filename = &#39;&#39;
 
@@ -165,11 +169,11 @@ __pdoc__ = {
     def input_filename(self):
         &#34;&#34;&#34;Input filename (or path) to play.&#34;&#34;&#34;
 
-        return self._input_filename
+        return self.__input_filename
 
     @input_filename.setter
     def input_filename(self, filename):
-        self._input_filename = filename or &#39;&#39;
+        self.__input_filename = filename or &#39;&#39;
         if self.is_connected:
             self.restart_playout()
 
@@ -177,22 +181,44 @@ __pdoc__ = {
     def output_filename(self):
         &#34;&#34;&#34;Output filename (or path) to record.&#34;&#34;&#34;
 
-        return self._output_filename
+        return self.__output_filename
 
     @output_filename.setter
     def output_filename(self, filename):
-        self._output_filename = filename or &#39;&#39;
+        self.__output_filename = filename or &#39;&#39;
         if self.is_connected:
             self.restart_recording()
 
+    def pause_playout(self):
+        &#34;&#34;&#34;Pause playout (playing from file).&#34;&#34;&#34;
+        self.__is_playout_paused = True
+
+    def resume_playout(self):
+        &#34;&#34;&#34;Resume playout (playing from file).&#34;&#34;&#34;
+        self.__is_playout_paused = False
+
+    def pause_recording(self):
+        &#34;&#34;&#34;Pause recording (output to file).&#34;&#34;&#34;
+        self.__is_recording_paused = True
+
+    def resume_recording(self):
+        &#34;&#34;&#34;Resume recording (output to file).&#34;&#34;&#34;
+        self.__is_recording_paused = False
+
     def __get_input_filename_callback(self):
-        return self._input_filename
+        return self.__input_filename
 
     def __get_output_filename_callback(self):
-        return self._output_filename
+        return self.__output_filename
 
     def __is_endless_playout_callback(self):
         return self.play_on_repeat
+
+    def __is_playout_paused_callback(self):
+        return self.__is_playout_paused
+
+    def __is_recording_paused_callback(self):
+        return self.__is_recording_paused
 
     def __playout_ended_callback(self, input_filename: str):
         self.trigger_handlers(GroupCallAction.PLAYOUT_ENDED, self, input_filename)</code></pre>
@@ -276,7 +302,7 @@ __pdoc__ = {
 def input_filename(self):
     &#34;&#34;&#34;Input filename (or path) to play.&#34;&#34;&#34;
 
-    return self._input_filename</code></pre>
+    return self.__input_filename</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.GroupCall.is_connected"><code class="name">var <span class="ident">is_connected</span></code></dt>
@@ -314,7 +340,7 @@ def input_filename(self):
 def output_filename(self):
     &#34;&#34;&#34;Output filename (or path) to record.&#34;&#34;&#34;
 
-    return self._output_filename</code></pre>
+    return self.__output_filename</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.GroupCall.path_to_log_file"><code class="name">var <span class="ident">path_to_log_file</span></code></dt>
@@ -422,6 +448,34 @@ def output_filename(self):
 </p>
 <div class="desc inherited"><p>When a input file is ended …</p></div>
 </dd>
+<dt id="pytgcalls.GroupCall.pause_playout"><code class="name flex">
+<span>def <span class="ident">pause_playout</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Pause playout (playing from file).</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def pause_playout(self):
+    &#34;&#34;&#34;Pause playout (playing from file).&#34;&#34;&#34;
+    self.__is_playout_paused = True</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.GroupCall.pause_recording"><code class="name flex">
+<span>def <span class="ident">pause_recording</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Pause recording (output to file).</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def pause_recording(self):
+    &#34;&#34;&#34;Pause recording (output to file).&#34;&#34;&#34;
+    self.__is_recording_paused = True</code></pre>
+</details>
+</dd>
 <dt id="pytgcalls.GroupCall.reconnect"><code class="name flex">
 <span>async def <span class="ident">reconnect</span></span>(<span>self)</span>
 </code></dt>
@@ -471,6 +525,34 @@ def output_filename(self):
 <code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.restart_recording" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.restart_recording">restart_recording</a></code>
 </p>
 <div class="desc inherited"><p>Start recording to outpufile from begin or just restart recording device …</p></div>
+</dd>
+<dt id="pytgcalls.GroupCall.resume_playout"><code class="name flex">
+<span>def <span class="ident">resume_playout</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Resume playout (playing from file).</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def resume_playout(self):
+    &#34;&#34;&#34;Resume playout (playing from file).&#34;&#34;&#34;
+    self.__is_playout_paused = False</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.GroupCall.resume_recording"><code class="name flex">
+<span>def <span class="ident">resume_recording</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Resume recording (output to file).</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def resume_recording(self):
+    &#34;&#34;&#34;Resume recording (output to file).&#34;&#34;&#34;
+    self.__is_recording_paused = False</code></pre>
+</details>
 </dd>
 <dt id="pytgcalls.GroupCall.send_speaking_group_call_action"><code class="name flex">
 <span>async def <span class="ident">send_speaking_group_call_action</span></span>(<span>self)</span>
@@ -535,13 +617,13 @@ def output_filename(self):
 <span>def <span class="ident">stop_output</span></span>(<span>self)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Stop recordingto file.</p></div>
+<div class="desc"><p>Stop recording to file.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def stop_output(self):
-    &#34;&#34;&#34;Stop recordingto file.&#34;&#34;&#34;
+    &#34;&#34;&#34;Stop recording to file.&#34;&#34;&#34;
 
     self.output_filename = &#39;&#39;</code></pre>
 </details>
@@ -672,12 +754,16 @@ data-gaCategoryParameter="pytgcalls">
 <li><code><a title="pytgcalls.GroupCall.on_playout_ended" href="group_call.html#pytgcalls.GroupCall.on_playout_ended">on_playout_ended</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.output_filename" href="#pytgcalls.GroupCall.output_filename">output_filename</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.path_to_log_file" href="group_call_native.html#pytgcalls.GroupCall.path_to_log_file">path_to_log_file</a></code></li>
+<li><code><a title="pytgcalls.GroupCall.pause_playout" href="#pytgcalls.GroupCall.pause_playout">pause_playout</a></code></li>
+<li><code><a title="pytgcalls.GroupCall.pause_recording" href="#pytgcalls.GroupCall.pause_recording">pause_recording</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.play_on_repeat" href="#pytgcalls.GroupCall.play_on_repeat">play_on_repeat</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.reconnect" href="group_call_native.html#pytgcalls.GroupCall.reconnect">reconnect</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.remove_handler" href="dispatcher_mixin.html#pytgcalls.GroupCall.remove_handler">remove_handler</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.remove_update_handler" href="group_call_native.html#pytgcalls.GroupCall.remove_update_handler">remove_update_handler</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.restart_playout" href="group_call_native.html#pytgcalls.GroupCall.restart_playout">restart_playout</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.restart_recording" href="group_call_native.html#pytgcalls.GroupCall.restart_recording">restart_recording</a></code></li>
+<li><code><a title="pytgcalls.GroupCall.resume_playout" href="#pytgcalls.GroupCall.resume_playout">resume_playout</a></code></li>
+<li><code><a title="pytgcalls.GroupCall.resume_recording" href="#pytgcalls.GroupCall.resume_recording">resume_recording</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.send_speaking_group_call_action" href="group_call_native.html#pytgcalls.GroupCall.send_speaking_group_call_action">send_speaking_group_call_action</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.set_is_mute" href="group_call_native.html#pytgcalls.GroupCall.set_is_mute">set_is_mute</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.set_my_volume" href="group_call_native.html#pytgcalls.GroupCall.set_my_volume">set_my_volume</a></code></li>
