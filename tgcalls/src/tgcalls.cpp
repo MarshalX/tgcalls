@@ -153,6 +153,8 @@ PYBIND11_MODULE(tgcalls, m) {
             .def_readwrite("getInputFilename", &FileAudioDeviceDescriptor::_getInputFilename)
             .def_readwrite("getOutputFilename", &FileAudioDeviceDescriptor::_getOutputFilename)
             .def_readwrite("isEndlessPlayout", &FileAudioDeviceDescriptor::_isEndlessPlayout)
+            .def_readwrite("isPlayoutPaused", &FileAudioDeviceDescriptor::_isPlayoutPaused)
+            .def_readwrite("isRecordingPaused", &FileAudioDeviceDescriptor::_isRecordingPaused)
             .def_readwrite("playoutEndedCallback", &FileAudioDeviceDescriptor::_playoutEndedCallback);
 
     py::class_<NativeInstance>(m, "NativeInstance")
