@@ -8,7 +8,8 @@
 #include <map>
 
 #include "../Instance.h"
-#include "../../../../src/FileAudioDeviceDescriptor.h"
+
+#include "../StaticThreads.h"
 
 namespace webrtc {
 class AudioDeviceModule;
@@ -24,10 +25,11 @@ namespace tgcalls {
 
 class LogSinkImpl;
 class GroupInstanceManager;
+struct AudioFrame;
 
 struct GroupConfig {
+    bool need_log{true};
     FilePath logPath;
-    bool logToStdErr;
 };
 
 struct GroupLevelValue {
@@ -44,10 +46,43 @@ struct GroupLevelsUpdate {
     std::vector<GroupLevelUpdate> updates;
 };
 
+class BroadcastPartTask {
+public:
+    virtual ~BroadcastPartTask() = default;
+
+    virtual void cancel() = 0;
+};
+
+struct BroadcastPart {
+    enum class Status {
+        Success,
+        NotReady,
+        ResyncNeeded
+    };
+
+    int64_t timestampMilliseconds = 0;
+    double responseTimestamp = 0;
+    Status status = Status::NotReady;
+    std::vector<uint8_t> oggData;
+};
+
+enum class GroupConnectionMode {
+    GroupConnectionModeNone,
+    GroupConnectionModeRtc,
+    GroupConnectionModeBroadcast
+};
+
+struct GroupNetworkState {
+    bool isConnected = false;
+    bool isTransitioningFromBroadcastToRtc = false;
+};
+
 struct GroupInstanceDescriptor {
+    std::shared_ptr<Threads> threads;
     GroupConfig config;
-    std::function<void(bool)> networkStateUpdated;
+    std::function<void(GroupNetworkState)> networkStateUpdated;
     std::function<void(GroupLevelsUpdate const &)> audioLevelsUpdated;
+    std::function<void(uint32_t, const AudioFrame &)> onAudioFrame;
     std::string initialInputDeviceId;
     std::string initialOutputDeviceId;
     bool debugIgnoreMissingSsrcs = false;
@@ -55,7 +90,7 @@ struct GroupInstanceDescriptor {
     std::shared_ptr<VideoCaptureInterface> videoCapture;
     std::function<void(std::vector<uint32_t> const &)> incomingVideoSourcesUpdated;
     std::function<void(std::vector<uint32_t> const &)> participantDescriptionsRequired;
-    std::function<FileAudioDeviceDescriptor&()> getFileAudioDeviceDescriptor;
+    std::function<std::shared_ptr<BroadcastPartTask>(int64_t, int64_t, std::function<void(BroadcastPart &&)>)> requestBroadcastPart;
 };
 
 struct GroupJoinPayloadFingerprint {
@@ -139,6 +174,8 @@ public:
 
     virtual void stop() = 0;
 
+    virtual void setConnectionMode(GroupConnectionMode connectionMode, bool keepBroadcastIfWasEnabled) = 0;
+
     virtual void emitJoinPayload(std::function<void(GroupJoinPayload)> completion) = 0;
     virtual void setJoinResponsePayload(GroupJoinResponsePayload payload, std::vector<tgcalls::GroupParticipantDescription> &&participants) = 0;
     virtual void addParticipants(std::vector<GroupParticipantDescription> &&participants) = 0;
@@ -159,39 +196,6 @@ public:
       std::string name;
       std::string guid;
     };
-
-};
-
-class GroupInstanceImpl final : public GroupInstanceInterface {
-public:
-	explicit GroupInstanceImpl(GroupInstanceDescriptor &&descriptor);
-	~GroupInstanceImpl();
-
-    void stop();
-
-    void emitJoinPayload(std::function<void(GroupJoinPayload)> completion);
-    void setJoinResponsePayload(GroupJoinResponsePayload payload, std::vector<tgcalls::GroupParticipantDescription> &&participants);
-    void addParticipants(std::vector<GroupParticipantDescription> &&participants);
-    void removeSsrcs(std::vector<uint32_t> ssrcs);
-
-    void setIsMuted(bool isMuted);
-    void setVideoCapture(std::shared_ptr<VideoCaptureInterface> videoCapture, std::function<void(GroupJoinPayload)> completion);
-
-    void reinitAudioInputDevice();
-    void reinitAudioOutputDevice();
-
-    void setAudioOutputDevice(std::string id);
-    void setAudioInputDevice(std::string id);
-
-    void addIncomingVideoOutput(uint32_t ssrc, std::weak_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> sink);
-
-    void setVolume(uint32_t ssrc, double volume);
-    void setFullSizeVideoSsrc(uint32_t ssrc);
-
-    static std::vector<GroupInstanceInterface::AudioDevice> getAudioDevices(GroupInstanceInterface::AudioDevice::Type type);
-private:
-	std::unique_ptr<ThreadLocalObject<GroupInstanceManager>> _manager;
-	std::unique_ptr<LogSinkImpl> _logSink;
 
 };
 

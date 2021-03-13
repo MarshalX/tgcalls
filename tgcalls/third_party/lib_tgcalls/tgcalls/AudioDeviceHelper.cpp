@@ -58,7 +58,6 @@ void SetAudioInputDeviceById(webrtc::AudioDeviceModule *adm, const std::string &
 			adm->StartRecording();
 		}
 	};
-
 	if (id == "default" || id.empty()) {
 		return finish();
 	}
@@ -114,7 +113,6 @@ void SetAudioOutputDeviceById(webrtc::AudioDeviceModule *adm, const std::string 
 			adm->StartPlayout();
 		}
 	};
-
 	if (id == "default" || id.empty()) {
 		return finish();
 	}

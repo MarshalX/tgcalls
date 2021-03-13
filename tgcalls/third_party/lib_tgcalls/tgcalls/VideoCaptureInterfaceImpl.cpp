@@ -8,8 +8,8 @@
 
 namespace tgcalls {
 
-VideoCaptureInterfaceObject::VideoCaptureInterfaceObject(std::string deviceId, std::shared_ptr<PlatformContext> platformContext)
-: _videoSource(PlatformInterface::SharedInstance()->makeVideoSource(StaticThreads::getMediaThread(), StaticThreads::getWorkerThread())) {
+VideoCaptureInterfaceObject::VideoCaptureInterfaceObject(std::string deviceId, std::shared_ptr<PlatformContext> platformContext, Threads &threads)
+: _videoSource(PlatformInterface::SharedInstance()->makeVideoSource(threads.getMediaThread(), threads.getWorkerThread())) {
 	_platformContext = platformContext;
 
 	switchToDevice(deviceId);
@@ -31,6 +31,7 @@ void VideoCaptureInterfaceObject::switchToDevice(std::string deviceId) {
     }
 	if (_videoSource) {
         //this should outlive the capturer
+        _videoCapturer = NULL;
 		_videoCapturer = PlatformInterface::SharedInstance()->makeVideoCapturer(_videoSource, deviceId, [this](VideoState state) {
 			if (this->_stateUpdated) {
 				this->_stateUpdated(state);
@@ -102,9 +103,10 @@ void VideoCaptureInterfaceObject::setStateUpdated(std::function<void(VideoState)
 	_stateUpdated = stateUpdated;
 }
 
-VideoCaptureInterfaceImpl::VideoCaptureInterfaceImpl(std::string deviceId, std::shared_ptr<PlatformContext> platformContext) :
-_impl(StaticThreads::getMediaThread(), [deviceId, platformContext]() {
-	return new VideoCaptureInterfaceObject(deviceId, platformContext);
+VideoCaptureInterfaceImpl::VideoCaptureInterfaceImpl(std::string deviceId,
+   std::shared_ptr<PlatformContext> platformContext, std::shared_ptr<Threads> threads) :
+_impl(threads->getMediaThread(), [deviceId, platformContext, threads]() {
+	return new VideoCaptureInterfaceObject(deviceId, platformContext, *threads);
 }) {
 }
 
