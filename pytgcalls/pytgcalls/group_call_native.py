@@ -285,17 +285,19 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.client.remove_handler(self._update_handler, self._handler_group)
             self._handler_group = None
 
-    async def stop(self):
-        """Properly stop tgcalls, remove pyrogram handler, leave from server side."""
-
-        await self.leave_current_group_call()
-
-        self.my_ssrc = self.group_call = self.chat_peer = self.full_chat = None
-        self.is_connected = False
-
+    def __properly_stop(self):
         self.remove_update_handler()
         self.__deinit_native_instance()
-        logger.debug('GroupCall stop.')
+
+        self.my_ssrc = self.group_call = self.chat_peer = self.full_chat = None
+
+        logger.debug('GroupCall properly stop.')
+
+    async def stop(self):
+        """Properly stop tgcalls, remove pyrogram handler, leave from server side."""
+        logger.debug('Stop requested. Wait for disconnected status.')
+        self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
+        await self.leave_current_group_call()
 
     async def start(self, group: Union[str, int, InputPeerChannel, InputPeerChat], enable_action=True):
         """Start voice chat (join and play/record from initial values).
@@ -372,7 +374,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         Note:
             Device restart needed to apply new filename in tgcalls.
         """
-        self.__native_instance.reinitAudioInputDevice()
+
+        self.__native_instance.restartAudioInputDevice()
 
     def restart_recording(self):
         """Start recording to outpufile from begin or just restart recording device.
@@ -380,7 +383,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         Note:
             Device restart needed to apply new filename in tgcalls.
         """
-        self.__native_instance.reinitAudioOutputDevice()
+
+        self.__native_instance.restartAudioOutputDevice()
 
     def __participant_descriptions_required_callback(self, ssrcs_list: List[int]):
         # TODO optimize
@@ -414,6 +418,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.set_is_mute(False)
             if self.enable_action:
                 self.__start_status_worker()
+        else:
+            self.__properly_stop()
 
         self.trigger_handlers(GroupCallNativeAction.NETWORK_STATUS_CHANGED, self, state)
 

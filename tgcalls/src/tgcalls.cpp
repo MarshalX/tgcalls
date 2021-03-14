@@ -1,9 +1,10 @@
 #include <cstdio>
 #include <sstream>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
-#include <tgcalls/InstanceImpl.h>
+
 #include "NativeInstance.h"
 
 namespace py = pybind11;
@@ -171,8 +172,8 @@ PYBIND11_MODULE(tgcalls, m) {
             .def("stopGroupCall", &NativeInstance::stopGroupCall)
             .def("setIsMuted", &NativeInstance::setIsMuted)
             .def("setVolume", &NativeInstance::setVolume)
-            .def("reinitAudioInputDevice", &NativeInstance::reinitAudioInputDevice)
-            .def("reinitAudioOutputDevice", &NativeInstance::reinitAudioOutputDevice)
+            .def("restartAudioInputDevice", &NativeInstance::restartAudioInputDevice)
+            .def("restartAudioOutputDevice", &NativeInstance::restartAudioOutputDevice)
             .def("setAudioOutputDevice", &NativeInstance::setAudioOutputDevice)
             .def("setAudioInputDevice", &NativeInstance::setAudioInputDevice)
             .def("removeSsrcs", &NativeInstance::removeSsrcs)

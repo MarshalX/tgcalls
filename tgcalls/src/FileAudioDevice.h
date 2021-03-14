@@ -8,17 +8,18 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include <stdio.h>
+#include <cstdio>
 
 #include <memory>
 #include <string>
-#include <modules/audio_device/audio_device_impl.h>
 
-#include "modules/audio_device/audio_device_generic.h"
-#include "rtc_base/synchronization/mutex.h"
-#include "rtc_base/system/file_wrapper.h"
-#include "rtc_base/time_utils.h"
-#include "../../../src/FileAudioDeviceDescriptor.h"
+#include <modules/audio_device/audio_device_impl.h>
+#include <modules/audio_device/audio_device_generic.h>
+#include <rtc_base/synchronization/mutex.h>
+#include <rtc_base/system/file_wrapper.h>
+#include <rtc_base/time_utils.h>
+
+#include "FileAudioDeviceDescriptor.h"
 
 namespace rtc {
     class PlatformThread;
@@ -36,7 +37,7 @@ public:
     // The input file should be a readable 48k stereo raw file, and the output
     // file should point to a writable location. The output format will also be
     // 48k stereo raw audio.
-    FileAudioDevice(std::function<FileAudioDeviceDescriptor&()> getFileAudioDeviceDescriptor);
+    FileAudioDevice(FileAudioDeviceDescriptor& fileAudioDeviceDescriptor);
 
     virtual ~FileAudioDevice();
 
@@ -198,19 +199,19 @@ private:
     webrtc::FileWrapper _outputFile;
     webrtc::FileWrapper _inputFile;
 
-    std::function<FileAudioDeviceDescriptor&()> _getFileAudioDeviceDescriptor;
+    FileAudioDeviceDescriptor& _fileAudioDeviceDescriptor;
 };
 
 
 class WrappedAudioDeviceModuleImpl : public webrtc::AudioDeviceModule {
 public:
     static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> Create(
-            AudioLayer audio_layer,
-            webrtc::TaskQueueFactory* task_queue_factory,
-            std::function<FileAudioDeviceDescriptor&()> getFileAudioDeviceDescriptor);
+            AudioLayer,
+            webrtc::TaskQueueFactory*,
+            FileAudioDeviceDescriptor&);
 
     static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> CreateForTest(
-            AudioLayer audio_layer,
-            webrtc::TaskQueueFactory* task_queue_factory,
-            std::function<FileAudioDeviceDescriptor&()> getFileAudioDeviceDescriptor);
+            AudioLayer,
+            webrtc::TaskQueueFactory*,
+            FileAudioDeviceDescriptor&);
 };

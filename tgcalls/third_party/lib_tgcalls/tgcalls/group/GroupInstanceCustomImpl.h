@@ -43,9 +43,10 @@ public:
     void setVolume(uint32_t ssrc, double volume);
     void setFullSizeVideoSsrc(uint32_t ssrc);
 
-private:
     std::shared_ptr<Threads> _threads;
     std::unique_ptr<ThreadLocalObject<GroupInstanceCustomInternal>> _internal;
+
+private:
     std::unique_ptr<LogSinkImpl> _logSink;
 
 };

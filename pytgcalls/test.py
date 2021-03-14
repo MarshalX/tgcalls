@@ -456,21 +456,23 @@ async def main(client1, client2, make_out, make_inc):
     @group_call.on_playout_ended
     async def playout_ended_handler(group_call, filename):
         print(f'{filename} is ended')
-        await group_call.stop()
+        # await group_call.stop()
 
-    '''
-    await asyncio.sleep(10)
-    group_call.pause_playout()
-    group_call.pause_recording()
-    await asyncio.sleep(5)
-    group_call.resume_playout()
-    group_call.resume_recording()
+
+    # await asyncio.sleep(10)
+    # group_call.pause_playout()
+    # group_call.pause_recording()
+    # await asyncio.sleep(5)
+    # group_call.resume_playout()
+    # group_call.resume_recording()
     await asyncio.sleep(5)
     group_call.input_filename = 'input.raw'
-    await asyncio.sleep(10)
-    group_call.stop_playout()
+    await asyncio.sleep(5)
+    # group_call.stop_playout()
+    # group_call.stop_output()
     await group_call.stop()
-    '''
+    print('pup')
+
 
     '''
     

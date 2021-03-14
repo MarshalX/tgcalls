@@ -21,24 +21,6 @@ bool SkipDefaultDevice(const char *name) {
 
 } // namespace
 
-void ReinitAudioInputDevice(webrtc::AudioDeviceModule *adm) {
-    const auto recording = adm->Recording();
-    if (recording) {
-        adm->StopRecording();
-    }
-    if (recording && adm->InitRecording() == 0) {
-        adm->StartRecording();
-    }
-}
-
-void ReinitAudioOutputDevice(webrtc::AudioDeviceModule *adm) {
-    if (adm->Playing()) {
-        adm->StopPlayout();
-    }
-    if (adm->InitPlayout() == 0) {
-        adm->StartPlayout();
-    }
-}
 
 void SetAudioInputDeviceById(webrtc::AudioDeviceModule *adm, const std::string &id) {
 	const auto recording = adm->Recording();
@@ -72,15 +54,6 @@ void SetAudioInputDeviceById(webrtc::AudioDeviceModule *adm, const std::string &
 		char name[webrtc::kAdmMaxDeviceNameSize + 1] = { 0 };
 		char guid[webrtc::kAdmMaxGuidSize + 1] = { 0 };
 		adm->RecordingDeviceName(i, name, guid);
-
-        if (std::string(name) == "dummy_device") {
-            adm->SetPlayoutDevice(webrtc::AudioDeviceModule::kDummyAudio);
-            if (recording && adm->InitRecording() == 0) {
-                adm->StartRecording();
-            }
-            return;
-        }
-
 		if (!SkipDefaultDevice(name) && (id == guid || id == name)) {
 			const auto result = adm->SetRecordingDevice(i);
 			if (result != 0) {
@@ -127,15 +100,6 @@ void SetAudioOutputDeviceById(webrtc::AudioDeviceModule *adm, const std::string 
 		char name[webrtc::kAdmMaxDeviceNameSize + 1] = { 0 };
 		char guid[webrtc::kAdmMaxGuidSize + 1] = { 0 };
 		adm->PlayoutDeviceName(i, name, guid);
-
-		if (std::string(name) == "dummy_device") {
-            adm->SetRecordingDevice(webrtc::AudioDeviceModule::kDummyAudio);
-            if (adm->InitPlayout() == 0) {
-                adm->StartPlayout();
-            }
-            return;
-		}
-
 		if (!SkipDefaultDevice(name) && (id == guid || id == name)) {
 			const auto result = adm->SetPlayoutDevice(i);
 			if (result != 0) {

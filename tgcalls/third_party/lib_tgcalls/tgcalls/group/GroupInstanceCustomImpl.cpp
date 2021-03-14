@@ -48,8 +48,6 @@
 #include <random>
 #include <sstream>
 #include <iostream>
-#include <AudioDeviceHelper.h>
-#include <FileAudioDevice.h>
 
 namespace tgcalls {
 
@@ -801,8 +799,7 @@ public:
     _eventLog(std::make_unique<webrtc::RtcEventLogNull>()),
     _taskQueueFactory(webrtc::CreateDefaultTaskQueueFactory()),
 	_createAudioDeviceModule(descriptor.createAudioDeviceModule),
-    _missingPacketBuffer(100),
-    _getFileAudioDeviceDescriptor(descriptor.getFileAudioDeviceDescriptor) {
+    _missingPacketBuffer(100) {
         assert(_threads->getMediaThread()->IsCurrent());
 
         auto generator = std::mt19937(std::random_device()());
@@ -2094,14 +2091,6 @@ public:
         }
     }
 
-    void reinitAudioInputDevice() {
-        ReinitAudioInputDevice(_audioDeviceModule);
-    }
-
-    void reinitAudioOutputDevice() {
-        ReinitAudioOutputDevice(_audioDeviceModule);
-    }
-
     void setVolume(uint32_t ssrc, double volume) {
         auto current = _volumeBySsrc.find(ssrc);
         if (current != _volumeBySsrc.end() && std::abs(current->second - volume) < 0.0001) {
@@ -2136,10 +2125,9 @@ public:
 private:
     rtc::scoped_refptr<webrtc::AudioDeviceModule> createAudioDeviceModule() {
 		const auto create = [&](webrtc::AudioDeviceModule::AudioLayer layer) {
-			return WrappedAudioDeviceModuleImpl::Create(
+			return webrtc::AudioDeviceModule::Create(
 				layer,
-				_taskQueueFactory.get(),
-                _getFileAudioDeviceDescriptor);
+				_taskQueueFactory.get());
 		};
 		const auto check = [&](const rtc::scoped_refptr<webrtc::AudioDeviceModule> &result) {
 			return (result && result->Init() == 0) ? result : nullptr;
@@ -2148,11 +2136,7 @@ private:
 			if (const auto result = check(_createAudioDeviceModule(_taskQueueFactory.get()))) {
 				return result;
 			}
-		} else if (_getFileAudioDeviceDescriptor) {
-            if (const auto result = check(create(webrtc::AudioDeviceModule::kDummyAudio))) {
-                return result;
-            }
-        }
+		}
 		return check(create(webrtc::AudioDeviceModule::kPlatformDefaultAudio));
     }
 
@@ -2183,7 +2167,7 @@ private:
     webrtc::FieldTrialBasedConfig _fieldTrials;
     webrtc::LocalAudioSinkAdapter _audioSource;
     rtc::scoped_refptr<webrtc::AudioDeviceModule> _audioDeviceModule;
-	std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory*)> _createAudioDeviceModule;
+    std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory*)> _createAudioDeviceModule;
 
     // _outgoingAudioChannel memory is managed by _channelManager
     cricket::VoiceChannel *_outgoingAudioChannel = nullptr;
@@ -2230,8 +2214,6 @@ private:
     absl::optional<int64_t> _broadcastEnabledUntilRtcIsConnectedAtTimestamp;
     bool _isDataChannelOpen = false;
     GroupNetworkState _effectiveNetworkState;
-
-    std::function<FileAudioDeviceDescriptor&()> _getFileAudioDeviceDescriptor;
 };
 
 GroupInstanceCustomImpl::GroupInstanceCustomImpl(GroupInstanceDescriptor &&descriptor) {
@@ -2322,17 +2304,6 @@ void GroupInstanceCustomImpl::setAudioInputDevice(std::string id) {
 void GroupInstanceCustomImpl::addIncomingVideoOutput(uint32_t ssrc, std::weak_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> sink) {
     _internal->perform(RTC_FROM_HERE, [ssrc, sink](GroupInstanceCustomInternal *internal) mutable {
         internal->addIncomingVideoOutput(ssrc, sink);
-    });
-}
-
-void GroupInstanceCustomImpl::reinitAudioInputDevice() {
-    _internal->perform(RTC_FROM_HERE, [&](GroupInstanceCustomInternal *internal) {
-        internal->reinitAudioInputDevice();
-    });
-}
-void GroupInstanceCustomImpl::reinitAudioOutputDevice() {
-    _internal->perform(RTC_FROM_HERE, [&](GroupInstanceCustomInternal *internal) {
-        internal->reinitAudioOutputDevice();
     });
 }
 
