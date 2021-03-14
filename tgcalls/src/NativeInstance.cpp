@@ -1,6 +1,6 @@
 #include <rtc_base/ssl_adapter.h>
 #include <tgcalls/InstanceImpl.h>
-#include <tgcalls/group/GroupInstanceImpl.h>
+#include <tgcalls/group/GroupInstanceCustomImpl.h>
 
 #include "NativeInstance.h"
 #include "FileAudioDeviceDescriptor.h"
@@ -40,32 +40,33 @@ void NativeInstance::startGroupCall(FileAudioDeviceDescriptor &fileAudioDeviceDe
     _fileAudioDeviceDescriptor = fileAudioDeviceDescriptor;
 
     tgcalls::GroupInstanceDescriptor descriptor {
+        .threads = tgcalls::StaticThreads::getThreads(),
         .config = tgcalls::GroupConfig {
+            .need_log = true,
             .logPath = {std::move(_logPath)},
-            .logToStdErr = _logToStdErr,
+            .logToStdErr = _logToStdErr
         },
-        .networkStateUpdated = [=](bool is_connected) {
-            _networkStateUpdated(is_connected);
+        .networkStateUpdated = [=](tgcalls::GroupNetworkState groupNetworkState) {
+            _networkStateUpdated(groupNetworkState.isConnected);
         },
         .audioLevelsUpdated = [=](tgcalls::GroupLevelsUpdate const &update) {}, // TODO may be
         .participantDescriptionsRequired = [=](std::vector<uint32_t> const &ssrcs) {
             _participantDescriptionsRequired(ssrcs);
         },
+//        .requestBroadcastPart = [=](int64_t time, int64_t period, std::function<void(tgcalls::BroadcastPart &&)> done) {},
         .getFileAudioDeviceDescriptor = [=]() -> FileAudioDeviceDescriptor& {
             return _fileAudioDeviceDescriptor;
         }
     };
 
     instanceHolder = std::make_unique<InstanceHolder>();
-    instanceHolder->groupNativeInstance = std::make_unique<tgcalls::GroupInstanceImpl>(std::move(descriptor));
+    instanceHolder->groupNativeInstance = std::make_unique<tgcalls::GroupInstanceCustomImpl>(std::move(descriptor));
     instanceHolder->groupNativeInstance->emitJoinPayload([=](tgcalls::GroupJoinPayload payload) {
         _emitJoinPayloadCallback(std::move(payload));
     });
 };
 
 void NativeInstance::stopGroupCall() const {
-//    instanceHolder->groupNativeInstance->stop();
-// thank u tdesktop
     instanceHolder->groupNativeInstance.reset();
 }
 
@@ -79,6 +80,10 @@ void NativeInstance::setIsMuted(bool isMuted) const {
 
 void NativeInstance::setVolume(uint32_t ssrc, double volume) const {
     instanceHolder->groupNativeInstance->setVolume(ssrc, volume);
+}
+
+void NativeInstance::setConnectionMode(tgcalls::GroupConnectionMode connectionMode, bool keepBroadcastIfWasEnabled) {
+    instanceHolder->groupNativeInstance->setConnectionMode(connectionMode, keepBroadcastIfWasEnabled);
 }
 
 void NativeInstance::reinitAudioInputDevice() const {

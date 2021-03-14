@@ -38,6 +38,7 @@ public:
 
     void setIsMuted(bool isMuted) const;
     void setVolume(uint32_t ssrc, double volume) const;
+    void setConnectionMode(tgcalls::GroupConnectionMode, bool);
 
     void reinitAudioInputDevice() const;
     void reinitAudioOutputDevice() const;

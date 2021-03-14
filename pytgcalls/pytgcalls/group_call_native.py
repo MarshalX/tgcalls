@@ -364,7 +364,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         logger.debug(f'Set my value. New value: {volume}.')
 
         await self.edit_group_call(volume)
-        self.__native_instance.setVolume(uint_ssrc(self.my_ssrc), volume / 100)
+        self.__set_volume(uint_ssrc(self.my_ssrc), volume / 100)
 
     def restart_playout(self):
         """Start play current inputfile from start or just reload file audio device.
@@ -383,6 +383,13 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.__native_instance.reinitAudioOutputDevice()
 
     def __participant_descriptions_required_callback(self, ssrcs_list: List[int]):
+        # TODO optimize
+        # optimization:
+        # - try to find ssrc in current (cached) list of participants
+        # - add description if they exists
+        # - if we cant find ssrc we need to update participants list by mtproto request
+        # current impl. request actual part. list from server each method call
+
         logger.debug('Participant descriptions required..')
 
         def _(future):
@@ -433,6 +440,10 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             )
         )
 
+    def __set_connection_mode(self, mode: tgcalls.GroupConnectionMode, keep_broadcast_if_was_enabled=False):
+        logger.debug(f'Set connection mode {mode}')
+        self.__native_instance.setConnectionMode(mode, keep_broadcast_if_was_enabled)
+
     async def __set_join_response_payload(self, params):
         logger.debug('Set join response payload..')
         params = params['transport']
@@ -462,6 +473,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         participants = [parse_call_participant(p) for p in await self.get_group_call_participants()]
 
         # TODO video payload
+
+        self.__native_instance and self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeRtc)
         self.__native_instance and self.__native_instance.setJoinResponsePayload(payload, participants)
         logger.debug('Join response payload was set.')
 

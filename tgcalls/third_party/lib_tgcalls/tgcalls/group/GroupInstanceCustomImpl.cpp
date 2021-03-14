@@ -48,6 +48,8 @@
 #include <random>
 #include <sstream>
 #include <iostream>
+#include <AudioDeviceHelper.h>
+#include <FileAudioDevice.h>
 
 namespace tgcalls {
 
@@ -500,10 +502,13 @@ public:
         _creationTimestamp = rtc::TimeMillis();
 
         cricket::AudioOptions audioOptions;
-        audioOptions.echo_cancellation = true;
-        audioOptions.noise_suppression = true;
-        audioOptions.audio_jitter_buffer_fast_accelerate = true;
-        audioOptions.audio_jitter_buffer_min_delay_ms = 50;
+        audioOptions.noise_suppression = false;
+        audioOptions.residual_echo_detector = false;
+        audioOptions.auto_gain_control = false;
+        audioOptions.echo_cancellation = false;
+        audioOptions.highpass_filter = false;
+        audioOptions.typing_detection = false;
+        audioOptions.audio_jitter_buffer_enable_rtx_handling = false;
 
         std::string streamId = std::string("stream") + ssrc.name();
 
@@ -796,7 +801,8 @@ public:
     _eventLog(std::make_unique<webrtc::RtcEventLogNull>()),
     _taskQueueFactory(webrtc::CreateDefaultTaskQueueFactory()),
 	_createAudioDeviceModule(descriptor.createAudioDeviceModule),
-    _missingPacketBuffer(100) {
+    _missingPacketBuffer(100),
+    _getFileAudioDeviceDescriptor(descriptor.getFileAudioDeviceDescriptor) {
         assert(_threads->getMediaThread()->IsCurrent());
 
         auto generator = std::mt19937(std::random_device()());
@@ -836,7 +842,7 @@ public:
         const auto weak = std::weak_ptr<GroupInstanceCustomInternal>(shared_from_this());
 
         webrtc::field_trial::InitFieldTrialsFromString(
-            "WebRTC-Audio-Allocation/min:32kbps,max:32kbps/"
+            "WebRTC-Audio-Allocation/min:32kbps,max:512kbps/"
             "WebRTC-Audio-OpusMinPacketLossRate/Enabled-1/"
         );
 
@@ -972,9 +978,13 @@ public:
         }
         
         cricket::AudioOptions audioOptions;
-        audioOptions.echo_cancellation = true;
-        audioOptions.noise_suppression = true;
-        audioOptions.audio_jitter_buffer_fast_accelerate = true;
+        audioOptions.noise_suppression = false;
+        audioOptions.residual_echo_detector = false;
+        audioOptions.auto_gain_control = false;
+        audioOptions.echo_cancellation = false;
+        audioOptions.highpass_filter = false;
+        audioOptions.typing_detection = false;
+        audioOptions.audio_jitter_buffer_enable_rtx_handling = false;
 
         std::vector<std::string> streamIds;
         streamIds.push_back("1");
@@ -982,16 +992,21 @@ public:
         _outgoingAudioChannel = _channelManager->CreateVoiceChannel(_call.get(), cricket::MediaConfig(), _rtpTransport, _threads->getMediaThread(), "0", false, GroupNetworkManager::getDefaulCryptoOptions(), _uniqueRandomIdGenerator.get(), audioOptions);
 
         const uint8_t opusMinBitrateKbps = 32;
-        const uint8_t opusMaxBitrateKbps = 32;
-        const uint8_t opusStartBitrateKbps = 32;
+        const uint16_t opusMaxBitrateKbps = 512;
+        const uint8_t opusStartBitrateKbps = 128;
         const uint8_t opusPTimeMs = 120;
 
-        cricket::AudioCodec opusCodec(111, "opus", 48000, 0, 2);
+        cricket::AudioCodec opusCodec(111, "opus", 48000, 128000, 2);
+        // where is cbr?
         opusCodec.AddFeedbackParam(cricket::FeedbackParam(cricket::kRtcpFbParamTransportCc));
         opusCodec.SetParam(cricket::kCodecParamMinBitrate, opusMinBitrateKbps);
         opusCodec.SetParam(cricket::kCodecParamStartBitrate, opusStartBitrateKbps);
         opusCodec.SetParam(cricket::kCodecParamMaxBitrate, opusMaxBitrateKbps);
-        opusCodec.SetParam(cricket::kCodecParamUseInbandFec, 1);
+        opusCodec.SetParam(cricket::kCodecParamUseInbandFec, 0);
+        opusCodec.SetParam(cricket::kCodecParamMaxAverageBitrate, 510000);
+        opusCodec.SetParam(cricket::kCodecParamStereo, 1);
+        opusCodec.SetParam(cricket::kCodecParamUseDtx, 0);
+        opusCodec.SetParam(cricket::kCodecParamMinPTime, 10);
         opusCodec.SetParam(cricket::kCodecParamPTime, opusPTimeMs);
 
         auto outgoingAudioDescription = std::make_unique<cricket::AudioContentDescription>();
@@ -2079,6 +2094,14 @@ public:
         }
     }
 
+    void reinitAudioInputDevice() {
+        ReinitAudioInputDevice(_audioDeviceModule);
+    }
+
+    void reinitAudioOutputDevice() {
+        ReinitAudioOutputDevice(_audioDeviceModule);
+    }
+
     void setVolume(uint32_t ssrc, double volume) {
         auto current = _volumeBySsrc.find(ssrc);
         if (current != _volumeBySsrc.end() && std::abs(current->second - volume) < 0.0001) {
@@ -2113,9 +2136,10 @@ public:
 private:
     rtc::scoped_refptr<webrtc::AudioDeviceModule> createAudioDeviceModule() {
 		const auto create = [&](webrtc::AudioDeviceModule::AudioLayer layer) {
-			return webrtc::AudioDeviceModule::Create(
+			return WrappedAudioDeviceModuleImpl::Create(
 				layer,
-				_taskQueueFactory.get());
+				_taskQueueFactory.get(),
+                _getFileAudioDeviceDescriptor);
 		};
 		const auto check = [&](const rtc::scoped_refptr<webrtc::AudioDeviceModule> &result) {
 			return (result && result->Init() == 0) ? result : nullptr;
@@ -2124,7 +2148,11 @@ private:
 			if (const auto result = check(_createAudioDeviceModule(_taskQueueFactory.get()))) {
 				return result;
 			}
-		}
+		} else if (_getFileAudioDeviceDescriptor) {
+            if (const auto result = check(create(webrtc::AudioDeviceModule::kDummyAudio))) {
+                return result;
+            }
+        }
 		return check(create(webrtc::AudioDeviceModule::kPlatformDefaultAudio));
     }
 
@@ -2202,6 +2230,8 @@ private:
     absl::optional<int64_t> _broadcastEnabledUntilRtcIsConnectedAtTimestamp;
     bool _isDataChannelOpen = false;
     GroupNetworkState _effectiveNetworkState;
+
+    std::function<FileAudioDeviceDescriptor&()> _getFileAudioDeviceDescriptor;
 };
 
 GroupInstanceCustomImpl::GroupInstanceCustomImpl(GroupInstanceDescriptor &&descriptor) {
@@ -2209,7 +2239,7 @@ GroupInstanceCustomImpl::GroupInstanceCustomImpl(GroupInstanceDescriptor &&descr
       _logSink = std::make_unique<LogSinkImpl>(descriptor.config.logPath);
     }
     rtc::LogMessage::LogToDebug(rtc::LS_INFO);
-    rtc::LogMessage::SetLogToStderr(false);
+    rtc::LogMessage::SetLogToStderr(descriptor.config.logToStdErr);
     if (_logSink) {
         rtc::LogMessage::AddLogToStream(_logSink.get(), rtc::LS_INFO);
     }
@@ -2292,6 +2322,17 @@ void GroupInstanceCustomImpl::setAudioInputDevice(std::string id) {
 void GroupInstanceCustomImpl::addIncomingVideoOutput(uint32_t ssrc, std::weak_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> sink) {
     _internal->perform(RTC_FROM_HERE, [ssrc, sink](GroupInstanceCustomInternal *internal) mutable {
         internal->addIncomingVideoOutput(ssrc, sink);
+    });
+}
+
+void GroupInstanceCustomImpl::reinitAudioInputDevice() {
+    _internal->perform(RTC_FROM_HERE, [&](GroupInstanceCustomInternal *internal) {
+        internal->reinitAudioInputDevice();
+    });
+}
+void GroupInstanceCustomImpl::reinitAudioOutputDevice() {
+    _internal->perform(RTC_FROM_HERE, [&](GroupInstanceCustomInternal *internal) {
+        internal->reinitAudioOutputDevice();
     });
 }
 

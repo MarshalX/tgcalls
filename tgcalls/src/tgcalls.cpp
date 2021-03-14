@@ -157,6 +157,12 @@ PYBIND11_MODULE(tgcalls, m) {
             .def_readwrite("isRecordingPaused", &FileAudioDeviceDescriptor::_isRecordingPaused)
             .def_readwrite("playoutEndedCallback", &FileAudioDeviceDescriptor::_playoutEndedCallback);
 
+    py::enum_<tgcalls::GroupConnectionMode>(m, "GroupConnectionMode")
+            .value("GroupConnectionModeNone", tgcalls::GroupConnectionMode::GroupConnectionModeNone)
+            .value("GroupConnectionModeRtc", tgcalls::GroupConnectionMode::GroupConnectionModeRtc)
+            .value("GroupConnectionModeBroadcast", tgcalls::GroupConnectionMode::GroupConnectionModeBroadcast)
+            .export_values();
+
     py::class_<NativeInstance>(m, "NativeInstance")
             .def(py::init<bool, string>())
             .def("startCall", &NativeInstance::startCall)
@@ -172,6 +178,7 @@ PYBIND11_MODULE(tgcalls, m) {
             .def("removeSsrcs", &NativeInstance::removeSsrcs)
             .def("addParticipants", &NativeInstance::addParticipants)
             .def("setJoinResponsePayload", &NativeInstance::setJoinResponsePayload)
+            .def("setConnectionMode", &NativeInstance::setConnectionMode)
             .def("receiveSignalingData", &NativeInstance::receiveSignalingData)
             .def("setSignalingDataEmittedCallback", &NativeInstance::setSignalingDataEmittedCallback);
 }
