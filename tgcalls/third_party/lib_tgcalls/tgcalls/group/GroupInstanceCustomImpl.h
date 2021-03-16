@@ -14,6 +14,7 @@ namespace tgcalls {
 
 class LogSinkImpl;
 class GroupInstanceCustomInternal;
+class Threads;
 
 class GroupInstanceCustomImpl final : public GroupInstanceInterface {
 public:
@@ -21,6 +22,8 @@ public:
     ~GroupInstanceCustomImpl();
 
     void stop();
+    
+    void setConnectionMode(GroupConnectionMode connectionMode, bool keepBroadcastIfWasEnabled);
 
     void emitJoinPayload(std::function<void(GroupJoinPayload)> completion);
     void setJoinResponsePayload(GroupJoinResponsePayload payload, std::vector<tgcalls::GroupParticipantDescription> &&participants);
@@ -33,12 +36,17 @@ public:
     void setAudioInputDevice(std::string id);
     
     void addIncomingVideoOutput(uint32_t ssrc, std::weak_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> sink);
-    
+
+    void reinitAudioInputDevice();
+    void reinitAudioOutputDevice();
+
     void setVolume(uint32_t ssrc, double volume);
     void setFullSizeVideoSsrc(uint32_t ssrc);
 
-private:
+    std::shared_ptr<Threads> _threads;
     std::unique_ptr<ThreadLocalObject<GroupInstanceCustomInternal>> _internal;
+
+private:
     std::unique_ptr<LogSinkImpl> _logSink;
 
 };

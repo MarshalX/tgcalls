@@ -3,12 +3,14 @@ include(cmake/lib_tgcalls.cmake)
 
 list(APPEND SOURCES
     ${src_loc}/tgcalls.cpp
+    ${src_loc}/FileAudioDevice.cpp
+    ${src_loc}/FileAudioDevice.h
+    ${src_loc}/FileAudioDeviceDescriptor.h
     ${src_loc}/NativeInstance.h
     ${src_loc}/NativeInstance.cpp
     ${src_loc}/RtcServer.h
     ${src_loc}/RtcServer.cpp
     ${src_loc}/InstanceHolder.h
-    ${src_loc}/FileAudioDeviceDescriptor.h
 )
 
 pybind11_add_module(tgcalls ${SOURCES})

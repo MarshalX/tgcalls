@@ -1,6 +1,10 @@
 #pragma once
 
 #include <pybind11/pybind11.h>
+
+#include <modules/audio_device/include/audio_device.h>
+#include <tgcalls/ThreadLocalObject.h>
+
 #include "InstanceHolder.h"
 #include "RtcServer.h"
 #include "FileAudioDeviceDescriptor.h"
@@ -20,7 +24,8 @@ public:
     std::function<void(bool)> _networkStateUpdated = nullptr;
     std::function<void(std::vector<uint32_t> const &)> _participantDescriptionsRequired = nullptr;
 
-    FileAudioDeviceDescriptor _fileAudioDeviceDescriptor;
+    std::unique_ptr<FileAudioDeviceDescriptor> _fileAudioDeviceDescriptor;
+    rtc::scoped_refptr<webrtc::AudioDeviceModule> _audioDeviceModule;
 
     NativeInstance(bool, string);
     ~NativeInstance();
@@ -38,9 +43,10 @@ public:
 
     void setIsMuted(bool isMuted) const;
     void setVolume(uint32_t ssrc, double volume) const;
+    void setConnectionMode(tgcalls::GroupConnectionMode, bool);
 
-    void reinitAudioInputDevice() const;
-    void reinitAudioOutputDevice() const;
+    void restartAudioInputDevice() const;
+    void restartAudioOutputDevice() const;
 
     void setAudioOutputDevice(std::string id) const;
     void setAudioInputDevice(std::string id) const;

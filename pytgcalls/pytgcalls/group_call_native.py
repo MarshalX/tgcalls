@@ -285,17 +285,19 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.client.remove_handler(self._update_handler, self._handler_group)
             self._handler_group = None
 
-    async def stop(self):
-        """Properly stop tgcalls, remove pyrogram handler, leave from server side."""
-
-        await self.leave_current_group_call()
-
-        self.my_ssrc = self.group_call = self.chat_peer = self.full_chat = None
-        self.is_connected = False
-
+    def __properly_stop(self):
         self.remove_update_handler()
         self.__deinit_native_instance()
-        logger.debug('GroupCall stop.')
+
+        self.my_ssrc = self.group_call = self.chat_peer = self.full_chat = None
+
+        logger.debug('GroupCall properly stop.')
+
+    async def stop(self):
+        """Properly stop tgcalls, remove pyrogram handler, leave from server side."""
+        logger.debug('Stop requested. Wait for disconnected status.')
+        self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
+        await self.leave_current_group_call()
 
     async def start(self, group: Union[str, int, InputPeerChannel, InputPeerChat], enable_action=True):
         """Start voice chat (join and play/record from initial values).
@@ -364,7 +366,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         logger.debug(f'Set my value. New value: {volume}.')
 
         await self.edit_group_call(volume)
-        self.__native_instance.setVolume(uint_ssrc(self.my_ssrc), volume / 100)
+        self.__set_volume(uint_ssrc(self.my_ssrc), volume / 100)
 
     def restart_playout(self):
         """Start play current inputfile from start or just reload file audio device.
@@ -372,7 +374,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         Note:
             Device restart needed to apply new filename in tgcalls.
         """
-        self.__native_instance.reinitAudioInputDevice()
+
+        self.__native_instance.restartAudioInputDevice()
 
     def restart_recording(self):
         """Start recording to outpufile from begin or just restart recording device.
@@ -380,9 +383,17 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         Note:
             Device restart needed to apply new filename in tgcalls.
         """
-        self.__native_instance.reinitAudioOutputDevice()
+
+        self.__native_instance.restartAudioOutputDevice()
 
     def __participant_descriptions_required_callback(self, ssrcs_list: List[int]):
+        # TODO optimize
+        # optimization:
+        # - try to find ssrc in current (cached) list of participants
+        # - add description if they exists
+        # - if we cant find ssrc we need to update participants list by mtproto request
+        # current impl. request actual part. list from server each method call
+
         logger.debug('Participant descriptions required..')
 
         def _(future):
@@ -407,6 +418,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.set_is_mute(False)
             if self.enable_action:
                 self.__start_status_worker()
+        else:
+            self.__properly_stop()
 
         self.trigger_handlers(GroupCallNativeAction.NETWORK_STATUS_CHANGED, self, state)
 
@@ -432,6 +445,10 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
                 action=raw.types.SpeakingInGroupCallAction()
             )
         )
+
+    def __set_connection_mode(self, mode: tgcalls.GroupConnectionMode, keep_broadcast_if_was_enabled=False):
+        logger.debug(f'Set connection mode {mode}')
+        self.__native_instance.setConnectionMode(mode, keep_broadcast_if_was_enabled)
 
     async def __set_join_response_payload(self, params):
         logger.debug('Set join response payload..')
@@ -462,6 +479,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         participants = [parse_call_participant(p) for p in await self.get_group_call_participants()]
 
         # TODO video payload
+
+        self.__native_instance and self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeRtc)
         self.__native_instance and self.__native_instance.setJoinResponsePayload(payload, participants)
         logger.debug('Join response payload was set.')
 

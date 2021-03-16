@@ -155,6 +155,14 @@ static CVReturn OnDisplayLinkFired(CVDisplayLinkRef displayLink,
     return self;
 }
 
+-(BOOL)mouseDownCanMoveWindow {
+    if (self.frame.size.width >= self.window.frame.size.width) {
+        return YES;
+    } else {
+        return NO;
+    }
+}
+
 - (void)reshape {
     [super reshape];
     NSRect frame = [self frame];
@@ -402,9 +410,9 @@ static CVReturn OnDisplayLinkFired(CVDisplayLinkRef displayLink,
         NSSize size = _currentSize;
         NSSize frameSize = self.frame.size;
         if ( [self.glView.layer.contentsGravity isEqualToString:kCAGravityResizeAspectFill]) {
-            size = aspectFitted(frameSize, _currentSize);
+            size = aspectFilled(frameSize, _currentSize);
         } else if ([self.glView.layer.contentsGravity isEqualToString:kCAGravityResizeAspect]) {
-            size = aspectFilled(_currentSize, frameSize);
+            size = aspectFitted(frameSize, _currentSize);
         } else {
             size = aspectFilled(frameSize, _currentSize);
         }

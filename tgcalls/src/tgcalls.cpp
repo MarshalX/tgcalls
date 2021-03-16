@@ -1,9 +1,10 @@
 #include <cstdio>
 #include <sstream>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
-#include <tgcalls/InstanceImpl.h>
+
 #include "NativeInstance.h"
 
 namespace py = pybind11;
@@ -157,6 +158,12 @@ PYBIND11_MODULE(tgcalls, m) {
             .def_readwrite("isRecordingPaused", &FileAudioDeviceDescriptor::_isRecordingPaused)
             .def_readwrite("playoutEndedCallback", &FileAudioDeviceDescriptor::_playoutEndedCallback);
 
+    py::enum_<tgcalls::GroupConnectionMode>(m, "GroupConnectionMode")
+            .value("GroupConnectionModeNone", tgcalls::GroupConnectionMode::GroupConnectionModeNone)
+            .value("GroupConnectionModeRtc", tgcalls::GroupConnectionMode::GroupConnectionModeRtc)
+            .value("GroupConnectionModeBroadcast", tgcalls::GroupConnectionMode::GroupConnectionModeBroadcast)
+            .export_values();
+
     py::class_<NativeInstance>(m, "NativeInstance")
             .def(py::init<bool, string>())
             .def("startCall", &NativeInstance::startCall)
@@ -165,13 +172,14 @@ PYBIND11_MODULE(tgcalls, m) {
             .def("stopGroupCall", &NativeInstance::stopGroupCall)
             .def("setIsMuted", &NativeInstance::setIsMuted)
             .def("setVolume", &NativeInstance::setVolume)
-            .def("reinitAudioInputDevice", &NativeInstance::reinitAudioInputDevice)
-            .def("reinitAudioOutputDevice", &NativeInstance::reinitAudioOutputDevice)
+            .def("restartAudioInputDevice", &NativeInstance::restartAudioInputDevice)
+            .def("restartAudioOutputDevice", &NativeInstance::restartAudioOutputDevice)
             .def("setAudioOutputDevice", &NativeInstance::setAudioOutputDevice)
             .def("setAudioInputDevice", &NativeInstance::setAudioInputDevice)
             .def("removeSsrcs", &NativeInstance::removeSsrcs)
             .def("addParticipants", &NativeInstance::addParticipants)
             .def("setJoinResponsePayload", &NativeInstance::setJoinResponsePayload)
+            .def("setConnectionMode", &NativeInstance::setConnectionMode)
             .def("receiveSignalingData", &NativeInstance::receiveSignalingData)
             .def("setSignalingDataEmittedCallback", &NativeInstance::setSignalingDataEmittedCallback);
 }
