@@ -20,15 +20,17 @@ const size_t kRecordingBufferSize =
         kRecordingFixedSampleRate / 100 * kRecordingNumChannels * 2;
 
 FileAudioDevice::FileAudioDevice(
-        FileAudioDeviceDescriptor &fileAudioDeviceDescriptor)
-        : _ptrAudioBuffer(NULL), _recordingBuffer(NULL), _playoutBuffer(NULL),
+        std::unique_ptr<FileAudioDeviceDescriptor> fileAudioDeviceDescriptor)
+        : _ptrAudioBuffer(nullptr), _recordingBuffer(nullptr), _playoutBuffer(nullptr),
           _recordingFramesLeft(0), _playoutFramesLeft(0),
           _recordingBufferSizeIn10MS(0), _recordingFramesIn10MS(0),
           _playoutFramesIn10MS(0), _playing(false), _recording(false),
           _lastCallPlayoutMillis(0), _lastCallRecordMillis(0),
-          _fileAudioDeviceDescriptor(fileAudioDeviceDescriptor) {}
+          _fileAudioDeviceDescriptor(std::move(fileAudioDeviceDescriptor)) {}
 
-FileAudioDevice::~FileAudioDevice() {}
+FileAudioDevice::~FileAudioDevice() {
+    _fileAudioDeviceDescriptor.reset();
+};
 
 int32_t FileAudioDevice::ActiveAudioLayer(
         webrtc::AudioDeviceModule::AudioLayer &audioLayer) const {
@@ -65,14 +67,14 @@ FileAudioDevice::PlayoutDeviceName(uint16_t index,
 
 int32_t
 FileAudioDevice::RecordingDeviceName(uint16_t index,
-                                     char name[webrtc::kAdmMaxDeviceNameSize],
+                                     char name[webrtc::kAdmMaxDeviceNameSize + 1],
                                      char guid[webrtc::kAdmMaxGuidSize]) {
     const char *kName = "dummy_device";
     const char *kGuid = "dummy_device_unique_id";
     if (index < 1) {
         memset(name, 0, webrtc::kAdmMaxDeviceNameSize);
         memset(guid, 0, webrtc::kAdmMaxGuidSize);
-        memcpy(name, kName, strlen(kName));
+        strcpy(name, kName);
         memcpy(guid, kGuid, strlen(guid));
         return 0;
     }
@@ -181,21 +183,21 @@ int32_t FileAudioDevice::StartPlayout() {
     }
 
     // PLAYOUT
-    auto outputFilename = _fileAudioDeviceDescriptor._getOutputFilename();
+    auto outputFilename = _fileAudioDeviceDescriptor->_getOutputFilename();
     if (!outputFilename.empty()) {
         _outputFile = webrtc::FileWrapper::OpenWriteOnly(outputFilename.c_str());
         if (!_outputFile.is_open()) {
             RTC_LOG(LS_ERROR) << "Failed to open playout file: " << outputFilename;
             _playing = false;
             delete[] _playoutBuffer;
-            _playoutBuffer = NULL;
+            _playoutBuffer = nullptr;
             return -1;
         }
     }
 
-    _ptrThreadPlay.reset(new rtc::PlatformThread(
+    _ptrThreadPlay = std::make_unique<rtc::PlatformThread>(
             PlayThreadFunc, this, "webrtc_audio_module_play_thread",
-            rtc::kRealtimePriority));
+            rtc::kRealtimePriority);
     _ptrThreadPlay->Start();
 
     RTC_LOG(LS_INFO) << "Started playout capture to output file: "
@@ -206,6 +208,9 @@ int32_t FileAudioDevice::StartPlayout() {
 int32_t FileAudioDevice::StopPlayout() {
     {
         webrtc::MutexLock lock(&mutex_);
+        if (!_playing) {
+          return 0;
+        }
         _playing = false;
     }
 
@@ -219,7 +224,7 @@ int32_t FileAudioDevice::StopPlayout() {
 
     _playoutFramesLeft = 0;
     delete[] _playoutBuffer;
-    _playoutBuffer = NULL;
+    _playoutBuffer = nullptr;
     _outputFile.Close();
 
     RTC_LOG(LS_INFO) << "Stopped playout capture to output file";
@@ -238,21 +243,21 @@ int32_t FileAudioDevice::StartRecording() {
         _recordingBuffer = new int8_t[_recordingBufferSizeIn10MS];
     }
 
-    auto inputFilename = _fileAudioDeviceDescriptor._getInputFilename();
+    auto inputFilename = _fileAudioDeviceDescriptor->_getInputFilename();
     if (!inputFilename.empty()) {
         _inputFile = webrtc::FileWrapper::OpenReadOnly(inputFilename.c_str());
         if (!_inputFile.is_open()) {
             RTC_LOG(LS_ERROR) << "Failed to open audio input file: " << inputFilename;
             _recording = false;
             delete[] _recordingBuffer;
-            _recordingBuffer = NULL;
+            _recordingBuffer = nullptr;
             return -1;
         }
     }
 
-    _ptrThreadRec.reset(new rtc::PlatformThread(
+    _ptrThreadRec = std::make_unique<rtc::PlatformThread>(
             RecThreadFunc, this, "webrtc_audio_module_capture_thread",
-            rtc::kRealtimePriority));
+            rtc::kRealtimePriority);
 
     _ptrThreadRec->Start();
 
@@ -264,6 +269,9 @@ int32_t FileAudioDevice::StartRecording() {
 int32_t FileAudioDevice::StopRecording() {
     {
         webrtc::MutexLock lock(&mutex_);
+        if (!_recording) {
+          return 0;
+        }
         _recording = false;
     }
 
@@ -276,7 +284,7 @@ int32_t FileAudioDevice::StopRecording() {
     _recordingFramesLeft = 0;
     if (_recordingBuffer) {
         delete[] _recordingBuffer;
-        _recordingBuffer = NULL;
+        _recordingBuffer = nullptr;
     }
     _inputFile.Close();
 
@@ -382,13 +390,13 @@ void FileAudioDevice::AttachAudioBuffer(
 }
 
 void FileAudioDevice::PlayThreadFunc(void *pThis) {
-    FileAudioDevice *device = static_cast<FileAudioDevice *>(pThis);
+    auto *device = static_cast<FileAudioDevice *>(pThis);
     while (device->PlayThreadProcess()) {
     }
 }
 
 void FileAudioDevice::RecThreadFunc(void *pThis) {
-    FileAudioDevice *device = static_cast<FileAudioDevice *>(pThis);
+    auto *device = static_cast<FileAudioDevice *>(pThis);
     while (device->RecThreadProcess()) {
     }
 }
@@ -408,7 +416,7 @@ bool FileAudioDevice::PlayThreadProcess() {
 
         _playoutFramesLeft = _ptrAudioBuffer->GetPlayoutData(_playoutBuffer);
         RTC_DCHECK_EQ(_playoutFramesIn10MS, _playoutFramesLeft);
-        if (!_fileAudioDeviceDescriptor._isRecordingPaused() &&
+        if (!_fileAudioDeviceDescriptor->_isRecordingPaused() &&
             _outputFile.is_open()) {
             _outputFile.Write(_playoutBuffer, kPlayoutBufferSize);
         }
@@ -433,24 +441,24 @@ bool FileAudioDevice::RecThreadProcess() {
     int64_t currentTime = rtc::TimeMillis();
     mutex_.Lock();
 
-    auto inputFilename = _fileAudioDeviceDescriptor._getInputFilename();
+    auto inputFilename = _fileAudioDeviceDescriptor->_getInputFilename();
     if (_lastCallRecordMillis == 0 || currentTime - _lastCallRecordMillis >= 10) {
-        if (!_fileAudioDeviceDescriptor._isPlayoutPaused() &&
+        if (!_fileAudioDeviceDescriptor->_isPlayoutPaused() &&
             _inputFile.is_open()) {
             if (_inputFile.Read(_recordingBuffer, kRecordingBufferSize) > 0) {
                 _ptrAudioBuffer->SetRecordedBuffer(_recordingBuffer,
                                                    _recordingFramesIn10MS);
-            } else if (_fileAudioDeviceDescriptor._isEndlessPlayout()) {
+            } else if (_fileAudioDeviceDescriptor->_isEndlessPlayout()) {
                 _inputFile.Rewind();
 
-                if (_fileAudioDeviceDescriptor._playoutEndedCallback) {
-                    _fileAudioDeviceDescriptor._playoutEndedCallback(inputFilename);
+                if (_fileAudioDeviceDescriptor->_playoutEndedCallback) {
+                    _fileAudioDeviceDescriptor->_playoutEndedCallback(inputFilename);
                 }
             } else {
                 mutex_.Unlock();
 
-                if (_fileAudioDeviceDescriptor._playoutEndedCallback) {
-                    _fileAudioDeviceDescriptor._playoutEndedCallback(inputFilename);
+                if (_fileAudioDeviceDescriptor->_playoutEndedCallback) {
+                    _fileAudioDeviceDescriptor->_playoutEndedCallback(inputFilename);
                 }
 
                 return false;
@@ -475,16 +483,16 @@ bool FileAudioDevice::RecThreadProcess() {
 rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl>
 WrappedAudioDeviceModuleImpl::Create(
         AudioLayer audio_layer, webrtc::TaskQueueFactory *task_queue_factory,
-        FileAudioDeviceDescriptor &fileAudioDeviceDescriptor) {
+        std::unique_ptr<FileAudioDeviceDescriptor> fileAudioDeviceDescriptor) {
     RTC_LOG(INFO) << __FUNCTION__;
     return WrappedAudioDeviceModuleImpl::CreateForTest(
-            audio_layer, task_queue_factory, fileAudioDeviceDescriptor);
+            audio_layer, task_queue_factory, std::move(fileAudioDeviceDescriptor));
 }
 
 rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl>
 WrappedAudioDeviceModuleImpl::CreateForTest(
         AudioLayer audio_layer, webrtc::TaskQueueFactory *task_queue_factory,
-        FileAudioDeviceDescriptor &fileAudioDeviceDescriptor) {
+        std::unique_ptr<FileAudioDeviceDescriptor> fileAudioDeviceDescriptor) {
     RTC_LOG(INFO) << __FUNCTION__;
 
     // Create the generic reference counted (platform independent) implementation.
@@ -497,7 +505,7 @@ WrappedAudioDeviceModuleImpl::CreateForTest(
         return nullptr;
     }
 
-    audioDevice->ResetAudioDevice(new FileAudioDevice(fileAudioDeviceDescriptor));
+    audioDevice->ResetAudioDevice(new FileAudioDevice(std::move(fileAudioDeviceDescriptor)));
 
     // Ensure that the generic audio buffer can communicate with the platform
     // specific parts.

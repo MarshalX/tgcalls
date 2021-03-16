@@ -513,7 +513,7 @@ public:
         _audioChannel = _channelManager->CreateVoiceChannel(call, cricket::MediaConfig(), rtpTransport, threads.getMediaThread(), std::string("audio") + uint32ToString(ssrc.networkSsrc), false, GroupNetworkManager::getDefaulCryptoOptions(), randomIdGenerator, audioOptions);
 
         const uint8_t opusMinBitrateKbps = 32;
-        const uint8_t opusMaxBitrateKbps = 32;
+        const uint16_t opusMaxBitrateKbps = 512;
         const uint8_t opusStartBitrateKbps = 32;
         const uint8_t opusPTimeMs = 120;
         
@@ -833,6 +833,7 @@ public:
         }
 
         _channelManager = nullptr;
+        _audioDeviceModule = nullptr;
     }
 
     void start() {
@@ -993,15 +994,13 @@ public:
         const uint8_t opusStartBitrateKbps = 128;
         const uint8_t opusPTimeMs = 120;
 
-        cricket::AudioCodec opusCodec(111, "opus", 48000, 128000, 2);
-        // where is cbr?
+        cricket::AudioCodec opusCodec(111, "opus", 48000, 0, 2);
         opusCodec.AddFeedbackParam(cricket::FeedbackParam(cricket::kRtcpFbParamTransportCc));
         opusCodec.SetParam(cricket::kCodecParamMinBitrate, opusMinBitrateKbps);
         opusCodec.SetParam(cricket::kCodecParamStartBitrate, opusStartBitrateKbps);
         opusCodec.SetParam(cricket::kCodecParamMaxBitrate, opusMaxBitrateKbps);
         opusCodec.SetParam(cricket::kCodecParamUseInbandFec, 0);
         opusCodec.SetParam(cricket::kCodecParamMaxAverageBitrate, 510000);
-        opusCodec.SetParam(cricket::kCodecParamStereo, 1);
         opusCodec.SetParam(cricket::kCodecParamUseDtx, 0);
         opusCodec.SetParam(cricket::kCodecParamMinPTime, 10);
         opusCodec.SetParam(cricket::kCodecParamPTime, opusPTimeMs);
@@ -2243,6 +2242,7 @@ GroupInstanceCustomImpl::~GroupInstanceCustomImpl() {
 
     // Wait until _internal is destroyed
     _threads->getMediaThread()->Invoke<void>(RTC_FROM_HERE, [] {});
+    RTC_LOG(LS_INFO) << "Properly stop GroupInstanceCustomImpl";
 }
 
 void GroupInstanceCustomImpl::stop() {

@@ -23,7 +23,10 @@ NativeInstance::NativeInstance(bool logToStdErr, string logPath)
 //    tgcalls::Register<tgcalls::InstanceImpl>();
 }
 
-NativeInstance::~NativeInstance() {}
+NativeInstance::~NativeInstance() {
+    _audioDeviceModule = nullptr;
+    _fileAudioDeviceDescriptor = nullptr;
+}
 
 void NativeInstance::setupGroupCall(
         std::function<void(tgcalls::GroupJoinPayload)> &emitJoinPayloadCallback,
@@ -37,7 +40,13 @@ void NativeInstance::setupGroupCall(
 
 void NativeInstance::startGroupCall(
         FileAudioDeviceDescriptor &fileAudioDeviceDescriptor) {
-    _fileAudioDeviceDescriptor = fileAudioDeviceDescriptor;
+    _fileAudioDeviceDescriptor = std::make_unique<FileAudioDeviceDescriptor>();
+    _fileAudioDeviceDescriptor->_isRecordingPaused = fileAudioDeviceDescriptor._isRecordingPaused;
+    _fileAudioDeviceDescriptor->_isPlayoutPaused = fileAudioDeviceDescriptor._isPlayoutPaused;
+    _fileAudioDeviceDescriptor->_isEndlessPlayout = fileAudioDeviceDescriptor._isEndlessPlayout;
+    _fileAudioDeviceDescriptor->_getInputFilename = fileAudioDeviceDescriptor._getInputFilename;
+    _fileAudioDeviceDescriptor->_getOutputFilename = fileAudioDeviceDescriptor._getOutputFilename;
+    _fileAudioDeviceDescriptor->_playoutEndedCallback = fileAudioDeviceDescriptor._playoutEndedCallback;
 
     tgcalls::GroupInstanceDescriptor descriptor{
             .threads = tgcalls::StaticThreads::getThreads(),
@@ -54,7 +63,7 @@ void NativeInstance::startGroupCall(
                     -> rtc::scoped_refptr<webrtc::AudioDeviceModule> {
                 _audioDeviceModule = WrappedAudioDeviceModuleImpl::Create(
                         webrtc::AudioDeviceModule::kDummyAudio, taskQueueFactory,
-                        _fileAudioDeviceDescriptor);
+                        std::move(_fileAudioDeviceDescriptor));
                 return _audioDeviceModule;
             },
             .participantDescriptionsRequired =
@@ -102,7 +111,7 @@ void NativeInstance::setConnectionMode(
 
 void NativeInstance::restartAudioInputDevice() const {
     instanceHolder->groupNativeInstance->_internal->perform(RTC_FROM_HERE, [=](tgcalls::GroupInstanceCustomInternal *internal) {
-      if (!_audioDeviceModule.get()) {
+      if (!_audioDeviceModule) {
         return;
       }
 
@@ -118,7 +127,7 @@ void NativeInstance::restartAudioInputDevice() const {
 
 void NativeInstance::restartAudioOutputDevice() const {
     instanceHolder->groupNativeInstance->_internal->perform(RTC_FROM_HERE, [=](tgcalls::GroupInstanceCustomInternal *internal) {
-      if (!_audioDeviceModule.get()) {
+      if (!_audioDeviceModule) {
         return;
       }
 

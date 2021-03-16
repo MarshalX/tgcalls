@@ -458,20 +458,21 @@ async def main(client1, client2, make_out, make_inc):
         print(f'{filename} is ended')
         # await group_call.stop()
 
-
-    # await asyncio.sleep(10)
-    # group_call.pause_playout()
-    # group_call.pause_recording()
-    # await asyncio.sleep(5)
+    await asyncio.sleep(10)
+    group_call.pause_playout()
+    group_call.pause_recording()
+    await asyncio.sleep(5)
     # group_call.resume_playout()
     # group_call.resume_recording()
-    await asyncio.sleep(5)
-    group_call.input_filename = 'input.raw'
-    await asyncio.sleep(5)
+    # await asyncio.sleep(5)
+    # group_call.input_filename = 'input.raw'
+    # await asyncio.sleep(5)
     # group_call.stop_playout()
     # group_call.stop_output()
+    # group_call.restart_playout()
+    # await asyncio.sleep(5)
     await group_call.stop()
-    print('pup')
+    # print('pup')
 
 
     '''

@@ -37,7 +37,7 @@ public:
     // The input file should be a readable 48k stereo raw file, and the output
     // file should point to a writable location. The output format will also be
     // 48k stereo raw audio.
-    FileAudioDevice(FileAudioDeviceDescriptor& fileAudioDeviceDescriptor);
+    FileAudioDevice(std::unique_ptr<FileAudioDeviceDescriptor> fileAudioDeviceDescriptor);
 
     virtual ~FileAudioDevice();
 
@@ -199,7 +199,7 @@ private:
     webrtc::FileWrapper _outputFile;
     webrtc::FileWrapper _inputFile;
 
-    FileAudioDeviceDescriptor& _fileAudioDeviceDescriptor;
+    std::unique_ptr<FileAudioDeviceDescriptor> _fileAudioDeviceDescriptor;
 };
 
 
@@ -208,10 +208,10 @@ public:
     static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> Create(
             AudioLayer,
             webrtc::TaskQueueFactory*,
-            FileAudioDeviceDescriptor&);
+            std::unique_ptr<FileAudioDeviceDescriptor>);
 
     static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> CreateForTest(
             AudioLayer,
             webrtc::TaskQueueFactory*,
-            FileAudioDeviceDescriptor&);
+            std::unique_ptr<FileAudioDeviceDescriptor>);
 };

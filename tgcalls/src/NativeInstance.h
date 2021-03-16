@@ -24,7 +24,7 @@ public:
     std::function<void(bool)> _networkStateUpdated = nullptr;
     std::function<void(std::vector<uint32_t> const &)> _participantDescriptionsRequired = nullptr;
 
-    FileAudioDeviceDescriptor _fileAudioDeviceDescriptor;
+    std::unique_ptr<FileAudioDeviceDescriptor> _fileAudioDeviceDescriptor;
     rtc::scoped_refptr<webrtc::AudioDeviceModule> _audioDeviceModule;
 
     NativeInstance(bool, string);
