@@ -12,9 +12,6 @@ namespace tgcalls {
 void SetAudioInputDeviceById(webrtc::AudioDeviceModule *adm, const std::string &id);
 void SetAudioOutputDeviceById(webrtc::AudioDeviceModule *adm, const std::string &id);
 
-void ReinitAudioInputDevice(webrtc::AudioDeviceModule *adm);
-void ReinitAudioOutputDevice(webrtc::AudioDeviceModule *adm);
-
 } // namespace tgcalls
 
 #endif

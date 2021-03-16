@@ -132,7 +132,7 @@ void NetworkManager::start() {
     uint32_t flags = _portAllocator->flags();
     
     flags |=
-        cricket::PORTALLOCATOR_ENABLE_SHARED_SOCKET |
+        //cricket::PORTALLOCATOR_ENABLE_SHARED_SOCKET |
         cricket::PORTALLOCATOR_ENABLE_IPV6 |
         cricket::PORTALLOCATOR_ENABLE_IPV6_ON_WIFI;
     

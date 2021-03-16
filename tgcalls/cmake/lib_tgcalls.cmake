@@ -48,15 +48,12 @@ PRIVATE
     VideoCaptureInterfaceImpl.h
     VideoCapturerInterface.h
 
-    FileAudioDevice.cpp
-    FileAudioDevice.h
-
     group/GroupInstanceCustomImpl.cpp
     group/GroupInstanceCustomImpl.h
-    group/GroupInstanceImpl.cpp
-    group/GroupInstanceImpl.h
     group/GroupNetworkManager.cpp
     group/GroupNetworkManager.h
+    group/StreamingPart.cpp
+    group/StreamingPart.h
 
     platform/PlatformInterface.h
 
@@ -120,6 +117,7 @@ PRIVATE
 target_link_libraries(lib_tgcalls
 PRIVATE
     external_webrtc
+    external_ffmpeg
 )
 
 target_compile_definitions(lib_tgcalls
