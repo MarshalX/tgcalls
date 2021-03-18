@@ -16,6 +16,11 @@ Reacts only to commands from the owner.
 Example of using stream url in the set of voice chats (many VC at the same time).
 Reacts only to commands from anonymous admins.
 
+### [recorder_as_smart_plugin.py](recorder_as_smart_plugin.py)
+
+Pyrogram Smart Plugin for recording a voice chat for 30 seconds and send recorded opus file along with
+audio info to the group chat, just one owner only command `!record`.
+
 ### [playout.py](playout.py)
 
 An example of joining a voice chat and playing music. 
