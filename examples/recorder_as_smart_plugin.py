@@ -4,96 +4,111 @@ Dependencies:
 - ffmpeg
 
 Requirements (pip):
+- pytgcalls
 - ffmpeg-python
 
 Start the userbot and send !record to a voice chat
 enabled group chat to start recording for 30 seconds
 """
-import os
 import asyncio
-import subprocess
+import os
 from datetime import datetime
+
+import ffmpeg
 from pyrogram import Client, filters
 from pyrogram.types import Message
-from pytgcalls import GroupCall, GroupCallAction
-import ffmpeg
 
-group_call = GroupCall(None, path_to_log_file='')
+from pytgcalls import GroupCall, GroupCallAction
+
+GROUP_CALL = GroupCall(None, path_to_log_file='')
+SECONDS_TO_RECORD = 30
 
 
 @Client.on_message(filters.group
                    & filters.text
                    & filters.outgoing
                    & ~filters.edited
-                   & filters.regex("^!record$"))
-async def record_from_voice_chat(client, m: Message):
-    group_call.client = client
-    await group_call.start(m.chat.id)
-    group_call.add_handler(
+                   & filters.command('record', prefixes='!'))
+async def record_from_voice_chat(client: Client, m: Message):
+    GROUP_CALL.client = client
+    GROUP_CALL.add_handler(
         network_status_changed_handler,
         GroupCallAction.NETWORK_STATUS_CHANGED
     )
+
+    await GROUP_CALL.start(m.chat.id)
     await m.delete()
 
 
 async def network_status_changed_handler(gc: GroupCall, is_connected: bool):
     if is_connected:
-        print("- JOINED VC")
-        await record_and_send_opus()
-        await gc.stop()
+        print('- JOINED VC')
+        await record_and_send_opus_and_stop(gc)
     else:
-        print("- LEFT VC")
+        print('- LEFT VC')
 
 
-async def record_and_send_opus():
-    client = group_call.client
-    chat_id = int("-100" + str(group_call.full_chat.id))
-    chat = await client.get_chat(chat_id)
-    status = await client.send_message(chat_id, "1/3 Recording...")
-    utcnow_unix, utcnow_readable = await get_utcnow()
-    record_raw, record_opus = f"{utcnow_unix}.raw", f"{utcnow_unix}.opus"
-    group_call.output_filename = record_raw
-    await asyncio.sleep(30)
-    group_call.output_filename = ''
-    await status.edit_text("2/3 Transcoding...")
+async def record_and_send_opus_and_stop(gc: GroupCall):
+    chat_id = int(f'-100{gc.full_chat.id}')
+    chat_info = await gc.client.get_chat(chat_id)
+
+    status_msg = await gc.client.send_message(chat_id, '1/3 Recording...')
+
+    utcnow_unix, utcnow_readable = get_utcnow()
+    record_raw_filename, record_opus_filename = f'vcrec-{utcnow_unix}.raw', f'vcrec-{utcnow_unix}.opus'
+    gc.output_filename = record_raw_filename
+
+    await asyncio.sleep(SECONDS_TO_RECORD)
+    gc.stop_output()
+
+    await status_msg.edit_text('2/3 Transcoding...')
     ffmpeg.input(
-        record_raw,
+        record_raw_filename,
         format='s16le',
         acodec='pcm_s16le',
         ac=2,
         ar='48k',
         loglevel='error'
-    ).output(record_opus).overwrite_output().run()
-    duration = int(float(ffmpeg.probe(record_opus)['format']['duration']))
-    probe = ffmpeg.probe(record_opus, pretty=None)
-    caption = (
-        f"- Format: `{probe['streams'][0]['codec_name']}`\n"
-        f"- Channel(s): `{str(probe['streams'][0]['channels'])}`\n"
-        f"- Sampling rate: `{probe['streams'][0]['sample_rate']}`\n"
-        f"- Bit rate: `{probe['format']['bit_rate']}`\n"
-        f"- File size: `{probe['format']['size']}`"
-    )
-    performer = (
-        f"@{chat.username}" if chat.username
-        else chat.title
-    )
-    title = f"[VCREC] {utcnow_readable}"
-    thumb = await client.download_media(chat.photo.big_file_id)
-    await status.edit_text("3/3 Uploading...")
-    await client.send_audio(
+    ).output(record_opus_filename).overwrite_output().run()
+
+    record_probe = ffmpeg.probe(record_opus_filename, pretty=None)
+
+    stream = record_probe['streams'][0]
+    time_base = [int(x) for x in stream['time_base'].split('/')]
+    duration = round(time_base[0] / time_base[1] * int(stream['duration_ts']))
+
+    caption = [
+        f'- Format: `{stream["codec_name"]}`',
+        f'- Channel(s): `{stream["channels"]}`',
+        f'- Sampling rate: `{stream["sample_rate"]}`',
+        f'- Bit rate: `{record_probe["format"]["bit_rate"]}`',
+        f'- File size: `{record_probe["format"]["size"]}`',
+    ]
+
+    performer = chat_info.title
+    if chat_info.username:
+        performer = f'@{chat_info.username}'
+
+    title = f'[VCREC] {utcnow_readable}'
+    thumb_file = await gc.client.download_media(chat_info.photo.big_file_id)
+
+    await status_msg.edit_text('3/3 Uploading...')
+    await gc.client.send_audio(
         chat_id,
-        record_opus,
-        caption=caption,
+        record_opus_filename,
+        caption='\n'.join(caption),
         duration=duration,
         performer=performer,
         title=title,
-        thumb=thumb)
-    await status.delete()
-    for f in (record_raw, record_opus, thumb):
-        os.remove(f)
+        thumb=thumb_file
+    )
+    await status_msg.delete()
+
+    await gc.stop()
+    [os.remove(f) for f in (record_raw_filename, record_opus_filename, thumb_file)]
 
 
-async def get_utcnow():
+def get_utcnow():
     utcnow = datetime.utcnow()
     utcnow_unix = utcnow.strftime('%s')
     utcnow_readable = utcnow.strftime('%Y-%m-%d %H:%M:%S')
