@@ -37,9 +37,6 @@ public:
     
     void addIncomingVideoOutput(uint32_t ssrc, std::weak_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> sink);
 
-    void reinitAudioInputDevice();
-    void reinitAudioOutputDevice();
-
     void setVolume(uint32_t ssrc, double volume);
     void setFullSizeVideoSsrc(uint32_t ssrc);
 

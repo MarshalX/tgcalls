@@ -197,7 +197,7 @@ public:
       std::string name;
       std::string guid;
     };
-
+    static std::vector<GroupInstanceInterface::AudioDevice> getAudioDevices(AudioDevice::Type type);
 };
 
 } // namespace tgcalls
