@@ -55,7 +55,7 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see &lt;http://www.gnu.org/licenses/&gt;.
 
-from typing import Union
+from typing import Union, Coroutine
 
 import pyrogram
 
@@ -70,14 +70,14 @@ class GroupCallAction(GroupCallNativeAction):
 
 class GroupCallDispatcherMixin(GroupCallNativeDispatcherMixin):
 
-    def on_playout_ended(self, func: callable):
+    def on_playout_ended(self, func: Coroutine) -&gt; Coroutine:
         &#34;&#34;&#34;When a input file is ended.
 
         Args:
-            func (`function`): A functions that accept group_call and filename args.
+            func (`Coroutine`): A functions that accept group_call and filename args.
 
         Returns:
-            `function`: passed to args callback function.
+            `Coroutine`: passed to args callback function.
         &#34;&#34;&#34;
 
         return self.add_handler(func, GroupCallAction.PLAYOUT_ENDED)
@@ -87,12 +87,12 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
 
     def __init__(
             self,
-            client: pyrogram.Client,
+            client: Union[pyrogram.Client, None] = None,
             input_filename: str = None,
             output_filename: str = None,
             play_on_repeat=True,
             enable_logs_to_console=False,
-            path_to_log_file=&#39;group_call.log&#39;
+            path_to_log_file=None
     ):
         super().__init__(client, enable_logs_to_console, path_to_log_file)
         super(GroupCallDispatcherMixin, self).__init__(GroupCallAction)
@@ -201,7 +201,7 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
 <dl>
 <dt id="pytgcalls.group_call.GroupCall"><code class="flex name class">
 <span>class <span class="ident">GroupCall</span></span>
-<span>(</span><span>client: pyrogram.client.Client, input_filename: str = None, output_filename: str = None, play_on_repeat=True, enable_logs_to_console=False, path_to_log_file='group_call.log')</span>
+<span>(</span><span>client: Union[pyrogram.client.Client, NoneType] = None, input_filename: str = None, output_filename: str = None, play_on_repeat=True, enable_logs_to_console=False, path_to_log_file=None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -213,12 +213,12 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
 
     def __init__(
             self,
-            client: pyrogram.Client,
+            client: Union[pyrogram.Client, None] = None,
             input_filename: str = None,
             output_filename: str = None,
             play_on_repeat=True,
             enable_logs_to_console=False,
-            path_to_log_file=&#39;group_call.log&#39;
+            path_to_log_file=None
     ):
         super().__init__(client, enable_logs_to_console, path_to_log_file)
         super(GroupCallDispatcherMixin, self).__init__(GroupCallAction)
@@ -451,7 +451,7 @@ def output_filename(self):
 <h3>Methods</h3>
 <dl>
 <dt id="pytgcalls.group_call.GroupCall.add_handler"><code class="name flex">
-<span>def <span class="ident">add_handler</span></span>(<span>self, callback, action) ‑> <built-in function callable></span>
+<span>def <span class="ident">add_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> collections.abc.Coroutine</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -521,7 +521,7 @@ def output_filename(self):
 <div class="desc inherited"><p>Leave group call from server side (MTProto part).</p></div>
 </dd>
 <dt id="pytgcalls.group_call.GroupCall.on_network_status_changed"><code class="name flex">
-<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: <built-in function callable>) ‑> <built-in function callable></span>
+<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: Coroutine) ‑> Coroutine</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -531,7 +531,7 @@ def output_filename(self):
 <div class="desc inherited"><p>When a status of network will be changed …</p></div>
 </dd>
 <dt id="pytgcalls.group_call.GroupCall.on_playout_ended"><code class="name flex">
-<span>def <span class="ident">on_playout_ended</span></span>(<span>self, func: <built-in function callable>)</span>
+<span>def <span class="ident">on_playout_ended</span></span>(<span>self, func: Coroutine) ‑> Coroutine</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -579,7 +579,7 @@ def output_filename(self):
 <div class="desc inherited"><p>Reconnect to current voice chat.</p></div>
 </dd>
 <dt id="pytgcalls.group_call.GroupCall.remove_handler"><code class="name flex">
-<span>def <span class="ident">remove_handler</span></span>(<span>self, callback, action) ‑> bool</span>
+<span>def <span class="ident">remove_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> bool</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -736,7 +736,7 @@ def output_filename(self):
 </details>
 </dd>
 <dt id="pytgcalls.group_call.GroupCall.trigger_handlers"><code class="name flex">
-<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action, instance, *args, **kwargs)</span>
+<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action: str, instance: GroupCall, *args, **kwargs)</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -792,14 +792,14 @@ def output_filename(self):
 </summary>
 <pre><code class="python">class GroupCallDispatcherMixin(GroupCallNativeDispatcherMixin):
 
-    def on_playout_ended(self, func: callable):
+    def on_playout_ended(self, func: Coroutine) -&gt; Coroutine:
         &#34;&#34;&#34;When a input file is ended.
 
         Args:
-            func (`function`): A functions that accept group_call and filename args.
+            func (`Coroutine`): A functions that accept group_call and filename args.
 
         Returns:
-            `function`: passed to args callback function.
+            `Coroutine`: passed to args callback function.
         &#34;&#34;&#34;
 
         return self.add_handler(func, GroupCallAction.PLAYOUT_ENDED)</code></pre>
@@ -816,7 +816,7 @@ def output_filename(self):
 <h3>Methods</h3>
 <dl>
 <dt id="pytgcalls.group_call.GroupCallDispatcherMixin.add_handler"><code class="name flex">
-<span>def <span class="ident">add_handler</span></span>(<span>self, callback, action) ‑> <built-in function callable></span>
+<span>def <span class="ident">add_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> collections.abc.Coroutine</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -826,7 +826,7 @@ def output_filename(self):
 <div class="desc inherited"><p>Register new handler …</p></div>
 </dd>
 <dt id="pytgcalls.group_call.GroupCallDispatcherMixin.on_network_status_changed"><code class="name flex">
-<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: <built-in function callable>) ‑> <built-in function callable></span>
+<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: Coroutine) ‑> Coroutine</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -836,33 +836,33 @@ def output_filename(self):
 <div class="desc inherited"><p>When a status of network will be changed …</p></div>
 </dd>
 <dt id="pytgcalls.group_call.GroupCallDispatcherMixin.on_playout_ended"><code class="name flex">
-<span>def <span class="ident">on_playout_ended</span></span>(<span>self, func: <built-in function callable>)</span>
+<span>def <span class="ident">on_playout_ended</span></span>(<span>self, func: Coroutine) ‑> Coroutine</span>
 </code></dt>
 <dd>
 <div class="desc"><p>When a input file is ended.</p>
 <h2 id="args">Args</h2>
-<p>func (<code>function</code>): A functions that accept group_call and filename args.</p>
+<p>func (<code>Coroutine</code>): A functions that accept group_call and filename args.</p>
 <h2 id="returns">Returns</h2>
-<p><code>function</code>: passed to args callback function.</p></div>
+<p><code>Coroutine</code>: passed to args callback function.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def on_playout_ended(self, func: callable):
+<pre><code class="python">def on_playout_ended(self, func: Coroutine) -&gt; Coroutine:
     &#34;&#34;&#34;When a input file is ended.
 
     Args:
-        func (`function`): A functions that accept group_call and filename args.
+        func (`Coroutine`): A functions that accept group_call and filename args.
 
     Returns:
-        `function`: passed to args callback function.
+        `Coroutine`: passed to args callback function.
     &#34;&#34;&#34;
 
     return self.add_handler(func, GroupCallAction.PLAYOUT_ENDED)</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.group_call.GroupCallDispatcherMixin.remove_handler"><code class="name flex">
-<span>def <span class="ident">remove_handler</span></span>(<span>self, callback, action) ‑> bool</span>
+<span>def <span class="ident">remove_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> bool</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -872,7 +872,7 @@ def output_filename(self):
 <div class="desc inherited"><p>Unregister the handler …</p></div>
 </dd>
 <dt id="pytgcalls.group_call.GroupCallDispatcherMixin.trigger_handlers"><code class="name flex">
-<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action, instance, *args, **kwargs)</span>
+<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action: str, instance: GroupCall, *args, **kwargs)</span>
 </code></dt>
 <dd>
 <p class="inheritance">

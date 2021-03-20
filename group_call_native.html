@@ -58,7 +58,7 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 import asyncio
 import json
 import logging
-from typing import List, Union
+from typing import List, Union, Coroutine
 
 import pyrogram
 from pyrogram import raw
@@ -84,14 +84,14 @@ class GroupCallNativeAction:
 
 class GroupCallNativeDispatcherMixin(DispatcherMixin):
 
-    def on_network_status_changed(self, func: callable) -&gt; callable:
+    def on_network_status_changed(self, func: Coroutine) -&gt; Coroutine:
         &#34;&#34;&#34;When a status of network will be changed.
 
         Args:
-            func (`function`): A functions that accept group_call and is_connected args.
+            func (`Coroutine`): A functions that accept group_call and is_connected args.
 
         Returns:
-            `function`: passed to args callback function.
+            `Coroutine`: passed to args callback function.
         &#34;&#34;&#34;
 
         return self.add_handler(func, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
@@ -112,9 +112,9 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     def __init__(
             self,
-            client: pyrogram.Client,
+            client: Union[pyrogram.Client, None],
             enable_logs_to_console: bool,
-            path_to_log_file: str
+            path_to_log_file=&#39;group_call.log&#39;
     ):
         super().__init__(GroupCallNativeAction)
         self.client = client
@@ -323,17 +323,19 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.client.remove_handler(self._update_handler, self._handler_group)
             self._handler_group = None
 
-    async def stop(self):
-        &#34;&#34;&#34;Properly stop tgcalls, remove pyrogram handler, leave from server side.&#34;&#34;&#34;
-
-        await self.leave_current_group_call()
-
-        self.my_ssrc = self.group_call = self.chat_peer = self.full_chat = None
-        self.is_connected = False
-
+    def __properly_stop(self):
         self.remove_update_handler()
         self.__deinit_native_instance()
-        logger.debug(&#39;GroupCall stop.&#39;)
+
+        self.my_ssrc = self.group_call = self.chat_peer = self.full_chat = None
+
+        logger.debug(&#39;GroupCall properly stop.&#39;)
+
+    async def stop(self):
+        &#34;&#34;&#34;Properly stop tgcalls, remove pyrogram handler, leave from server side.&#34;&#34;&#34;
+        logger.debug(&#39;Stop requested. Wait for disconnected status.&#39;)
+        self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
+        await self.leave_current_group_call()
 
     async def start(self, group: Union[str, int, InputPeerChannel, InputPeerChat], enable_action=True):
         &#34;&#34;&#34;Start voice chat (join and play/record from initial values).
@@ -402,7 +404,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         logger.debug(f&#39;Set my value. New value: {volume}.&#39;)
 
         await self.edit_group_call(volume)
-        self.__native_instance.setVolume(uint_ssrc(self.my_ssrc), volume / 100)
+        self.__set_volume(uint_ssrc(self.my_ssrc), volume / 100)
 
     def restart_playout(self):
         &#34;&#34;&#34;Start play current inputfile from start or just reload file audio device.
@@ -410,7 +412,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         Note:
             Device restart needed to apply new filename in tgcalls.
         &#34;&#34;&#34;
-        self.__native_instance.reinitAudioInputDevice()
+
+        self.__native_instance.restartAudioInputDevice()
 
     def restart_recording(self):
         &#34;&#34;&#34;Start recording to outpufile from begin or just restart recording device.
@@ -418,9 +421,17 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         Note:
             Device restart needed to apply new filename in tgcalls.
         &#34;&#34;&#34;
-        self.__native_instance.reinitAudioOutputDevice()
+
+        self.__native_instance.restartAudioOutputDevice()
 
     def __participant_descriptions_required_callback(self, ssrcs_list: List[int]):
+        # TODO optimize
+        # optimization:
+        # - try to find ssrc in current (cached) list of participants
+        # - add description if they exists
+        # - if we cant find ssrc we need to update participants list by mtproto request
+        # current impl. request actual part. list from server each method call
+
         logger.debug(&#39;Participant descriptions required..&#39;)
 
         def _(future):
@@ -445,6 +456,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.set_is_mute(False)
             if self.enable_action:
                 self.__start_status_worker()
+        else:
+            self.__properly_stop()
 
         self.trigger_handlers(GroupCallNativeAction.NETWORK_STATUS_CHANGED, self, state)
 
@@ -470,6 +483,10 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
                 action=raw.types.SpeakingInGroupCallAction()
             )
         )
+
+    def __set_connection_mode(self, mode: tgcalls.GroupConnectionMode, keep_broadcast_if_was_enabled=False):
+        logger.debug(f&#39;Set connection mode {mode}&#39;)
+        self.__native_instance.setConnectionMode(mode, keep_broadcast_if_was_enabled)
 
     async def __set_join_response_payload(self, params):
         logger.debug(&#39;Set join response payload..&#39;)
@@ -500,6 +517,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         participants = [parse_call_participant(p) for p in await self.get_group_call_participants()]
 
         # TODO video payload
+
+        self.__native_instance and self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeRtc)
         self.__native_instance and self.__native_instance.setJoinResponsePayload(payload, participants)
         logger.debug(&#39;Join response payload was set.&#39;)
 
@@ -591,7 +610,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 <dl>
 <dt id="pytgcalls.group_call_native.GroupCallNative"><code class="flex name class">
 <span>class <span class="ident">GroupCallNative</span></span>
-<span>(</span><span>client: pyrogram.client.Client, enable_logs_to_console: bool, path_to_log_file: str)</span>
+<span>(</span><span>client: Union[pyrogram.client.Client, NoneType], enable_logs_to_console: bool, path_to_log_file='group_call.log')</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -605,9 +624,9 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     def __init__(
             self,
-            client: pyrogram.Client,
+            client: Union[pyrogram.Client, None],
             enable_logs_to_console: bool,
-            path_to_log_file: str
+            path_to_log_file=&#39;group_call.log&#39;
     ):
         super().__init__(GroupCallNativeAction)
         self.client = client
@@ -816,17 +835,19 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.client.remove_handler(self._update_handler, self._handler_group)
             self._handler_group = None
 
-    async def stop(self):
-        &#34;&#34;&#34;Properly stop tgcalls, remove pyrogram handler, leave from server side.&#34;&#34;&#34;
-
-        await self.leave_current_group_call()
-
-        self.my_ssrc = self.group_call = self.chat_peer = self.full_chat = None
-        self.is_connected = False
-
+    def __properly_stop(self):
         self.remove_update_handler()
         self.__deinit_native_instance()
-        logger.debug(&#39;GroupCall stop.&#39;)
+
+        self.my_ssrc = self.group_call = self.chat_peer = self.full_chat = None
+
+        logger.debug(&#39;GroupCall properly stop.&#39;)
+
+    async def stop(self):
+        &#34;&#34;&#34;Properly stop tgcalls, remove pyrogram handler, leave from server side.&#34;&#34;&#34;
+        logger.debug(&#39;Stop requested. Wait for disconnected status.&#39;)
+        self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
+        await self.leave_current_group_call()
 
     async def start(self, group: Union[str, int, InputPeerChannel, InputPeerChat], enable_action=True):
         &#34;&#34;&#34;Start voice chat (join and play/record from initial values).
@@ -895,7 +916,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         logger.debug(f&#39;Set my value. New value: {volume}.&#39;)
 
         await self.edit_group_call(volume)
-        self.__native_instance.setVolume(uint_ssrc(self.my_ssrc), volume / 100)
+        self.__set_volume(uint_ssrc(self.my_ssrc), volume / 100)
 
     def restart_playout(self):
         &#34;&#34;&#34;Start play current inputfile from start or just reload file audio device.
@@ -903,7 +924,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         Note:
             Device restart needed to apply new filename in tgcalls.
         &#34;&#34;&#34;
-        self.__native_instance.reinitAudioInputDevice()
+
+        self.__native_instance.restartAudioInputDevice()
 
     def restart_recording(self):
         &#34;&#34;&#34;Start recording to outpufile from begin or just restart recording device.
@@ -911,9 +933,17 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         Note:
             Device restart needed to apply new filename in tgcalls.
         &#34;&#34;&#34;
-        self.__native_instance.reinitAudioOutputDevice()
+
+        self.__native_instance.restartAudioOutputDevice()
 
     def __participant_descriptions_required_callback(self, ssrcs_list: List[int]):
+        # TODO optimize
+        # optimization:
+        # - try to find ssrc in current (cached) list of participants
+        # - add description if they exists
+        # - if we cant find ssrc we need to update participants list by mtproto request
+        # current impl. request actual part. list from server each method call
+
         logger.debug(&#39;Participant descriptions required..&#39;)
 
         def _(future):
@@ -938,6 +968,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.set_is_mute(False)
             if self.enable_action:
                 self.__start_status_worker()
+        else:
+            self.__properly_stop()
 
         self.trigger_handlers(GroupCallNativeAction.NETWORK_STATUS_CHANGED, self, state)
 
@@ -963,6 +995,10 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
                 action=raw.types.SpeakingInGroupCallAction()
             )
         )
+
+    def __set_connection_mode(self, mode: tgcalls.GroupConnectionMode, keep_broadcast_if_was_enabled=False):
+        logger.debug(f&#39;Set connection mode {mode}&#39;)
+        self.__native_instance.setConnectionMode(mode, keep_broadcast_if_was_enabled)
 
     async def __set_join_response_payload(self, params):
         logger.debug(&#39;Set join response payload..&#39;)
@@ -993,6 +1029,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         participants = [parse_call_participant(p) for p in await self.get_group_call_participants()]
 
         # TODO video payload
+
+        self.__native_instance and self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeRtc)
         self.__native_instance and self.__native_instance.setJoinResponsePayload(payload, participants)
         logger.debug(&#39;Join response payload was set.&#39;)
 
@@ -1089,7 +1127,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 <h3>Methods</h3>
 <dl>
 <dt id="pytgcalls.group_call_native.GroupCallNative.add_handler"><code class="name flex">
-<span>def <span class="ident">add_handler</span></span>(<span>self, callback, action) ‑> <built-in function callable></span>
+<span>def <span class="ident">add_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> collections.abc.Coroutine</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -1280,7 +1318,7 @@ muted (<code>bool</code>): Is muted.</p></div>
 </details>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNative.on_network_status_changed"><code class="name flex">
-<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: <built-in function callable>) ‑> <built-in function callable></span>
+<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: Coroutine) ‑> Coroutine</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -1308,7 +1346,7 @@ muted (<code>bool</code>): Is muted.</p></div>
 </details>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNative.remove_handler"><code class="name flex">
-<span>def <span class="ident">remove_handler</span></span>(<span>self, callback, action) ‑> bool</span>
+<span>def <span class="ident">remove_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> bool</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -1351,7 +1389,8 @@ muted (<code>bool</code>): Is muted.</p></div>
     Note:
         Device restart needed to apply new filename in tgcalls.
     &#34;&#34;&#34;
-    self.__native_instance.reinitAudioInputDevice()</code></pre>
+
+    self.__native_instance.restartAudioInputDevice()</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNative.restart_recording"><code class="name flex">
@@ -1371,7 +1410,8 @@ muted (<code>bool</code>): Is muted.</p></div>
     Note:
         Device restart needed to apply new filename in tgcalls.
     &#34;&#34;&#34;
-    self.__native_instance.reinitAudioOutputDevice()</code></pre>
+
+    self.__native_instance.restartAudioOutputDevice()</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNative.send_speaking_group_call_action"><code class="name flex">
@@ -1443,7 +1483,7 @@ muted (<code>bool</code>): Is muted.</p></div>
     logger.debug(f&#39;Set my value. New value: {volume}.&#39;)
 
     await self.edit_group_call(volume)
-    self.__native_instance.setVolume(uint_ssrc(self.my_ssrc), volume / 100)</code></pre>
+    self.__set_volume(uint_ssrc(self.my_ssrc), volume / 100)</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNative.start"><code class="name flex">
@@ -1500,19 +1540,13 @@ enable_action (<code>bool</code>): Is enables sending of speaking action.</p></d
 </summary>
 <pre><code class="python">async def stop(self):
     &#34;&#34;&#34;Properly stop tgcalls, remove pyrogram handler, leave from server side.&#34;&#34;&#34;
-
-    await self.leave_current_group_call()
-
-    self.my_ssrc = self.group_call = self.chat_peer = self.full_chat = None
-    self.is_connected = False
-
-    self.remove_update_handler()
-    self.__deinit_native_instance()
-    logger.debug(&#39;GroupCall stop.&#39;)</code></pre>
+    logger.debug(&#39;Stop requested. Wait for disconnected status.&#39;)
+    self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
+    await self.leave_current_group_call()</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNative.trigger_handlers"><code class="name flex">
-<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action, instance, *args, **kwargs)</span>
+<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action: str, instance: GroupCall, *args, **kwargs)</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -1560,14 +1594,14 @@ enable_action (<code>bool</code>): Is enables sending of speaking action.</p></d
 </summary>
 <pre><code class="python">class GroupCallNativeDispatcherMixin(DispatcherMixin):
 
-    def on_network_status_changed(self, func: callable) -&gt; callable:
+    def on_network_status_changed(self, func: Coroutine) -&gt; Coroutine:
         &#34;&#34;&#34;When a status of network will be changed.
 
         Args:
-            func (`function`): A functions that accept group_call and is_connected args.
+            func (`Coroutine`): A functions that accept group_call and is_connected args.
 
         Returns:
-            `function`: passed to args callback function.
+            `Coroutine`: passed to args callback function.
         &#34;&#34;&#34;
 
         return self.add_handler(func, GroupCallNativeAction.NETWORK_STATUS_CHANGED)</code></pre>
@@ -1584,7 +1618,7 @@ enable_action (<code>bool</code>): Is enables sending of speaking action.</p></d
 <h3>Methods</h3>
 <dl>
 <dt id="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin.add_handler"><code class="name flex">
-<span>def <span class="ident">add_handler</span></span>(<span>self, callback, action) ‑> <built-in function callable></span>
+<span>def <span class="ident">add_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> collections.abc.Coroutine</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -1594,33 +1628,33 @@ enable_action (<code>bool</code>): Is enables sending of speaking action.</p></d
 <div class="desc inherited"><p>Register new handler …</p></div>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin.on_network_status_changed"><code class="name flex">
-<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: <built-in function callable>) ‑> <built-in function callable></span>
+<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: Coroutine) ‑> Coroutine</span>
 </code></dt>
 <dd>
 <div class="desc"><p>When a status of network will be changed.</p>
 <h2 id="args">Args</h2>
-<p>func (<code>function</code>): A functions that accept group_call and is_connected args.</p>
+<p>func (<code>Coroutine</code>): A functions that accept group_call and is_connected args.</p>
 <h2 id="returns">Returns</h2>
-<p><code>function</code>: passed to args callback function.</p></div>
+<p><code>Coroutine</code>: passed to args callback function.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def on_network_status_changed(self, func: callable) -&gt; callable:
+<pre><code class="python">def on_network_status_changed(self, func: Coroutine) -&gt; Coroutine:
     &#34;&#34;&#34;When a status of network will be changed.
 
     Args:
-        func (`function`): A functions that accept group_call and is_connected args.
+        func (`Coroutine`): A functions that accept group_call and is_connected args.
 
     Returns:
-        `function`: passed to args callback function.
+        `Coroutine`: passed to args callback function.
     &#34;&#34;&#34;
 
     return self.add_handler(func, GroupCallNativeAction.NETWORK_STATUS_CHANGED)</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin.remove_handler"><code class="name flex">
-<span>def <span class="ident">remove_handler</span></span>(<span>self, callback, action) ‑> bool</span>
+<span>def <span class="ident">remove_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> bool</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -1630,7 +1664,7 @@ enable_action (<code>bool</code>): Is enables sending of speaking action.</p></d
 <div class="desc inherited"><p>Unregister the handler …</p></div>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin.trigger_handlers"><code class="name flex">
-<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action, instance, *args, **kwargs)</span>
+<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action: str, instance: GroupCall, *args, **kwargs)</span>
 </code></dt>
 <dd>
 <p class="inheritance">

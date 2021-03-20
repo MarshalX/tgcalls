@@ -63,7 +63,7 @@ from pytgcalls.dispatcher_mixin import DispatcherMixin
 
 __all__ = [&#39;GroupCallNative&#39;, &#39;GroupCall&#39;, &#39;Dispatcher&#39;, &#39;DispatcherMixin&#39;, &#39;Action&#39;, &#39;GroupCallNativeAction&#39;,
            &#39;GroupCallNativeDispatcherMixin&#39;, &#39;GroupCallAction&#39;, &#39;GroupCallDispatcherMixin&#39;]
-__version__ = &#39;0.0.12&#39;
+__version__ = &#39;0.0.14&#39;
 __pdoc__ = {
     &#39;Action&#39;: False,
     &#39;Dispatcher&#39;: False,
@@ -109,7 +109,7 @@ __pdoc__ = {
 <dl>
 <dt id="pytgcalls.GroupCall"><code class="flex name class">
 <span>class <span class="ident">GroupCall</span></span>
-<span>(</span><span>client: pyrogram.client.Client, input_filename: str = None, output_filename: str = None, play_on_repeat=True, enable_logs_to_console=False, path_to_log_file='group_call.log')</span>
+<span>(</span><span>client: Union[pyrogram.client.Client, NoneType] = None, input_filename: str = None, output_filename: str = None, play_on_repeat=True, enable_logs_to_console=False, path_to_log_file=None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -121,12 +121,12 @@ __pdoc__ = {
 
     def __init__(
             self,
-            client: pyrogram.Client,
+            client: Union[pyrogram.Client, None] = None,
             input_filename: str = None,
             output_filename: str = None,
             play_on_repeat=True,
             enable_logs_to_console=False,
-            path_to_log_file=&#39;group_call.log&#39;
+            path_to_log_file=None
     ):
         super().__init__(client, enable_logs_to_console, path_to_log_file)
         super(GroupCallDispatcherMixin, self).__init__(GroupCallAction)
@@ -359,7 +359,7 @@ def output_filename(self):
 <h3>Methods</h3>
 <dl>
 <dt id="pytgcalls.GroupCall.add_handler"><code class="name flex">
-<span>def <span class="ident">add_handler</span></span>(<span>self, callback, action) ‑> <built-in function callable></span>
+<span>def <span class="ident">add_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> collections.abc.Coroutine</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -429,7 +429,7 @@ def output_filename(self):
 <div class="desc inherited"><p>Leave group call from server side (MTProto part).</p></div>
 </dd>
 <dt id="pytgcalls.GroupCall.on_network_status_changed"><code class="name flex">
-<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: <built-in function callable>) ‑> <built-in function callable></span>
+<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: Coroutine) ‑> Coroutine</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -439,7 +439,7 @@ def output_filename(self):
 <div class="desc inherited"><p>When a status of network will be changed …</p></div>
 </dd>
 <dt id="pytgcalls.GroupCall.on_playout_ended"><code class="name flex">
-<span>def <span class="ident">on_playout_ended</span></span>(<span>self, func: <built-in function callable>)</span>
+<span>def <span class="ident">on_playout_ended</span></span>(<span>self, func: Coroutine) ‑> Coroutine</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -487,7 +487,7 @@ def output_filename(self):
 <div class="desc inherited"><p>Reconnect to current voice chat.</p></div>
 </dd>
 <dt id="pytgcalls.GroupCall.remove_handler"><code class="name flex">
-<span>def <span class="ident">remove_handler</span></span>(<span>self, callback, action) ‑> bool</span>
+<span>def <span class="ident">remove_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> bool</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -644,7 +644,7 @@ def output_filename(self):
 </details>
 </dd>
 <dt id="pytgcalls.GroupCall.trigger_handlers"><code class="name flex">
-<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action, instance, *args, **kwargs)</span>
+<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action: str, instance: GroupCall, *args, **kwargs)</span>
 </code></dt>
 <dd>
 <p class="inheritance">

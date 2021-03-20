@@ -54,6 +54,11 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 #
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see &lt;http://www.gnu.org/licenses/&gt;.
+from collections import Coroutine
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from . import GroupCall
 
 from .dispatcher import Dispatcher
 
@@ -63,24 +68,24 @@ class DispatcherMixin:
     def __init__(self, actions):
         self._dispatcher = Dispatcher(actions)
 
-    def add_handler(self, callback, action) -&gt; callable:
+    def add_handler(self, callback: Coroutine, action: str) -&gt; Coroutine:
         &#34;&#34;&#34;Register new handler.
 
         Args:
-            callback (`function`): Callback function.
+            callback (`Coroutine`): Callback function.
             action (`str`): Action.
 
         Returns:
-            `function`: original callback.
+            `Coroutine`: original callback.
         &#34;&#34;&#34;
 
         return self._dispatcher.add_handler(callback, action)
 
-    def remove_handler(self, callback, action) -&gt; bool:
+    def remove_handler(self, callback: Coroutine, action: str) -&gt; bool:
         &#34;&#34;&#34;Unregister the handler.
 
         Args:
-            callback (`function`): Callback function.
+            callback (`Coroutine`): Callback function.
             action (`str`): Action.
 
         Returns:
@@ -89,7 +94,7 @@ class DispatcherMixin:
 
         return self._dispatcher.remove_handler(callback, action)
 
-    def trigger_handlers(self, action, instance, *args, **kwargs):
+    def trigger_handlers(self, action: str, instance: &#39;GroupCall&#39;, *args, **kwargs):
         &#34;&#34;&#34;Unregister the handler.
 
         Args:
@@ -97,12 +102,9 @@ class DispatcherMixin:
             instance (`GroupCall`): Instance of GroupCall.
             *args (`list`, optional): Arbitrary callback arguments.
             **kwargs (`dict`, optional): Arbitrary callback arguments.
-
-        Returns:
-            `bool`: Return `True` if success.
         &#34;&#34;&#34;
 
-        return self._dispatcher.trigger_handlers(action, instance, *args, **kwargs)</code></pre>
+        self._dispatcher.trigger_handlers(action, instance, *args, **kwargs)</code></pre>
 </details>
 </section>
 <section>
@@ -129,24 +131,24 @@ class DispatcherMixin:
     def __init__(self, actions):
         self._dispatcher = Dispatcher(actions)
 
-    def add_handler(self, callback, action) -&gt; callable:
+    def add_handler(self, callback: Coroutine, action: str) -&gt; Coroutine:
         &#34;&#34;&#34;Register new handler.
 
         Args:
-            callback (`function`): Callback function.
+            callback (`Coroutine`): Callback function.
             action (`str`): Action.
 
         Returns:
-            `function`: original callback.
+            `Coroutine`: original callback.
         &#34;&#34;&#34;
 
         return self._dispatcher.add_handler(callback, action)
 
-    def remove_handler(self, callback, action) -&gt; bool:
+    def remove_handler(self, callback: Coroutine, action: str) -&gt; bool:
         &#34;&#34;&#34;Unregister the handler.
 
         Args:
-            callback (`function`): Callback function.
+            callback (`Coroutine`): Callback function.
             action (`str`): Action.
 
         Returns:
@@ -155,7 +157,7 @@ class DispatcherMixin:
 
         return self._dispatcher.remove_handler(callback, action)
 
-    def trigger_handlers(self, action, instance, *args, **kwargs):
+    def trigger_handlers(self, action: str, instance: &#39;GroupCall&#39;, *args, **kwargs):
         &#34;&#34;&#34;Unregister the handler.
 
         Args:
@@ -163,12 +165,9 @@ class DispatcherMixin:
             instance (`GroupCall`): Instance of GroupCall.
             *args (`list`, optional): Arbitrary callback arguments.
             **kwargs (`dict`, optional): Arbitrary callback arguments.
-
-        Returns:
-            `bool`: Return `True` if success.
         &#34;&#34;&#34;
 
-        return self._dispatcher.trigger_handlers(action, instance, *args, **kwargs)</code></pre>
+        self._dispatcher.trigger_handlers(action, instance, *args, **kwargs)</code></pre>
 </details>
 <h3>Subclasses</h3>
 <ul class="hlist">
@@ -177,40 +176,40 @@ class DispatcherMixin:
 <h3>Methods</h3>
 <dl>
 <dt id="pytgcalls.dispatcher_mixin.DispatcherMixin.add_handler"><code class="name flex">
-<span>def <span class="ident">add_handler</span></span>(<span>self, callback, action) ‑> <built-in function callable></span>
+<span>def <span class="ident">add_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> collections.abc.Coroutine</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Register new handler.</p>
 <h2 id="args">Args</h2>
-<p>callback (<code>function</code>): Callback function.
+<p>callback (<code>Coroutine</code>): Callback function.
 action (<code>str</code>): Action.</p>
 <h2 id="returns">Returns</h2>
-<p><code>function</code>: original callback.</p></div>
+<p><code>Coroutine</code>: original callback.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def add_handler(self, callback, action) -&gt; callable:
+<pre><code class="python">def add_handler(self, callback: Coroutine, action: str) -&gt; Coroutine:
     &#34;&#34;&#34;Register new handler.
 
     Args:
-        callback (`function`): Callback function.
+        callback (`Coroutine`): Callback function.
         action (`str`): Action.
 
     Returns:
-        `function`: original callback.
+        `Coroutine`: original callback.
     &#34;&#34;&#34;
 
     return self._dispatcher.add_handler(callback, action)</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.dispatcher_mixin.DispatcherMixin.remove_handler"><code class="name flex">
-<span>def <span class="ident">remove_handler</span></span>(<span>self, callback, action) ‑> bool</span>
+<span>def <span class="ident">remove_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> bool</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Unregister the handler.</p>
 <h2 id="args">Args</h2>
-<p>callback (<code>function</code>): Callback function.
+<p>callback (<code>Coroutine</code>): Callback function.
 action (<code>str</code>): Action.</p>
 <h2 id="returns">Returns</h2>
 <p><code>bool</code>: Return <code>True</code> if success.</p></div>
@@ -218,11 +217,11 @@ action (<code>str</code>): Action.</p>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def remove_handler(self, callback, action) -&gt; bool:
+<pre><code class="python">def remove_handler(self, callback: Coroutine, action: str) -&gt; bool:
     &#34;&#34;&#34;Unregister the handler.
 
     Args:
-        callback (`function`): Callback function.
+        callback (`Coroutine`): Callback function.
         action (`str`): Action.
 
     Returns:
@@ -233,7 +232,7 @@ action (<code>str</code>): Action.</p>
 </details>
 </dd>
 <dt id="pytgcalls.dispatcher_mixin.DispatcherMixin.trigger_handlers"><code class="name flex">
-<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action, instance, *args, **kwargs)</span>
+<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action: str, instance: GroupCall, *args, **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Unregister the handler.</p>
@@ -241,14 +240,12 @@ action (<code>str</code>): Action.</p>
 <p>action (<code>str</code>): Action.
 instance (<code>GroupCall</code>): Instance of GroupCall.
 <em>args (<code>list</code>, optional): Arbitrary callback arguments.
-</em>*kwargs (<code>dict</code>, optional): Arbitrary callback arguments.</p>
-<h2 id="returns">Returns</h2>
-<p><code>bool</code>: Return <code>True</code> if success.</p></div>
+</em>*kwargs (<code>dict</code>, optional): Arbitrary callback arguments.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def trigger_handlers(self, action, instance, *args, **kwargs):
+<pre><code class="python">def trigger_handlers(self, action: str, instance: &#39;GroupCall&#39;, *args, **kwargs):
     &#34;&#34;&#34;Unregister the handler.
 
     Args:
@@ -256,12 +253,9 @@ instance (<code>GroupCall</code>): Instance of GroupCall.
         instance (`GroupCall`): Instance of GroupCall.
         *args (`list`, optional): Arbitrary callback arguments.
         **kwargs (`dict`, optional): Arbitrary callback arguments.
-
-    Returns:
-        `bool`: Return `True` if success.
     &#34;&#34;&#34;
 
-    return self._dispatcher.trigger_handlers(action, instance, *args, **kwargs)</code></pre>
+    self._dispatcher.trigger_handlers(action, instance, *args, **kwargs)</code></pre>
 </details>
 </dd>
 </dl>
