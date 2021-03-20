@@ -105,39 +105,3 @@ function(link_libjpeg target_name)
         )
     endif()
 endfunction()
-
-# alsa
-function(link_libalsa target_name)
-    if (TG_OWT_PACKAGED_BUILD)
-        find_package(ALSA REQUIRED)
-        target_include_directories(${target_name} PRIVATE ${ALSA_INCLUDE_DIRS})
-    endif()
-endfunction()
-
-# pulseaudio
-function(link_libpulse target_name)
-    if (TG_OWT_PACKAGED_BUILD)
-        find_package(PkgConfig REQUIRED)
-        pkg_check_modules(PULSE REQUIRED libpulse)
-        target_include_directories(${target_name} PRIVATE ${PULSE_INCLUDE_DIRS})
-    endif()
-endfunction()
-
-# dl
-function(link_dl target_name)
-    if (TG_OWT_PACKAGED_BUILD)
-        target_link_libraries(${target_name} PRIVATE ${CMAKE_DL_LIBS})
-    endif()
-endfunction()
-
-# x11
-function(link_x11 target_name)
-    if (TG_OWT_PACKAGED_BUILD)
-        find_package(X11 REQUIRED COMPONENTS Xtst)
-        target_include_directories(${target_name} PRIVATE ${X11_X11_INCLUDE_PATH})
-        target_include_directories(${target_name} PRIVATE ${X11_Xlib_INCLUDE_PATH})
-        target_link_libraries(${target_name} PRIVATE ${X11_X11_LIB})
-        target_include_directories(${target_name} PRIVATE ${X11_Xtst_INCLUDE_PATH})
-        target_link_libraries(${target_name} PRIVATE ${X11_Xtst_LIB})
-    endif()
-endfunction()
