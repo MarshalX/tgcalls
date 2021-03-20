@@ -1,3 +1,22 @@
+#  tgcalls - Python binding for tgcalls (c++ lib by Telegram)
+#  pytgcalls - Library connecting python binding for tgcalls and Pyrogram
+#  Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>
+#
+#  This file is part of tgcalls and pytgcalls.
+#
+#  tgcalls and pytgcalls is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU Lesser General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  tgcalls and pytgcalls is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Lesser General Public License for more details.
+#
+#  You should have received a copy of the GNU Lesser General Public License v3
+#  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
+
 import asyncio
 import hashlib
 import os
@@ -5,7 +24,7 @@ from random import randint
 from typing import Union
 
 import pyrogram
-from pyrogram import errors, filters
+from pyrogram import errors
 from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
 

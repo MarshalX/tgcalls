@@ -16,6 +16,11 @@
 #
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
+from collections import Coroutine
+
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from . import GroupCall
 
 from .dispatcher import Dispatcher
 
@@ -25,24 +30,24 @@ class DispatcherMixin:
     def __init__(self, actions):
         self._dispatcher = Dispatcher(actions)
 
-    def add_handler(self, callback, action) -> callable:
+    def add_handler(self, callback: Coroutine, action: str) -> Coroutine:
         """Register new handler.
 
         Args:
-            callback (`function`): Callback function.
+            callback (`Coroutine`): Callback function.
             action (`str`): Action.
 
         Returns:
-            `function`: original callback.
+            `Coroutine`: original callback.
         """
 
         return self._dispatcher.add_handler(callback, action)
 
-    def remove_handler(self, callback, action) -> bool:
+    def remove_handler(self, callback: Coroutine, action: str) -> bool:
         """Unregister the handler.
 
         Args:
-            callback (`function`): Callback function.
+            callback (`Coroutine`): Callback function.
             action (`str`): Action.
 
         Returns:
@@ -51,7 +56,7 @@ class DispatcherMixin:
 
         return self._dispatcher.remove_handler(callback, action)
 
-    def trigger_handlers(self, action, instance, *args, **kwargs):
+    def trigger_handlers(self, action: str, instance: 'GroupCall', *args, **kwargs):
         """Unregister the handler.
 
         Args:
@@ -59,9 +64,6 @@ class DispatcherMixin:
             instance (`GroupCall`): Instance of GroupCall.
             *args (`list`, optional): Arbitrary callback arguments.
             **kwargs (`dict`, optional): Arbitrary callback arguments.
-
-        Returns:
-            `bool`: Return `True` if success.
         """
 
-        return self._dispatcher.trigger_handlers(action, instance, *args, **kwargs)
+        self._dispatcher.trigger_handlers(action, instance, *args, **kwargs)
