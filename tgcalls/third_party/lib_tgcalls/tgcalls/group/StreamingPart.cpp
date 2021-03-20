@@ -12,6 +12,7 @@ extern "C" {
 #include <string>
 #include <set>
 #include <map>
+#include <stdint.h>
 
 namespace tgcalls {
 
@@ -98,9 +99,11 @@ public:
         if (bytesToRead > 0) {
             memcpy(buffer, instance->_fileData.data() + instance->_fileReadPosition, bytesToRead);
             instance->_fileReadPosition += bytesToRead;
-        }
 
-        return bytesToRead;
+            return bytesToRead;
+        } else {
+            return AVERROR_EOF;
+        }
     }
 
     static int64_t seek(void *opaque, int64_t offset, int whence) {
@@ -173,6 +176,7 @@ public:
         }
 
         AVCodecParameters *audioCodecParameters = nullptr;
+        AVStream *audioStream = nullptr;
         for (int i = 0; i < _inputFormatContext->nb_streams; i++) {
             AVStream *inStream = _inputFormatContext->streams[i];
 
@@ -181,6 +185,7 @@ public:
                 continue;
             }
             audioCodecParameters = inCodecpar;
+            audioStream = inStream;
 
             _durationInMilliseconds = (int)((inStream->duration + inStream->first_dts) * 1000 / 48000);
 
@@ -202,7 +207,7 @@ public:
             break;
         }
 
-        if (audioCodecParameters) {
+        if (audioCodecParameters && audioStream) {
             AVCodec *codec = avcodec_find_decoder(audioCodecParameters->codec_id);
             if (codec) {
                 _codecContext = avcodec_alloc_context3(codec);
@@ -213,6 +218,8 @@ public:
                     avcodec_free_context(&_codecContext);
                     _codecContext = nullptr;
                 } else {
+                    _codecContext->pkt_timebase = audioStream->time_base;
+
                     _channelCount = _codecContext->channels;
 
                     ret = avcodec_open2(_codecContext, codec, nullptr);
@@ -282,6 +289,10 @@ public:
     }
 
 private:
+    static int16_t sampleFloatToInt16(float sample) {
+      return av_clip_int16 (static_cast<int32_t>(lrint(sample*32767)));
+    }
+
     void fillPcmBuffer() {
         _pcmBufferSampleSize = 0;
         _pcmBufferSampleOffset = 0;
@@ -350,7 +361,7 @@ private:
         case AV_SAMPLE_FMT_FLT: {
 			float *floatData = (float *)&_frame->data[0];
 			for (int i = 0; i < _frame->nb_samples * _frame->channels; i++) {
-				_pcmBuffer[i] = (int16_t)(floatData[i] * INT16_MAX);
+				_pcmBuffer[i] = sampleFloatToInt16(floatData[i]);
 			}
         } break;
 
@@ -359,7 +370,7 @@ private:
 			for (int sample = 0; sample < _frame->nb_samples; ++sample) {
 				for (int channel = 0; channel < _frame->channels; ++channel) {
 					float *floatChannel = (float*)_frame->data[channel];
-					*to++ = (int16_t)(floatChannel[sample] * INT16_MAX);
+					*to++ = sampleFloatToInt16(floatChannel[sample]);
 				}
 			}
         } break;

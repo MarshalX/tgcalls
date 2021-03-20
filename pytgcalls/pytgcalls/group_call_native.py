@@ -20,7 +20,7 @@
 import asyncio
 import json
 import logging
-from typing import List, Union
+from typing import List, Union, Coroutine
 
 import pyrogram
 from pyrogram import raw
@@ -46,14 +46,14 @@ class GroupCallNativeAction:
 
 class GroupCallNativeDispatcherMixin(DispatcherMixin):
 
-    def on_network_status_changed(self, func: callable) -> callable:
+    def on_network_status_changed(self, func: Coroutine) -> Coroutine:
         """When a status of network will be changed.
 
         Args:
-            func (`function`): A functions that accept group_call and is_connected args.
+            func (`Coroutine`): A functions that accept group_call and is_connected args.
 
         Returns:
-            `function`: passed to args callback function.
+            `Coroutine`: passed to args callback function.
         """
 
         return self.add_handler(func, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
@@ -74,9 +74,9 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     def __init__(
             self,
-            client: pyrogram.Client,
+            client: Union[pyrogram.Client, None],
             enable_logs_to_console: bool,
-            path_to_log_file: str
+            path_to_log_file='group_call.log'
     ):
         super().__init__(GroupCallNativeAction)
         self.client = client

@@ -17,7 +17,7 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Union
+from typing import Union, Coroutine
 
 import pyrogram
 
@@ -32,14 +32,14 @@ class GroupCallAction(GroupCallNativeAction):
 
 class GroupCallDispatcherMixin(GroupCallNativeDispatcherMixin):
 
-    def on_playout_ended(self, func: callable):
+    def on_playout_ended(self, func: Coroutine) -> Coroutine:
         """When a input file is ended.
 
         Args:
-            func (`function`): A functions that accept group_call and filename args.
+            func (`Coroutine`): A functions that accept group_call and filename args.
 
         Returns:
-            `function`: passed to args callback function.
+            `Coroutine`: passed to args callback function.
         """
 
         return self.add_handler(func, GroupCallAction.PLAYOUT_ENDED)
@@ -49,12 +49,12 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
 
     def __init__(
             self,
-            client: pyrogram.Client,
+            client: Union[pyrogram.Client, None] = None,
             input_filename: str = None,
             output_filename: str = None,
             play_on_repeat=True,
             enable_logs_to_console=False,
-            path_to_log_file='group_call.log'
+            path_to_log_file=None
     ):
         super().__init__(client, enable_logs_to_console, path_to_log_file)
         super(GroupCallDispatcherMixin, self).__init__(GroupCallAction)

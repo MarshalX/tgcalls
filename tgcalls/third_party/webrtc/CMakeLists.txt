@@ -21,6 +21,10 @@ endif()
 option(BUILD_SHARED_LIBS "Builds shared libraries instead of static." ${TG_OWT_PACKAGED_BUILD})
 option(TG_OWT_USE_PROTOBUF "Use protobuf to generate additional headers. Useful for packaged build." ${BUILD_SHARED_LIBS})
 
+if (BUILD_SHARED_LIBS)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
+
 project(tg_owt
     LANGUAGES C CXX ASM
     DESCRIPTION "WebRTC build for Telegram"
@@ -138,13 +142,6 @@ link_openssl(tg_owt)
 link_ffmpeg(tg_owt)
 link_opus(tg_owt)
 
-if (UNIX AND NOT APPLE)
-    link_libalsa(tg_owt)
-    link_libpulse(tg_owt)
-    link_dl(tg_owt)
-    link_x11(tg_owt)
-endif()
-
 function(add_sublibrary postfix)
     add_library(tg_owt_${postfix} OBJECT)
     init_feature_target(tg_owt_${postfix} ${postfix})
@@ -193,8 +190,8 @@ PRIVATE
     rtc_base/crypt_string.h
     rtc_base/checks.cc
     rtc_base/checks.h
-    #rtc_base/critical_section.cc
-    #rtc_base/critical_section.h
+    # rtc_base/critical_section.cc
+    # rtc_base/critical_section.h
     rtc_base/data_rate_limiter.cc
     rtc_base/data_rate_limiter.h
     rtc_base/dscp.h
@@ -352,8 +349,6 @@ PRIVATE
     rtc_base/win32_window.h
     rtc_base/win/scoped_com_initializer.cc
     rtc_base/win/scoped_com_initializer.h
-    rtc_base/win/windows_version.cc
-    rtc_base/win/windows_version.h
     rtc_base/strings/string_builder.cc
     rtc_base/strings/string_builder.h
     rtc_base/strings/string_format.cc
@@ -969,8 +964,6 @@ PRIVATE
     modules/audio_coding/neteq/sync_buffer.cc
     modules/audio_coding/neteq/time_stretch.cc
     modules/audio_coding/neteq/timestamp_scaler.cc
-    modules/audio_device/include/audio_device_factory.cc
-    modules/audio_device/include/audio_device_factory.h
     # modules/audio_device/android/audio_manager.cc
     # modules/audio_device/android/audio_record_jni.cc
     # modules/audio_device/android/audio_track_jni.cc
@@ -978,36 +971,10 @@ PRIVATE
     # modules/audio_device/android/opensles_common.cc
     # modules/audio_device/android/opensles_player.cc
     # modules/audio_device/android/opensles_recorder.cc
-    modules/audio_device/linux/alsasymboltable_linux.cc
-    modules/audio_device/linux/alsasymboltable_linux.h
-    modules/audio_device/linux/audio_device_alsa_linux.cc
-    modules/audio_device/linux/audio_device_alsa_linux.h
-    modules/audio_device/linux/audio_mixer_manager_alsa_linux.cc
-    modules/audio_device/linux/audio_mixer_manager_alsa_linux.h
-    modules/audio_device/linux/latebindingsymboltable_linux.cc
-    modules/audio_device/linux/latebindingsymboltable_linux.h
-    modules/audio_device/linux/audio_device_pulse_linux.cc
-    modules/audio_device/linux/audio_device_pulse_linux.h
-    modules/audio_device/linux/audio_mixer_manager_pulse_linux.cc
-    modules/audio_device/linux/audio_mixer_manager_pulse_linux.h
-    modules/audio_device/linux/pulseaudiosymboltable_linux.cc
-    modules/audio_device/linux/pulseaudiosymboltable_linux.h
     modules/audio_device/mac/audio_device_mac.cc
     modules/audio_device/mac/audio_device_mac.h
     modules/audio_device/mac/audio_mixer_manager_mac.cc
     modules/audio_device/mac/audio_mixer_manager_mac.h
-    modules/audio_device/win/audio_device_module_win.cc
-    modules/audio_device/win/audio_device_module_win.h
-    modules/audio_device/win/core_audio_base_win.cc
-    modules/audio_device/win/core_audio_base_win.h
-    modules/audio_device/win/core_audio_input_win.cc
-    modules/audio_device/win/core_audio_input_win.h
-    modules/audio_device/win/core_audio_output_win.cc
-    modules/audio_device/win/core_audio_output_win.h
-    modules/audio_device/win/core_audio_utility_win.cc
-    modules/audio_device/win/core_audio_utility_win.h
-    modules/audio_device/win/audio_device_core_win.cc
-    modules/audio_device/win/audio_device_core_win.h
     modules/audio_device/audio_device_buffer.cc
     modules/audio_device/audio_device_data_observer.cc
     modules/audio_device/audio_device_generic.cc
@@ -1902,6 +1869,8 @@ PRIVATE
     modules/desktop_capture/screen_drawer.cc
     modules/desktop_capture/screen_drawer.h
     modules/desktop_capture/screen_drawer_mac.cc
+    modules/desktop_capture/screen_drawer_lock_posix.cc
+    modules/desktop_capture/screen_drawer_lock_posix.h
 
 
     #primitives
@@ -1964,13 +1933,8 @@ PRIVATE
     modules/desktop_capture/window_finder.cc
     modules/desktop_capture/window_finder.h
     
-    #linux specific
-    modules/desktop_capture/window_capturer_linux.cc
-    modules/desktop_capture/screen_drawer_lock_posix.cc
-    modules/desktop_capture/screen_drawer_lock_posix.h
-    modules/desktop_capture/screen_drawer_linux.cc
-    modules/desktop_capture/linux/shared_x_display.cc
-    modules/desktop_capture/linux/shared_x_display.h
+    #stubs for non-mac
+    modules/desktop_capture/window_capturer_null.cc
 
     #mac specific //
     modules/desktop_capture/mac/desktop_configuration.mm
@@ -2040,19 +2004,19 @@ if (NOT WIN32)
         rtc_base/task_queue_win.cc
         rtc_base/task_queue_win.h
         api/task_queue/default_task_queue_factory_win.cc
-        modules/audio_device/include/audio_device_factory.cc
-        modules/audio_device/include/audio_device_factory.h
     )
 endif()
 
-if ((NOT BUILD_SHARED_LIBS) OR (NOT UNIX))
+if (APPLE)
     remove_target_sources(tg_owt ${webrtc_loc}
-        modules/desktop_capture/window_capturer_linux.cc
+        modules/desktop_capture/window_capturer_null.cc
+    )
+endif()
+
+if (NOT UNIX)
+    remove_target_sources(tg_owt ${webrtc_loc}
         modules/desktop_capture/screen_drawer_lock_posix.cc
         modules/desktop_capture/screen_drawer_lock_posix.h
-        modules/desktop_capture/screen_drawer_linux.cc
-        modules/desktop_capture/linux/shared_x_display.cc
-        modules/desktop_capture/linux/shared_x_display.h
     )
 endif()
 
