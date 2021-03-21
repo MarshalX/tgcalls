@@ -20,7 +20,7 @@ from collections import Coroutine
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from . import GroupCall
+    from . import GroupCallNative
 
 from .dispatcher import Dispatcher
 
@@ -56,12 +56,12 @@ class DispatcherMixin:
 
         return self._dispatcher.remove_handler(callback, action)
 
-    def trigger_handlers(self, action: str, instance: 'GroupCall', *args, **kwargs):
+    def trigger_handlers(self, action: str, instance: 'GroupCallNative', *args, **kwargs):
         """Unregister the handler.
 
         Args:
             action (`str`): Action.
-            instance (`GroupCall`): Instance of GroupCall.
+            instance (`GroupCallNative`): Instance of GroupCall.
             *args (`list`, optional): Arbitrary callback arguments.
             **kwargs (`dict`, optional): Arbitrary callback arguments.
         """

@@ -20,14 +20,15 @@
 import asyncio
 import json
 import logging
-from typing import List, Union, Coroutine
+from typing import List, Union, Coroutine, Optional
 
 import pyrogram
 from pyrogram import raw
-from pyrogram.errors import BadRequest
+from pyrogram.errors import BadRequest, GroupcallSsrcDuplicateMuch
 from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
-from pyrogram.raw.types import InputPeerChannel, InputPeerChat
+from pyrogram.raw.base import InputPeer, Peer
+from pyrogram.raw.types import InputPeerChannel, InputPeerChat, InputPeerUser
 
 import tgcalls
 from .action import Action
@@ -84,8 +85,10 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         self.__native_instance = None
 
-        self.my_user_id = None
-        '''Client user account ID'''
+        self.join_as = None
+        '''How to present yourself in participants list'''
+        self.my_peer = None
+        '''Client user peer'''
         self.group_call = None
         '''Instance of Pyrogram's group call'''
 
@@ -144,7 +147,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
             if participant.left:
                 ssrcs_to_remove.append(ssrc)
-            elif participant.user_id == self.my_user_id and ssrc != self.my_ssrc:
+            elif participant.peer == self.join_as and ssrc != self.my_ssrc:
                 logger.debug('Reconnect. Not equal ssrc.')
                 await self.reconnect()
 
@@ -218,24 +221,23 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             muted (`bool`): Is muted.
         """
 
-        user_id = await self.client.storage.get_peer_by_id(self.my_user_id)
-        await self.edit_group_call_member(user_id, volume, muted)
+        await self.edit_group_call_member(self.join_as, volume, muted)
 
-    async def edit_group_call_member(self, user_id, volume: int = None, muted=False):
+    async def edit_group_call_member(self, peer: Peer, volume: int = None, muted=False):
         """Edit setting of user in voice chat (required voice chat management permission).
 
         Note:
             There is bug where you can try to pass `volume=100`.
 
         Args:
-            user_id (`InputUser`): User (InputUser of Pyrogram).
+            peer (`InputPeer`): Participant of voice chat.
             volume (`int`): Volume.
             muted (`bool`): Is muted.
         """
 
-        response = await self.client.send(functions.phone.EditGroupCallMember(
+        response = await self.client.send(functions.phone.EditGroupCallParticipant(
             call=self.full_chat.call,
-            user_id=user_id,
+            participant=peer,
             muted=muted,
             volume=max(1, volume * 100) if volume is not None else None
         ))
@@ -299,40 +301,54 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
         await self.leave_current_group_call()
 
-    async def start(self, group: Union[str, int, InputPeerChannel, InputPeerChat], enable_action=True):
+    async def start(
+            self,
+            group: Union[str, int, InputPeerChannel, InputPeerChat],
+            join_as: Optional[Union[str, int, InputPeerChannel, InputPeerChat, InputPeerUser]] = None,
+            enable_action=True
+    ):
         """Start voice chat (join and play/record from initial values).
 
         Note:
             Disconnect from current voice chat and connect to the new one.
             Multiple instances of `GroupCall` must be created for multiple voice chats at the same time.
+            Join as by default is personal account.
 
         Args:
             group (`InputPeerChannel` | `InputPeerChat` | `str` | `int`): Chat ID in any form.
-            enable_action (`bool`): Is enables sending of speaking action.
+            join_as (`InputPeer` | `str` | `int`, optional): How to present yourself in participants list.
+            enable_action (`bool`, optional): Is enables sending of speaking action.
         """
 
         if self.is_connected:
             await self.stop()
 
-        await self.get_group_call(group)
+        self.my_peer = await self.client.resolve_peer(await self.client.storage.user_id())
+        self.enable_action = enable_action
 
+        await self.get_group_call(group)
         if self.group_call is None:
             raise RuntimeError('Chat without a voice chat')
+
+        if join_as is None:
+            self.join_as = self.my_peer
+        elif isinstance(join_as, str) or isinstance(join_as, int):
+            self.join_as = await self.client.resolve_peer(join_as)
+        else:
+            self.join_as = join_as
 
         handler_group = await self.__set_and_get_handler_group()
         self.client.add_handler(self._update_handler, handler_group)
         self.__native_instance = self.__create_and_setup_native_instance()
 
-        self.enable_action = enable_action
-        self.my_user_id = await self.client.storage.user_id()
-
     async def reconnect(self):
         """Reconnect to current voice chat."""
         chat_peer = self.chat_peer
+        join_as = self.join_as
         enable_action = self.enable_action
 
         await self.stop()
-        await self.start(chat_peer, enable_action)
+        await self.start(chat_peer, join_as, enable_action)
 
     async def _start_group_call(self, *args):
         logger.debug('Start native group call..')
@@ -369,7 +385,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.__set_volume(uint_ssrc(self.my_ssrc), volume / 100)
 
     def restart_playout(self):
-        """Start play current inputfile from start or just reload file audio device.
+        """Start play current input file from start or just reload file audio device.
 
         Note:
             Device restart needed to apply new filename in tgcalls.
@@ -378,7 +394,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.__native_instance.restartAudioInputDevice()
 
     def restart_recording(self):
-        """Start recording to outpufile from begin or just restart recording device.
+        """Start recording to output file from begin or just restart recording device.
 
         Note:
             Device restart needed to apply new filename in tgcalls.
@@ -424,9 +440,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.trigger_handlers(GroupCallNativeAction.NETWORK_STATUS_CHANGED, self, state)
 
         logger.debug(f'New network state is {self.is_connected}.')
-
-    # async def audio_levels_updated_callback(self):
-    #     pass  # TODO
 
     def __start_status_worker(self):
         async def worker():
@@ -505,12 +518,19 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         }
 
         async def _():
-            response = await self.client.send(functions.phone.JoinGroupCall(
-                call=self.group_call,
-                params=types.DataJSON(data=json.dumps(params)),
-                muted=True
-            ))
-            await self.client.handle_updates(response)
-            logger.debug(f'Successfully connected to VC with ssrc={self.my_ssrc}.')
+            try:
+                response = await self.client.send(functions.phone.JoinGroupCall(
+                    call=self.group_call,
+                    join_as=self.join_as,
+                    params=types.DataJSON(data=json.dumps(params)),
+                    muted=True
+                ))
+
+                await self.client.handle_updates(response)
+                logger.debug(f'Successfully connected to VC with ssrc={self.my_ssrc} as {type(self.join_as).__name__}.')
+            except GroupcallSsrcDuplicateMuch:
+                logger.debug('Reconnect. Duplicate SSRC')
+                # TODO
+                # await self.reconnect()
 
         asyncio.ensure_future(_(), loop=self.client.loop)

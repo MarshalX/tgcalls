@@ -24,7 +24,7 @@ from typing import List
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from . import GroupCall
+    from . import GroupCallNative
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ class Dispatcher:
         except KeyError:
             raise RuntimeError('Invalid action')
 
-    def trigger_handlers(self, action: str, instance: 'GroupCall', *args, **kwargs):
+    def trigger_handlers(self, action: str, instance: 'GroupCallNative', *args, **kwargs):
         logger.debug(f'Trigger handlers of {action}')
 
         for handler in self.get_handlers(action):

@@ -464,8 +464,11 @@ async def main(client1, client2, make_out, make_inc):
 
     # @client2.on_message(filters.text & filters.outgoing & ~filters.edited & filters.command('test', prefixes='!'))
     # async def test(client, message):
-    group_call = GroupCall(client2, '6s.raw', enable_logs_to_console=True)
-    await group_call.start('@MarshalCm')
+    group_call = GroupCall(client2, 'input.raw', enable_logs_to_console=False)
+    # await group_call.start('@MarshalR', '@MarshalR')
+    await group_call.start('@MarshalR', '@MarshalR')
+    # await group_call.start('@MarshalR', '@ilya_marshal')
+    # await group_call.start('@MarshalR')
 
     group_call.add_handler(
         network_status_changed_handler,
@@ -475,55 +478,22 @@ async def main(client1, client2, make_out, make_inc):
     @group_call.on_playout_ended
     async def playout_ended_handler(group_call, filename):
         print(f'{filename} is ended')
-        # await group_call.stop()
 
-    await asyncio.sleep(10)
-    group_call.pause_playout()
-    group_call.pause_recording()
     await asyncio.sleep(5)
+    await group_call.set_my_volume(200)
+    # group_call.pause_playout()
+    # await asyncio.sleep(5)
     # group_call.resume_playout()
-    # group_call.resume_recording()
     # await asyncio.sleep(5)
     # group_call.input_filename = 'input.raw'
     # await asyncio.sleep(5)
     # group_call.stop_playout()
-    # group_call.stop_output()
     # group_call.restart_playout()
     # await asyncio.sleep(5)
-    await group_call.stop()
-    # print('pup')
-
-
-    '''
-    
-    chats = ['@MarshalCm', '@MarshalCh'] * 10
-    chats = ['@MarshalCm']
-    group_call = pytgcalls.GroupCall(client2, 'input.raw', 'output.raw', False, '')
-    for chat in chats:
-        await group_call.start(chat, False)
-    #
-        while not group_call.is_connected:
-    #         print('Wait')
-            await asyncio.sleep(1)
-    #
-        print('Connected')
-
-        # print(await group_call.check_group_call())
-
-        # await asyncio.sleep(10)
-        # await group_call.reconnect()
-        await asyncio.sleep(10000)
-
-        # await group_call.stop()
-        # await group_call.start(chat, False)
-
-    '''
+    # await group_call.stop()
 
     # group_call.native_instance.setAudioInputDevice('VB-Cable')
     # group_call.native_instance.setAudioOutputDevice('default (Built-in Output)')
-
-    # await asyncio.sleep(60)
-    # group_call.native_instance.stopGroupCall()
 
     # await start(client1, client2, make_out, make_inc)
 
@@ -548,7 +518,7 @@ if __name__ == '__main__':
     make_out = False
     make_inc = True
 
-    # c1, c2 = c2, c1
+    c1, c2 = c2, c1
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main(c1, c2, make_out, make_inc))
