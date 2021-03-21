@@ -76,7 +76,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self,
             client: Union[pyrogram.Client, None],
             enable_logs_to_console: bool,
-            path_to_log_file='group_call.log'
+            path_to_log_file,
     ):
         super().__init__(GroupCallNativeAction)
         self.client = client
@@ -101,7 +101,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         '''Is enable sending of speaking action'''
         self.enable_logs_to_console = enable_logs_to_console
         '''Is enable logs to stderr from tgcalls'''
-        self.path_to_log_file = path_to_log_file
+        self.path_to_log_file = path_to_log_file or 'group_call.log'
         '''Path to log file for logs of tgcalls'''
 
         self.is_connected = False
