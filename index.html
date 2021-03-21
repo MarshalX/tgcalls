@@ -63,7 +63,7 @@ from pytgcalls.dispatcher_mixin import DispatcherMixin
 
 __all__ = [&#39;GroupCallNative&#39;, &#39;GroupCall&#39;, &#39;Dispatcher&#39;, &#39;DispatcherMixin&#39;, &#39;Action&#39;, &#39;GroupCallNativeAction&#39;,
            &#39;GroupCallNativeDispatcherMixin&#39;, &#39;GroupCallAction&#39;, &#39;GroupCallDispatcherMixin&#39;]
-__version__ = &#39;0.0.15&#39;
+__version__ = &#39;0.0.16&#39;
 __pdoc__ = {
     &#39;Action&#39;: False,
     &#39;Dispatcher&#39;: False,
@@ -150,8 +150,8 @@ __pdoc__ = {
 
         return file_audio_device_descriptor
 
-    async def start(self, group: Union[str, int], enable_action=True):
-        await super().start(group, enable_action)
+    async def start(self, group, join_as=None, enable_action=True):
+        await super().start(group, join_as, enable_action)
 
         await self._start_group_call(self.__create_file_audio_device_descriptor())
 
@@ -313,6 +313,22 @@ def input_filename(self):
 </p>
 <div class="desc inherited"><p>Is connected to voice chat via tgcalls</p></div>
 </dd>
+<dt id="pytgcalls.GroupCall.join_as"><code class="name">var <span class="ident">join_as</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.join_as" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.join_as">join_as</a></code>
+</p>
+<div class="desc inherited"><p>How to present yourself in participants list</p></div>
+</dd>
+<dt id="pytgcalls.GroupCall.my_peer"><code class="name">var <span class="ident">my_peer</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.my_peer" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.my_peer">my_peer</a></code>
+</p>
+<div class="desc inherited"><p>Client user peer</p></div>
+</dd>
 <dt id="pytgcalls.GroupCall.my_ssrc"><code class="name">var <span class="ident">my_ssrc</span></code></dt>
 <dd>
 <p class="inheritance">
@@ -320,14 +336,6 @@ def input_filename(self):
 <code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.my_ssrc" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.my_ssrc">my_ssrc</a></code>
 </p>
 <div class="desc inherited"><p>Client SSRC (Synchronization Source)</p></div>
-</dd>
-<dt id="pytgcalls.GroupCall.my_user_id"><code class="name">var <span class="ident">my_user_id</span></code></dt>
-<dd>
-<p class="inheritance">
-<em>Inherited from:</em>
-<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.my_user_id" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.my_user_id">my_user_id</a></code>
-</p>
-<div class="desc inherited"><p>Client user account ID</p></div>
 </dd>
 <dt id="pytgcalls.GroupCall.output_filename"><code class="name">var <span class="ident">output_filename</span></code></dt>
 <dd>
@@ -389,7 +397,7 @@ def output_filename(self):
 <div class="desc inherited"><p>Edit own settings of group call …</p></div>
 </dd>
 <dt id="pytgcalls.GroupCall.edit_group_call_member"><code class="name flex">
-<span>async def <span class="ident">edit_group_call_member</span></span>(<span>self, user_id, volume: int = None, muted=False)</span>
+<span>async def <span class="ident">edit_group_call_member</span></span>(<span>self, peer: pyrogram.raw.base.peer.Peer, volume: int = None, muted=False)</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -514,7 +522,7 @@ def output_filename(self):
 <em>Inherited from:</em>
 <code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.restart_playout" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.restart_playout">restart_playout</a></code>
 </p>
-<div class="desc inherited"><p>Start play current inputfile from start or just reload file audio device …</p></div>
+<div class="desc inherited"><p>Start play current input file from start or just reload file audio device …</p></div>
 </dd>
 <dt id="pytgcalls.GroupCall.restart_recording"><code class="name flex">
 <span>def <span class="ident">restart_recording</span></span>(<span>self)</span>
@@ -524,7 +532,7 @@ def output_filename(self):
 <em>Inherited from:</em>
 <code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.restart_recording" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.restart_recording">restart_recording</a></code>
 </p>
-<div class="desc inherited"><p>Start recording to outpufile from begin or just restart recording device …</p></div>
+<div class="desc inherited"><p>Start recording to output file from begin or just restart recording device …</p></div>
 </dd>
 <dt id="pytgcalls.GroupCall.resume_playout"><code class="name flex">
 <span>def <span class="ident">resume_playout</span></span>(<span>self)</span>
@@ -585,7 +593,7 @@ def output_filename(self):
 <div class="desc inherited"><p>Set volume for current client …</p></div>
 </dd>
 <dt id="pytgcalls.GroupCall.start"><code class="name flex">
-<span>async def <span class="ident">start</span></span>(<span>self, group: Union[str, int], enable_action=True)</span>
+<span>async def <span class="ident">start</span></span>(<span>self, group, join_as=None, enable_action=True)</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -597,8 +605,8 @@ def output_filename(self):
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">async def start(self, group: Union[str, int], enable_action=True):
-    await super().start(group, enable_action)
+<pre><code class="python">async def start(self, group, join_as=None, enable_action=True):
+    await super().start(group, join_as, enable_action)
 
     await self._start_group_call(self.__create_file_audio_device_descriptor())</code></pre>
 </details>
@@ -644,7 +652,7 @@ def output_filename(self):
 </details>
 </dd>
 <dt id="pytgcalls.GroupCall.trigger_handlers"><code class="name flex">
-<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action: str, instance: GroupCall, *args, **kwargs)</span>
+<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action: str, instance: GroupCallNative, *args, **kwargs)</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -747,9 +755,10 @@ data-gaCategoryParameter="pytgcalls">
 <li><code><a title="pytgcalls.GroupCall.group_call" href="group_call_native.html#pytgcalls.GroupCall.group_call">group_call</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.input_filename" href="#pytgcalls.GroupCall.input_filename">input_filename</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.is_connected" href="group_call_native.html#pytgcalls.GroupCall.is_connected">is_connected</a></code></li>
+<li><code><a title="pytgcalls.GroupCall.join_as" href="group_call_native.html#pytgcalls.GroupCall.join_as">join_as</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.leave_current_group_call" href="group_call_native.html#pytgcalls.GroupCall.leave_current_group_call">leave_current_group_call</a></code></li>
+<li><code><a title="pytgcalls.GroupCall.my_peer" href="group_call_native.html#pytgcalls.GroupCall.my_peer">my_peer</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.my_ssrc" href="group_call_native.html#pytgcalls.GroupCall.my_ssrc">my_ssrc</a></code></li>
-<li><code><a title="pytgcalls.GroupCall.my_user_id" href="group_call_native.html#pytgcalls.GroupCall.my_user_id">my_user_id</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.on_network_status_changed" href="group_call_native.html#pytgcalls.GroupCall.on_network_status_changed">on_network_status_changed</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.on_playout_ended" href="group_call.html#pytgcalls.GroupCall.on_playout_ended">on_playout_ended</a></code></li>
 <li><code><a title="pytgcalls.GroupCall.output_filename" href="#pytgcalls.GroupCall.output_filename">output_filename</a></code></li>

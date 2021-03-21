@@ -62,7 +62,7 @@ from typing import List
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from . import GroupCall
+    from . import GroupCallNative
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +118,7 @@ class Dispatcher:
         except KeyError:
             raise RuntimeError(&#39;Invalid action&#39;)
 
-    def trigger_handlers(self, action: str, instance: &#39;GroupCall&#39;, *args, **kwargs):
+    def trigger_handlers(self, action: str, instance: &#39;GroupCallNative&#39;, *args, **kwargs):
         logger.debug(f&#39;Trigger handlers of {action}&#39;)
 
         for handler in self.get_handlers(action):
@@ -195,7 +195,7 @@ class Dispatcher:
         except KeyError:
             raise RuntimeError(&#39;Invalid action&#39;)
 
-    def trigger_handlers(self, action: str, instance: &#39;GroupCall&#39;, *args, **kwargs):
+    def trigger_handlers(self, action: str, instance: &#39;GroupCallNative&#39;, *args, **kwargs):
         logger.debug(f&#39;Trigger handlers of {action}&#39;)
 
         for handler in self.get_handlers(action):
@@ -285,7 +285,7 @@ class Dispatcher:
 </details>
 </dd>
 <dt id="pytgcalls.dispatcher.Dispatcher.trigger_handlers"><code class="name flex">
-<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action: str, instance: GroupCall, *args, **kwargs)</span>
+<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action: str, instance: GroupCallNative, *args, **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -293,7 +293,7 @@ class Dispatcher:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def trigger_handlers(self, action: str, instance: &#39;GroupCall&#39;, *args, **kwargs):
+<pre><code class="python">def trigger_handlers(self, action: str, instance: &#39;GroupCallNative&#39;, *args, **kwargs):
     logger.debug(f&#39;Trigger handlers of {action}&#39;)
 
     for handler in self.get_handlers(action):

@@ -58,7 +58,7 @@ from collections import Coroutine
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from . import GroupCall
+    from . import GroupCallNative
 
 from .dispatcher import Dispatcher
 
@@ -94,12 +94,12 @@ class DispatcherMixin:
 
         return self._dispatcher.remove_handler(callback, action)
 
-    def trigger_handlers(self, action: str, instance: &#39;GroupCall&#39;, *args, **kwargs):
+    def trigger_handlers(self, action: str, instance: &#39;GroupCallNative&#39;, *args, **kwargs):
         &#34;&#34;&#34;Unregister the handler.
 
         Args:
             action (`str`): Action.
-            instance (`GroupCall`): Instance of GroupCall.
+            instance (`GroupCallNative`): Instance of GroupCall.
             *args (`list`, optional): Arbitrary callback arguments.
             **kwargs (`dict`, optional): Arbitrary callback arguments.
         &#34;&#34;&#34;
@@ -157,12 +157,12 @@ class DispatcherMixin:
 
         return self._dispatcher.remove_handler(callback, action)
 
-    def trigger_handlers(self, action: str, instance: &#39;GroupCall&#39;, *args, **kwargs):
+    def trigger_handlers(self, action: str, instance: &#39;GroupCallNative&#39;, *args, **kwargs):
         &#34;&#34;&#34;Unregister the handler.
 
         Args:
             action (`str`): Action.
-            instance (`GroupCall`): Instance of GroupCall.
+            instance (`GroupCallNative`): Instance of GroupCall.
             *args (`list`, optional): Arbitrary callback arguments.
             **kwargs (`dict`, optional): Arbitrary callback arguments.
         &#34;&#34;&#34;
@@ -232,25 +232,25 @@ action (<code>str</code>): Action.</p>
 </details>
 </dd>
 <dt id="pytgcalls.dispatcher_mixin.DispatcherMixin.trigger_handlers"><code class="name flex">
-<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action: str, instance: GroupCall, *args, **kwargs)</span>
+<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action: str, instance: GroupCallNative, *args, **kwargs)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Unregister the handler.</p>
 <h2 id="args">Args</h2>
 <p>action (<code>str</code>): Action.
-instance (<code>GroupCall</code>): Instance of GroupCall.
+instance (<code>GroupCallNative</code>): Instance of GroupCall.
 <em>args (<code>list</code>, optional): Arbitrary callback arguments.
 </em>*kwargs (<code>dict</code>, optional): Arbitrary callback arguments.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def trigger_handlers(self, action: str, instance: &#39;GroupCall&#39;, *args, **kwargs):
+<pre><code class="python">def trigger_handlers(self, action: str, instance: &#39;GroupCallNative&#39;, *args, **kwargs):
     &#34;&#34;&#34;Unregister the handler.
 
     Args:
         action (`str`): Action.
-        instance (`GroupCall`): Instance of GroupCall.
+        instance (`GroupCallNative`): Instance of GroupCall.
         *args (`list`, optional): Arbitrary callback arguments.
         **kwargs (`dict`, optional): Arbitrary callback arguments.
     &#34;&#34;&#34;
