@@ -114,7 +114,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self,
             client: Union[pyrogram.Client, None],
             enable_logs_to_console: bool,
-            path_to_log_file=&#39;group_call.log&#39;
+            path_to_log_file,
     ):
         super().__init__(GroupCallNativeAction)
         self.client = client
@@ -139,7 +139,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         &#39;&#39;&#39;Is enable sending of speaking action&#39;&#39;&#39;
         self.enable_logs_to_console = enable_logs_to_console
         &#39;&#39;&#39;Is enable logs to stderr from tgcalls&#39;&#39;&#39;
-        self.path_to_log_file = path_to_log_file
+        self.path_to_log_file = path_to_log_file or &#39;group_call.log&#39;
         &#39;&#39;&#39;Path to log file for logs of tgcalls&#39;&#39;&#39;
 
         self.is_connected = False
@@ -610,7 +610,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 <dl>
 <dt id="pytgcalls.group_call_native.GroupCallNative"><code class="flex name class">
 <span>class <span class="ident">GroupCallNative</span></span>
-<span>(</span><span>client: Union[pyrogram.client.Client, NoneType], enable_logs_to_console: bool, path_to_log_file='group_call.log')</span>
+<span>(</span><span>client: Union[pyrogram.client.Client, NoneType], enable_logs_to_console: bool, path_to_log_file)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -626,7 +626,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self,
             client: Union[pyrogram.Client, None],
             enable_logs_to_console: bool,
-            path_to_log_file=&#39;group_call.log&#39;
+            path_to_log_file,
     ):
         super().__init__(GroupCallNativeAction)
         self.client = client
@@ -651,7 +651,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         &#39;&#39;&#39;Is enable sending of speaking action&#39;&#39;&#39;
         self.enable_logs_to_console = enable_logs_to_console
         &#39;&#39;&#39;Is enable logs to stderr from tgcalls&#39;&#39;&#39;
-        self.path_to_log_file = path_to_log_file
+        self.path_to_log_file = path_to_log_file or &#39;group_call.log&#39;
         &#39;&#39;&#39;Path to log file for logs of tgcalls&#39;&#39;&#39;
 
         self.is_connected = False
