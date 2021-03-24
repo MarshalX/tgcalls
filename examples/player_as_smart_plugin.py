@@ -66,7 +66,7 @@ async def volume(_, message):
 @Client.on_message(main_filter & cmd_filter('join'))
 @init_client_and_delete_message
 async def start(_, message: Message):
-    await group_call.start(message.chat.id, False)
+    await group_call.start(message.chat.id)
 
 
 @Client.on_message(main_filter & cmd_filter('leave'))
