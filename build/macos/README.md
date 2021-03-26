@@ -1,5 +1,7 @@
 # Build instruction for macOS
 
+XCode Command Line Tools and python3 need to installed.
+
 ```shell script
 MAKE_THREADS_CNT=-j8
 MACOSX_DEPLOYMENT_TARGET=10.12
@@ -7,10 +9,9 @@ UNGUARDED="-Werror=unguarded-availability-new"
 MIN_VER="-mmacosx-version-min=10.12"
 
 ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew install automake cmake git libvpx ninja opus yasm
+brew install automake cmake git libvpx ninja opus yasm libtool
 
 git clone --recursive https://github.com/MarshalX/tgcalls
-cd tgcalls
 
 mkdir -p Libraries/macos
 cd Libraries/macos
@@ -51,8 +52,6 @@ cd ..
 git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
 cd ffmpeg
 git checkout release/4.2
-CFLAGS=`freetype-config --cflags`
-LDFLAGS=`freetype-config --libs`
 PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig:/usr/lib/pkgconfig:/usr/X11/lib/pkgconfig
 cp ../patches/macos_yasm_wrap.sh ./
 
@@ -163,12 +162,10 @@ make $MAKE_THREADS_CNT
 sudo make install
 cd ..
 
-# fix path
-cd tgcalls/third_party/webrtc
-mkdir out
-cd out
-mkdir Debug
-cd Debug
+cp -R ../../tgcalls/tgcalls/third_party/webrtc tg_owt
+cd tg_owt
+mkdir -p out/Debug
+cd out/Debug
 cmake -G Ninja \
     -DCMAKE_BUILD_TYPE=Debug \
     -DTG_OWT_SPECIAL_TARGET=mac \
@@ -188,8 +185,8 @@ cmake -G Ninja \
     -DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/macos/include/opus \
     -DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/macos/include ../..
 ninja
-# fix path
-cd ../../..
 
-python setup.py build
+cd ../../../../../tgcalls/
+
+python3 setup.py build
 ```
