@@ -1,2 +1,0 @@
-examples/*.raw filter=lfs diff=lfs merge=lfs -text
-.github/*.png filter=lfs diff=lfs merge=lfs -text
