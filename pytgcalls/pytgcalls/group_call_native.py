@@ -87,6 +87,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         self.join_as = None
         '''How to present yourself in participants list'''
+        self.invite_hash = None
+        '''Hash from invite link to join as speaker'''
         self.my_peer = None
         '''Client user peer'''
         self.group_call = None
@@ -303,6 +305,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self,
             group: Union[str, int, InputPeerChannel, InputPeerChat],
             join_as: Optional[Union[str, int, InputPeerChannel, InputPeerChat, InputPeerUser]] = None,
+            invite_hash: Optional[str] = None,
             enable_action=True
     ):
         """Start voice chat (join and play/record from initial values).
@@ -315,6 +318,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         Args:
             group (`InputPeerChannel` | `InputPeerChat` | `str` | `int`): Chat ID in any form.
             join_as (`InputPeer` | `str` | `int`, optional): How to present yourself in participants list.
+            invite_hash (`str`, optional): Hash from speaker invite link.
             enable_action (`bool`, optional): Is enables sending of speaking action.
         """
 
@@ -335,6 +339,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         else:
             self.join_as = join_as
 
+        self.invite_hash = invite_hash
+
         handler_group = await self.__set_and_get_handler_group()
         self.client.add_handler(self._update_handler, handler_group)
         self.__native_instance = self.__create_and_setup_native_instance()
@@ -343,7 +349,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         """Reconnect to current voice chat."""
 
         await self.stop()
-        await self.start(self.chat_peer, self.join_as, self.enable_action)
+        await self.start(self.chat_peer, self.join_as, self.invite_hash, self.enable_action)
 
     async def _start_group_call(self, *args):
         logger.debug('Start native group call..')
@@ -517,6 +523,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
                 response = await self.client.send(functions.phone.JoinGroupCall(
                     call=self.group_call,
                     join_as=self.join_as,
+                    invite_hash=self.invite_hash,
                     params=types.DataJSON(data=json.dumps(params)),
                     muted=True
                 ))

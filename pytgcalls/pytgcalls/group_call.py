@@ -78,8 +78,8 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
 
         return file_audio_device_descriptor
 
-    async def start(self, group, join_as=None, enable_action=True):
-        await super().start(group, join_as, enable_action)
+    async def start(self, group, join_as=None, invite_hash=None, enable_action=True):
+        await super().start(group, join_as, invite_hash, enable_action)
 
         await self._start_group_call(self.__create_file_audio_device_descriptor())
 
