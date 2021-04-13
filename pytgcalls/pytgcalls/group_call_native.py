@@ -291,8 +291,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.remove_update_handler()
         self.__deinit_native_instance()
 
-        self.my_ssrc = self.group_call = self.chat_peer = self.full_chat = None
-
         logger.debug('GroupCall properly stop.')
 
     async def stop(self):
@@ -343,12 +341,9 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     async def reconnect(self):
         """Reconnect to current voice chat."""
-        chat_peer = self.chat_peer
-        join_as = self.join_as
-        enable_action = self.enable_action
 
         await self.stop()
-        await self.start(chat_peer, join_as, enable_action)
+        await self.start(self.chat_peer, self.join_as, self.enable_action)
 
     async def _start_group_call(self, *args):
         logger.debug('Start native group call..')
