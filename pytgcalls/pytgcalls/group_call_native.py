@@ -28,7 +28,7 @@ from pyrogram.errors import BadRequest, GroupcallSsrcDuplicateMuch
 from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
 from pyrogram.raw.base import InputPeer, Peer
-from pyrogram.raw.types import InputPeerChannel, InputPeerChat, InputPeerUser
+from pyrogram.raw.types import InputPeerChannel, InputPeerChat, InputPeerUser, GroupCallDiscarded
 
 import tgcalls
 from .action import Action
@@ -159,7 +159,11 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     async def _process_group_call_update(self, update):
         logger.debug('Group call update..')
-        if update.call.params:
+
+        if isinstance(update.call, GroupCallDiscarded):
+            logger.debug('Group call discarded.')
+            await self.stop()
+        elif update.call.params:
             await self.__set_join_response_payload(json.loads(update.call.params.data))
 
     async def _process_update(self, _, update, users, chats):
