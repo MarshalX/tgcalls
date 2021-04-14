@@ -169,6 +169,7 @@ PYBIND11_MODULE(tgcalls, m) {
             .def("startCall", &NativeInstance::startCall)
             .def("setupGroupCall", &NativeInstance::setupGroupCall)
             .def("startGroupCall", &NativeInstance::startGroupCall)
+            .def("isGroupCallStarted", &NativeInstance::isGroupCallStarted)
             .def("stopGroupCall", &NativeInstance::stopGroupCall)
             .def("setIsMuted", &NativeInstance::setIsMuted)
             .def("setVolume", &NativeInstance::setVolume)
@@ -180,6 +181,7 @@ PYBIND11_MODULE(tgcalls, m) {
             .def("addParticipants", &NativeInstance::addParticipants)
             .def("setJoinResponsePayload", &NativeInstance::setJoinResponsePayload)
             .def("setConnectionMode", &NativeInstance::setConnectionMode)
+            .def("emitJoinPayload", &NativeInstance::emitJoinPayload)
             .def("receiveSignalingData", &NativeInstance::receiveSignalingData)
             .def("setSignalingDataEmittedCallback", &NativeInstance::setSignalingDataEmittedCallback);
 }
