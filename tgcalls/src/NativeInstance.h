@@ -40,6 +40,7 @@ public:
 
     void startGroupCall(FileAudioDeviceDescriptor &);
     void stopGroupCall() const;
+    bool isGroupCallStarted() const;
 
     void setIsMuted(bool isMuted) const;
     void setVolume(uint32_t ssrc, double volume) const;

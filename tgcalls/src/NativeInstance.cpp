@@ -76,6 +76,10 @@ void NativeInstance::stopGroupCall() const {
   instanceHolder->groupNativeInstance.reset();
 }
 
+bool NativeInstance::isGroupCallStarted() const {
+  return instanceHolder != nullptr && instanceHolder->groupNativeInstance != nullptr;
+}
+
 void NativeInstance::emitJoinPayload(std::function<void(tgcalls::GroupJoinPayload)> &f) const {
   instanceHolder->groupNativeInstance->emitJoinPayload(f);
 }
