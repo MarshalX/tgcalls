@@ -7,6 +7,7 @@
 
 #include "InstanceHolder.h"
 #include "RtcServer.h"
+#include "FileAudioDevice.h"
 #include "FileAudioDeviceDescriptor.h"
 
 namespace py = pybind11;
@@ -24,7 +25,6 @@ public:
     std::function<void(bool)> _networkStateUpdated = nullptr;
     std::function<void(std::vector<uint32_t> const &)> _participantDescriptionsRequired = nullptr;
 
-    std::unique_ptr<FileAudioDeviceDescriptor> _fileAudioDeviceDescriptor;
     rtc::scoped_refptr<webrtc::AudioDeviceModule> _audioDeviceModule;
 
     NativeInstance(bool, string);
@@ -43,7 +43,8 @@ public:
 
     void setIsMuted(bool isMuted) const;
     void setVolume(uint32_t ssrc, double volume) const;
-    void setConnectionMode(tgcalls::GroupConnectionMode, bool);
+    void emitJoinPayload(std::function<void(tgcalls::GroupJoinPayload payload)> &) const;
+    void setConnectionMode(tgcalls::GroupConnectionMode, bool) const;
 
     void restartAudioInputDevice() const;
     void restartAudioOutputDevice() const;

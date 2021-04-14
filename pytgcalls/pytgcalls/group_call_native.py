@@ -120,12 +120,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self._handler_group = None
         self._update_handler = RawUpdateHandler(self._process_update)
 
-    def __deinit_native_instance(self):
-        tmp = self.__native_instance
-        self.__native_instance = None
-        del tmp
-        logger.debug('Native instance destroyed.')
-
     def __create_and_setup_native_instance(self):
         logger.debug('Create a new native instance..')
         native_instance = tgcalls.NativeInstance(self.enable_logs_to_console, self.path_to_log_file)
@@ -207,6 +201,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     async def leave_current_group_call(self):
         """Leave group call from server side (MTProto part)."""
+        logger.debug('Try to leave current group call.')
+
         if not self.full_chat.call or not self.my_ssrc:
             return
 
@@ -215,6 +211,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             source=int_ssrc(self.my_ssrc)
         ))
         await self.client.handle_updates(response)
+
+        logger.debug('Completely leave current group call.')
 
     async def edit_group_call(self, volume: int = None, muted=False):
         """Edit own settings of group call.
@@ -293,16 +291,18 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.client.remove_handler(self._update_handler, self._handler_group)
             self._handler_group = None
 
-    def __properly_stop(self):
+    async def stop(self):
+        """Properly stop tgcalls, remove pyrogram handler, leave from server side."""
+        logger.debug('Stop requested.')
+
+        if not self.is_connected:
+            logger.error('Cant stop during connection.')
+
         self.remove_update_handler()
-        self.__deinit_native_instance()
+        self.__native_instance.stopGroupCall()
 
         logger.debug('GroupCall properly stop.')
 
-    async def stop(self):
-        """Properly stop tgcalls, remove pyrogram handler, leave from server side."""
-        logger.debug('Stop requested. Wait for disconnected status.')
-        self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
         await self.leave_current_group_call()
 
     async def start(
@@ -326,9 +326,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             enable_action (`bool`, optional): Is enables sending of speaking action.
         """
 
-        if self.is_connected:
-            await self.stop()
-
         self.my_peer = await self.client.resolve_peer(await self.client.storage.user_id())
         self.enable_action = enable_action
 
@@ -345,17 +342,28 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         self.invite_hash = invite_hash
 
+        self.remove_update_handler()
         handler_group = await self.__set_and_get_handler_group()
         self.client.add_handler(self._update_handler, handler_group)
-        self.__native_instance = self.__create_and_setup_native_instance()
+
+        if self.__native_instance:
+            await self.reconnect()
+        else:
+            self.__native_instance = self.__create_and_setup_native_instance()
+            self._setup_and_start_group_call()
+
+    def _setup_and_start_group_call(self):
+        raise NotImplementedError()
 
     async def reconnect(self):
-        """Reconnect to current voice chat."""
+        """Connect to voice chat using the same native instance."""
 
-        await self.stop()
-        await self.start(self.chat_peer, self.join_as, self.invite_hash, self.enable_action)
+        self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
+        self.__native_instance.emitJoinPayload(self.__emit_join_payload_callback)
 
-    async def _start_group_call(self, *args):
+        await self.leave_current_group_call()
+
+    def _start_native_group_call(self, *args):
         logger.debug('Start native group call..')
         self.__native_instance.startGroupCall(*args)
 
@@ -439,8 +447,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.set_is_mute(False)
             if self.enable_action:
                 self.__start_status_worker()
-        else:
-            self.__properly_stop()
 
         self.trigger_handlers(GroupCallNativeAction.NETWORK_STATUS_CHANGED, self, state)
 
@@ -536,7 +542,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
                 logger.debug(f'Successfully connected to VC with ssrc={self.my_ssrc} as {type(self.join_as).__name__}.')
             except GroupcallSsrcDuplicateMuch:
                 logger.debug('Reconnect. Duplicate SSRC')
-                # TODO
-                # await self.reconnect()
+                await self.reconnect()
 
         asyncio.ensure_future(_(), loop=self.client.loop)

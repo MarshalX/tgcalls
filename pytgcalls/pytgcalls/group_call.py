@@ -67,21 +67,21 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
         self.__input_filename = input_filename or ''
         self.__output_filename = output_filename or ''
 
-    def __create_file_audio_device_descriptor(self):
-        file_audio_device_descriptor = tgcalls.FileAudioDeviceDescriptor()
-        file_audio_device_descriptor.getInputFilename = self.__get_input_filename_callback
-        file_audio_device_descriptor.getOutputFilename = self.__get_output_filename_callback
-        file_audio_device_descriptor.isEndlessPlayout = self.__is_endless_playout_callback
-        file_audio_device_descriptor.isPlayoutPaused = self.__is_playout_paused_callback
-        file_audio_device_descriptor.isRecordingPaused = self.__is_recording_paused_callback
-        file_audio_device_descriptor.playoutEndedCallback = self.__playout_ended_callback
+        self.__file_audio_device_descriptor = None
 
-        return file_audio_device_descriptor
+    def __create_and_return_file_audio_device_descriptor(self):
+        self.__file_audio_device_descriptor = tgcalls.FileAudioDeviceDescriptor()
+        self.__file_audio_device_descriptor.getInputFilename = self.__get_input_filename_callback
+        self.__file_audio_device_descriptor.getOutputFilename = self.__get_output_filename_callback
+        self.__file_audio_device_descriptor.isEndlessPlayout = self.__is_endless_playout_callback
+        self.__file_audio_device_descriptor.isPlayoutPaused = self.__is_playout_paused_callback
+        self.__file_audio_device_descriptor.isRecordingPaused = self.__is_recording_paused_callback
+        self.__file_audio_device_descriptor.playoutEndedCallback = self.__playout_ended_callback
 
-    async def start(self, group, join_as=None, invite_hash=None, enable_action=True):
-        await super().start(group, join_as, invite_hash, enable_action)
+        return self.__file_audio_device_descriptor
 
-        await self._start_group_call(self.__create_file_audio_device_descriptor())
+    def _setup_and_start_group_call(self):
+        self._start_native_group_call(self.__create_and_return_file_audio_device_descriptor())
 
     def stop_playout(self):
         """Stop playing of file."""
