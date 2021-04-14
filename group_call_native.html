@@ -66,7 +66,7 @@ from pyrogram.errors import BadRequest, GroupcallSsrcDuplicateMuch
 from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
 from pyrogram.raw.base import InputPeer, Peer
-from pyrogram.raw.types import InputPeerChannel, InputPeerChat, InputPeerUser
+from pyrogram.raw.types import InputPeerChannel, InputPeerChat, InputPeerUser, GroupCallDiscarded
 
 import tgcalls
 from .action import Action
@@ -121,10 +121,14 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.client = client
         &#39;&#39;&#39;Client of Pyrogram&#39;&#39;&#39;
 
-        self.__native_instance = None
+        self.__native_instance = self.__create_and_setup_native_instance(
+            enable_logs_to_console, path_to_log_file or &#39;group_call.log&#39;
+        )
 
         self.join_as = None
         &#39;&#39;&#39;How to present yourself in participants list&#39;&#39;&#39;
+        self.invite_hash = None
+        &#39;&#39;&#39;Hash from invite link to join as speaker&#39;&#39;&#39;
         self.my_peer = None
         &#39;&#39;&#39;Client user peer&#39;&#39;&#39;
         self.group_call = None
@@ -140,10 +144,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         self.enable_action = True
         &#39;&#39;&#39;Is enable sending of speaking action&#39;&#39;&#39;
-        self.enable_logs_to_console = enable_logs_to_console
-        &#39;&#39;&#39;Is enable logs to stderr from tgcalls&#39;&#39;&#39;
-        self.path_to_log_file = path_to_log_file or &#39;group_call.log&#39;
-        &#39;&#39;&#39;Path to log file for logs of tgcalls&#39;&#39;&#39;
 
         self.is_connected = False
         &#39;&#39;&#39;Is connected to voice chat via tgcalls&#39;&#39;&#39;
@@ -156,15 +156,20 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self._handler_group = None
         self._update_handler = RawUpdateHandler(self._process_update)
 
-    def __deinit_native_instance(self):
-        tmp = self.__native_instance
-        self.__native_instance = None
-        del tmp
-        logger.debug(&#39;Native instance destroyed.&#39;)
+    def __create_and_setup_native_instance(self, enable_logs_to_console: bool, path_to_log_file=&#39;group_call.log&#39;):
+        &#34;&#34;&#34;Create NativeInstance of tgcalls C++ part.
 
-    def __create_and_setup_native_instance(self):
+        Args:
+            enable_logs_to_console (`bool`): Is enable logs to stderr from tgcalls.
+            path_to_log_file (`str`, optional): Path to log file for logs of tgcalls.
+        &#34;&#34;&#34;
+
+        # bypass None value
+        if not path_to_log_file:
+            path_to_log_file = &#39;&#39;
+
         logger.debug(&#39;Create a new native instance..&#39;)
-        native_instance = tgcalls.NativeInstance(self.enable_logs_to_console, self.path_to_log_file)
+        native_instance = tgcalls.NativeInstance(enable_logs_to_console, path_to_log_file)
 
         native_instance.setupGroupCall(
             self.__emit_join_payload_callback,
@@ -191,11 +196,15 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         if ssrcs_to_remove:
             logger.debug(f&#39;Remove ssrcs {ssrcs_to_remove}.&#39;)
-            self.__native_instance and self.__native_instance.removeSsrcs(ssrcs_to_remove)
+            self.__native_instance.removeSsrcs(ssrcs_to_remove)
 
     async def _process_group_call_update(self, update):
         logger.debug(&#39;Group call update..&#39;)
-        if update.call.params:
+
+        if isinstance(update.call, GroupCallDiscarded):
+            logger.debug(&#39;Group call discarded.&#39;)
+            await self.stop()
+        elif update.call.params:
             await self.__set_join_response_payload(json.loads(update.call.params.data))
 
     async def _process_update(self, _, update, users, chats):
@@ -239,6 +248,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     async def leave_current_group_call(self):
         &#34;&#34;&#34;Leave group call from server side (MTProto part).&#34;&#34;&#34;
+        logger.debug(&#39;Try to leave current group call.&#39;)
+
         if not self.full_chat.call or not self.my_ssrc:
             return
 
@@ -247,6 +258,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             source=int_ssrc(self.my_ssrc)
         ))
         await self.client.handle_updates(response)
+
+        logger.debug(&#39;Completely leave current group call.&#39;)
 
     async def edit_group_call(self, volume: int = None, muted=False):
         &#34;&#34;&#34;Edit own settings of group call.
@@ -325,24 +338,32 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.client.remove_handler(self._update_handler, self._handler_group)
             self._handler_group = None
 
-    def __properly_stop(self):
-        self.remove_update_handler()
-        self.__deinit_native_instance()
-
-        self.my_ssrc = self.group_call = self.chat_peer = self.full_chat = None
-
-        logger.debug(&#39;GroupCall properly stop.&#39;)
-
     async def stop(self):
         &#34;&#34;&#34;Properly stop tgcalls, remove pyrogram handler, leave from server side.&#34;&#34;&#34;
-        logger.debug(&#39;Stop requested. Wait for disconnected status.&#39;)
+        logger.debug(&#39;Stop requested.&#39;)
+
+        if not self.is_connected:
+            logger.error(&#39;Cant stop during connection.&#39;)
+
+        self.remove_update_handler()
         self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
-        await self.leave_current_group_call()
+
+        async def on_disconnect_handler(_, is_connected):
+            if not is_connected:
+                self.remove_handler(on_disconnect_handler, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
+
+                self.__native_instance.stopGroupCall()
+                logger.debug(&#39;GroupCall properly stop.&#39;)
+
+                await self.leave_current_group_call()
+
+        self.add_handler(on_disconnect_handler, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
 
     async def start(
             self,
             group: Union[str, int, InputPeerChannel, InputPeerChat],
             join_as: Optional[Union[str, int, InputPeerChannel, InputPeerChat, InputPeerUser]] = None,
+            invite_hash: Optional[str] = None,
             enable_action=True
     ):
         &#34;&#34;&#34;Start voice chat (join and play/record from initial values).
@@ -355,11 +376,9 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         Args:
             group (`InputPeerChannel` | `InputPeerChat` | `str` | `int`): Chat ID in any form.
             join_as (`InputPeer` | `str` | `int`, optional): How to present yourself in participants list.
+            invite_hash (`str`, optional): Hash from speaker invite link.
             enable_action (`bool`, optional): Is enables sending of speaking action.
         &#34;&#34;&#34;
-
-        if self.is_connected:
-            await self.stop()
 
         self.my_peer = await self.client.resolve_peer(await self.client.storage.user_id())
         self.enable_action = enable_action
@@ -375,20 +394,31 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         else:
             self.join_as = join_as
 
+        self.invite_hash = invite_hash
+
+        self.remove_update_handler()
         handler_group = await self.__set_and_get_handler_group()
         self.client.add_handler(self._update_handler, handler_group)
-        self.__native_instance = self.__create_and_setup_native_instance()
+
+        # when trying to connect to another chat or with another join_as without calling .stop() before
+        if self.__native_instance.isGroupCallStarted():
+            await self.reconnect()
+        # the first start or start after .stop() with the same NativeInstance
+        else:
+            self._setup_and_start_group_call()
+
+    def _setup_and_start_group_call(self):
+        raise NotImplementedError()
 
     async def reconnect(self):
-        &#34;&#34;&#34;Reconnect to current voice chat.&#34;&#34;&#34;
-        chat_peer = self.chat_peer
-        join_as = self.join_as
-        enable_action = self.enable_action
+        &#34;&#34;&#34;Connect to voice chat using the same native instance.&#34;&#34;&#34;
 
-        await self.stop()
-        await self.start(chat_peer, join_as, enable_action)
+        self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
+        self.__native_instance.emitJoinPayload(self.__emit_join_payload_callback)
 
-    async def _start_group_call(self, *args):
+        await self.leave_current_group_call()
+
+    def _start_native_group_call(self, *args):
         logger.debug(&#39;Start native group call..&#39;)
         self.__native_instance.startGroupCall(*args)
 
@@ -453,7 +483,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         def _(future):
             filtered_participants = [p for p in future.result() if uint_ssrc(p.source) in ssrcs_list]
             participants = [parse_call_participant(p) for p in filtered_participants]
-            self.__native_instance and self.__native_instance.addParticipants(participants)
+            self.__native_instance.addParticipants(participants)
 
             logger.debug(f&#39;Add description of {len(participants)} participant(s).&#39;)
 
@@ -472,8 +502,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.set_is_mute(False)
             if self.enable_action:
                 self.__start_status_worker()
-        else:
-            self.__properly_stop()
 
         self.trigger_handlers(GroupCallNativeAction.NETWORK_STATUS_CHANGED, self, state)
 
@@ -531,8 +559,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         # TODO video payload
 
-        self.__native_instance and self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeRtc)
-        self.__native_instance and self.__native_instance.setJoinResponsePayload(payload, participants)
+        self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeRtc)
+        self.__native_instance.setJoinResponsePayload(payload, participants)
         logger.debug(&#39;Join response payload was set.&#39;)
 
     def __emit_join_payload_callback(self, payload):
@@ -560,6 +588,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
                 response = await self.client.send(functions.phone.JoinGroupCall(
                     call=self.group_call,
                     join_as=self.join_as,
+                    invite_hash=self.invite_hash,
                     params=types.DataJSON(data=json.dumps(params)),
                     muted=True
                 ))
@@ -568,8 +597,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
                 logger.debug(f&#39;Successfully connected to VC with ssrc={self.my_ssrc} as {type(self.join_as).__name__}.&#39;)
             except GroupcallSsrcDuplicateMuch:
                 logger.debug(&#39;Reconnect. Duplicate SSRC&#39;)
-                # TODO
-                # await self.reconnect()
+                await self.reconnect()
 
         asyncio.ensure_future(_(), loop=self.client.loop)</code></pre>
 </details>
@@ -652,10 +680,14 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.client = client
         &#39;&#39;&#39;Client of Pyrogram&#39;&#39;&#39;
 
-        self.__native_instance = None
+        self.__native_instance = self.__create_and_setup_native_instance(
+            enable_logs_to_console, path_to_log_file or &#39;group_call.log&#39;
+        )
 
         self.join_as = None
         &#39;&#39;&#39;How to present yourself in participants list&#39;&#39;&#39;
+        self.invite_hash = None
+        &#39;&#39;&#39;Hash from invite link to join as speaker&#39;&#39;&#39;
         self.my_peer = None
         &#39;&#39;&#39;Client user peer&#39;&#39;&#39;
         self.group_call = None
@@ -671,10 +703,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         self.enable_action = True
         &#39;&#39;&#39;Is enable sending of speaking action&#39;&#39;&#39;
-        self.enable_logs_to_console = enable_logs_to_console
-        &#39;&#39;&#39;Is enable logs to stderr from tgcalls&#39;&#39;&#39;
-        self.path_to_log_file = path_to_log_file or &#39;group_call.log&#39;
-        &#39;&#39;&#39;Path to log file for logs of tgcalls&#39;&#39;&#39;
 
         self.is_connected = False
         &#39;&#39;&#39;Is connected to voice chat via tgcalls&#39;&#39;&#39;
@@ -687,15 +715,20 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self._handler_group = None
         self._update_handler = RawUpdateHandler(self._process_update)
 
-    def __deinit_native_instance(self):
-        tmp = self.__native_instance
-        self.__native_instance = None
-        del tmp
-        logger.debug(&#39;Native instance destroyed.&#39;)
+    def __create_and_setup_native_instance(self, enable_logs_to_console: bool, path_to_log_file=&#39;group_call.log&#39;):
+        &#34;&#34;&#34;Create NativeInstance of tgcalls C++ part.
 
-    def __create_and_setup_native_instance(self):
+        Args:
+            enable_logs_to_console (`bool`): Is enable logs to stderr from tgcalls.
+            path_to_log_file (`str`, optional): Path to log file for logs of tgcalls.
+        &#34;&#34;&#34;
+
+        # bypass None value
+        if not path_to_log_file:
+            path_to_log_file = &#39;&#39;
+
         logger.debug(&#39;Create a new native instance..&#39;)
-        native_instance = tgcalls.NativeInstance(self.enable_logs_to_console, self.path_to_log_file)
+        native_instance = tgcalls.NativeInstance(enable_logs_to_console, path_to_log_file)
 
         native_instance.setupGroupCall(
             self.__emit_join_payload_callback,
@@ -722,11 +755,15 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         if ssrcs_to_remove:
             logger.debug(f&#39;Remove ssrcs {ssrcs_to_remove}.&#39;)
-            self.__native_instance and self.__native_instance.removeSsrcs(ssrcs_to_remove)
+            self.__native_instance.removeSsrcs(ssrcs_to_remove)
 
     async def _process_group_call_update(self, update):
         logger.debug(&#39;Group call update..&#39;)
-        if update.call.params:
+
+        if isinstance(update.call, GroupCallDiscarded):
+            logger.debug(&#39;Group call discarded.&#39;)
+            await self.stop()
+        elif update.call.params:
             await self.__set_join_response_payload(json.loads(update.call.params.data))
 
     async def _process_update(self, _, update, users, chats):
@@ -770,6 +807,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     async def leave_current_group_call(self):
         &#34;&#34;&#34;Leave group call from server side (MTProto part).&#34;&#34;&#34;
+        logger.debug(&#39;Try to leave current group call.&#39;)
+
         if not self.full_chat.call or not self.my_ssrc:
             return
 
@@ -778,6 +817,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             source=int_ssrc(self.my_ssrc)
         ))
         await self.client.handle_updates(response)
+
+        logger.debug(&#39;Completely leave current group call.&#39;)
 
     async def edit_group_call(self, volume: int = None, muted=False):
         &#34;&#34;&#34;Edit own settings of group call.
@@ -856,24 +897,32 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.client.remove_handler(self._update_handler, self._handler_group)
             self._handler_group = None
 
-    def __properly_stop(self):
-        self.remove_update_handler()
-        self.__deinit_native_instance()
-
-        self.my_ssrc = self.group_call = self.chat_peer = self.full_chat = None
-
-        logger.debug(&#39;GroupCall properly stop.&#39;)
-
     async def stop(self):
         &#34;&#34;&#34;Properly stop tgcalls, remove pyrogram handler, leave from server side.&#34;&#34;&#34;
-        logger.debug(&#39;Stop requested. Wait for disconnected status.&#39;)
+        logger.debug(&#39;Stop requested.&#39;)
+
+        if not self.is_connected:
+            logger.error(&#39;Cant stop during connection.&#39;)
+
+        self.remove_update_handler()
         self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
-        await self.leave_current_group_call()
+
+        async def on_disconnect_handler(_, is_connected):
+            if not is_connected:
+                self.remove_handler(on_disconnect_handler, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
+
+                self.__native_instance.stopGroupCall()
+                logger.debug(&#39;GroupCall properly stop.&#39;)
+
+                await self.leave_current_group_call()
+
+        self.add_handler(on_disconnect_handler, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
 
     async def start(
             self,
             group: Union[str, int, InputPeerChannel, InputPeerChat],
             join_as: Optional[Union[str, int, InputPeerChannel, InputPeerChat, InputPeerUser]] = None,
+            invite_hash: Optional[str] = None,
             enable_action=True
     ):
         &#34;&#34;&#34;Start voice chat (join and play/record from initial values).
@@ -886,11 +935,9 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         Args:
             group (`InputPeerChannel` | `InputPeerChat` | `str` | `int`): Chat ID in any form.
             join_as (`InputPeer` | `str` | `int`, optional): How to present yourself in participants list.
+            invite_hash (`str`, optional): Hash from speaker invite link.
             enable_action (`bool`, optional): Is enables sending of speaking action.
         &#34;&#34;&#34;
-
-        if self.is_connected:
-            await self.stop()
 
         self.my_peer = await self.client.resolve_peer(await self.client.storage.user_id())
         self.enable_action = enable_action
@@ -906,20 +953,31 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         else:
             self.join_as = join_as
 
+        self.invite_hash = invite_hash
+
+        self.remove_update_handler()
         handler_group = await self.__set_and_get_handler_group()
         self.client.add_handler(self._update_handler, handler_group)
-        self.__native_instance = self.__create_and_setup_native_instance()
+
+        # when trying to connect to another chat or with another join_as without calling .stop() before
+        if self.__native_instance.isGroupCallStarted():
+            await self.reconnect()
+        # the first start or start after .stop() with the same NativeInstance
+        else:
+            self._setup_and_start_group_call()
+
+    def _setup_and_start_group_call(self):
+        raise NotImplementedError()
 
     async def reconnect(self):
-        &#34;&#34;&#34;Reconnect to current voice chat.&#34;&#34;&#34;
-        chat_peer = self.chat_peer
-        join_as = self.join_as
-        enable_action = self.enable_action
+        &#34;&#34;&#34;Connect to voice chat using the same native instance.&#34;&#34;&#34;
 
-        await self.stop()
-        await self.start(chat_peer, join_as, enable_action)
+        self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
+        self.__native_instance.emitJoinPayload(self.__emit_join_payload_callback)
 
-    async def _start_group_call(self, *args):
+        await self.leave_current_group_call()
+
+    def _start_native_group_call(self, *args):
         logger.debug(&#39;Start native group call..&#39;)
         self.__native_instance.startGroupCall(*args)
 
@@ -984,7 +1042,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         def _(future):
             filtered_participants = [p for p in future.result() if uint_ssrc(p.source) in ssrcs_list]
             participants = [parse_call_participant(p) for p in filtered_participants]
-            self.__native_instance and self.__native_instance.addParticipants(participants)
+            self.__native_instance.addParticipants(participants)
 
             logger.debug(f&#39;Add description of {len(participants)} participant(s).&#39;)
 
@@ -1003,8 +1061,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.set_is_mute(False)
             if self.enable_action:
                 self.__start_status_worker()
-        else:
-            self.__properly_stop()
 
         self.trigger_handlers(GroupCallNativeAction.NETWORK_STATUS_CHANGED, self, state)
 
@@ -1062,8 +1118,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         # TODO video payload
 
-        self.__native_instance and self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeRtc)
-        self.__native_instance and self.__native_instance.setJoinResponsePayload(payload, participants)
+        self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeRtc)
+        self.__native_instance.setJoinResponsePayload(payload, participants)
         logger.debug(&#39;Join response payload was set.&#39;)
 
     def __emit_join_payload_callback(self, payload):
@@ -1091,6 +1147,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
                 response = await self.client.send(functions.phone.JoinGroupCall(
                     call=self.group_call,
                     join_as=self.join_as,
+                    invite_hash=self.invite_hash,
                     params=types.DataJSON(data=json.dumps(params)),
                     muted=True
                 ))
@@ -1099,8 +1156,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
                 logger.debug(f&#39;Successfully connected to VC with ssrc={self.my_ssrc} as {type(self.join_as).__name__}.&#39;)
             except GroupcallSsrcDuplicateMuch:
                 logger.debug(&#39;Reconnect. Duplicate SSRC&#39;)
-                # TODO
-                # await self.reconnect()
+                await self.reconnect()
 
         asyncio.ensure_future(_(), loop=self.client.loop)</code></pre>
 </details>
@@ -1134,10 +1190,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 <dd>
 <div class="desc"><p>Is enable sending of speaking action</p></div>
 </dd>
-<dt id="pytgcalls.group_call_native.GroupCallNative.enable_logs_to_console"><code class="name">var <span class="ident">enable_logs_to_console</span></code></dt>
-<dd>
-<div class="desc"><p>Is enable logs to stderr from tgcalls</p></div>
-</dd>
 <dt id="pytgcalls.group_call_native.GroupCallNative.full_chat"><code class="name">var <span class="ident">full_chat</span></code></dt>
 <dd>
 <div class="desc"><p>Full chat information</p></div>
@@ -1145,6 +1197,10 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 <dt id="pytgcalls.group_call_native.GroupCallNative.group_call"><code class="name">var <span class="ident">group_call</span></code></dt>
 <dd>
 <div class="desc"><p>Instance of Pyrogram's group call</p></div>
+</dd>
+<dt id="pytgcalls.group_call_native.GroupCallNative.invite_hash"><code class="name">var <span class="ident">invite_hash</span></code></dt>
+<dd>
+<div class="desc"><p>Hash from invite link to join as speaker</p></div>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNative.is_connected"><code class="name">var <span class="ident">is_connected</span></code></dt>
 <dd>
@@ -1161,10 +1217,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 <dt id="pytgcalls.group_call_native.GroupCallNative.my_ssrc"><code class="name">var <span class="ident">my_ssrc</span></code></dt>
 <dd>
 <div class="desc"><p>Client SSRC (Synchronization Source)</p></div>
-</dd>
-<dt id="pytgcalls.group_call_native.GroupCallNative.path_to_log_file"><code class="name">var <span class="ident">path_to_log_file</span></code></dt>
-<dd>
-<div class="desc"><p>Path to log file for logs of tgcalls</p></div>
 </dd>
 </dl>
 <h3>Methods</h3>
@@ -1349,6 +1401,8 @@ muted (<code>bool</code>): Is muted.</p></div>
 </summary>
 <pre><code class="python">async def leave_current_group_call(self):
     &#34;&#34;&#34;Leave group call from server side (MTProto part).&#34;&#34;&#34;
+    logger.debug(&#39;Try to leave current group call.&#39;)
+
     if not self.full_chat.call or not self.my_ssrc:
         return
 
@@ -1356,7 +1410,9 @@ muted (<code>bool</code>): Is muted.</p></div>
         call=self.full_chat.call,
         source=int_ssrc(self.my_ssrc)
     ))
-    await self.client.handle_updates(response)</code></pre>
+    await self.client.handle_updates(response)
+
+    logger.debug(&#39;Completely leave current group call.&#39;)</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNative.on_network_status_changed"><code class="name flex">
@@ -1373,19 +1429,18 @@ muted (<code>bool</code>): Is muted.</p></div>
 <span>async def <span class="ident">reconnect</span></span>(<span>self)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Reconnect to current voice chat.</p></div>
+<div class="desc"><p>Connect to voice chat using the same native instance.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">async def reconnect(self):
-    &#34;&#34;&#34;Reconnect to current voice chat.&#34;&#34;&#34;
-    chat_peer = self.chat_peer
-    join_as = self.join_as
-    enable_action = self.enable_action
+    &#34;&#34;&#34;Connect to voice chat using the same native instance.&#34;&#34;&#34;
 
-    await self.stop()
-    await self.start(chat_peer, join_as, enable_action)</code></pre>
+    self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
+    self.__native_instance.emitJoinPayload(self.__emit_join_payload_callback)
+
+    await self.leave_current_group_call()</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNative.remove_handler"><code class="name flex">
@@ -1530,7 +1585,7 @@ muted (<code>bool</code>): Is muted.</p></div>
 </details>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNative.start"><code class="name flex">
-<span>async def <span class="ident">start</span></span>(<span>self, group: Union[str, int, pyrogram.raw.types.input_peer_channel.InputPeerChannel, pyrogram.raw.types.input_peer_chat.InputPeerChat], join_as: Union[str, int, pyrogram.raw.types.input_peer_channel.InputPeerChannel, pyrogram.raw.types.input_peer_chat.InputPeerChat, pyrogram.raw.types.input_peer_user.InputPeerUser, NoneType] = None, enable_action=True)</span>
+<span>async def <span class="ident">start</span></span>(<span>self, group: Union[str, int, pyrogram.raw.types.input_peer_channel.InputPeerChannel, pyrogram.raw.types.input_peer_chat.InputPeerChat], join_as: Union[str, int, pyrogram.raw.types.input_peer_channel.InputPeerChannel, pyrogram.raw.types.input_peer_chat.InputPeerChat, pyrogram.raw.types.input_peer_user.InputPeerUser, NoneType] = None, invite_hash: Union[str, NoneType] = None, enable_action=True)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Start voice chat (join and play/record from initial values).</p>
@@ -1541,6 +1596,7 @@ Join as by default is personal account.</p>
 <h2 id="args">Args</h2>
 <p>group (<code>InputPeerChannel</code> | <code>InputPeerChat</code> | <code>str</code> | <code>int</code>): Chat ID in any form.
 join_as (<code>InputPeer</code> | <code>str</code> | <code>int</code>, optional): How to present yourself in participants list.
+invite_hash (<code>str</code>, optional): Hash from speaker invite link.
 enable_action (<code>bool</code>, optional): Is enables sending of speaking action.</p></div>
 <details class="source">
 <summary>
@@ -1550,6 +1606,7 @@ enable_action (<code>bool</code>, optional): Is enables sending of speaking acti
         self,
         group: Union[str, int, InputPeerChannel, InputPeerChat],
         join_as: Optional[Union[str, int, InputPeerChannel, InputPeerChat, InputPeerUser]] = None,
+        invite_hash: Optional[str] = None,
         enable_action=True
 ):
     &#34;&#34;&#34;Start voice chat (join and play/record from initial values).
@@ -1562,11 +1619,9 @@ enable_action (<code>bool</code>, optional): Is enables sending of speaking acti
     Args:
         group (`InputPeerChannel` | `InputPeerChat` | `str` | `int`): Chat ID in any form.
         join_as (`InputPeer` | `str` | `int`, optional): How to present yourself in participants list.
+        invite_hash (`str`, optional): Hash from speaker invite link.
         enable_action (`bool`, optional): Is enables sending of speaking action.
     &#34;&#34;&#34;
-
-    if self.is_connected:
-        await self.stop()
 
     self.my_peer = await self.client.resolve_peer(await self.client.storage.user_id())
     self.enable_action = enable_action
@@ -1582,9 +1637,18 @@ enable_action (<code>bool</code>, optional): Is enables sending of speaking acti
     else:
         self.join_as = join_as
 
+    self.invite_hash = invite_hash
+
+    self.remove_update_handler()
     handler_group = await self.__set_and_get_handler_group()
     self.client.add_handler(self._update_handler, handler_group)
-    self.__native_instance = self.__create_and_setup_native_instance()</code></pre>
+
+    # when trying to connect to another chat or with another join_as without calling .stop() before
+    if self.__native_instance.isGroupCallStarted():
+        await self.reconnect()
+    # the first start or start after .stop() with the same NativeInstance
+    else:
+        self._setup_and_start_group_call()</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNative.stop"><code class="name flex">
@@ -1598,9 +1662,24 @@ enable_action (<code>bool</code>, optional): Is enables sending of speaking acti
 </summary>
 <pre><code class="python">async def stop(self):
     &#34;&#34;&#34;Properly stop tgcalls, remove pyrogram handler, leave from server side.&#34;&#34;&#34;
-    logger.debug(&#39;Stop requested. Wait for disconnected status.&#39;)
+    logger.debug(&#39;Stop requested.&#39;)
+
+    if not self.is_connected:
+        logger.error(&#39;Cant stop during connection.&#39;)
+
+    self.remove_update_handler()
     self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
-    await self.leave_current_group_call()</code></pre>
+
+    async def on_disconnect_handler(_, is_connected):
+        if not is_connected:
+            self.remove_handler(on_disconnect_handler, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
+
+            self.__native_instance.stopGroupCall()
+            logger.debug(&#39;GroupCall properly stop.&#39;)
+
+            await self.leave_current_group_call()
+
+    self.add_handler(on_disconnect_handler, GroupCallNativeAction.NETWORK_STATUS_CHANGED)</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNative.trigger_handlers"><code class="name flex">
@@ -1788,18 +1867,17 @@ data-gaCategoryParameter="pytgcalls.group_call_native">
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.edit_group_call" href="#pytgcalls.group_call_native.GroupCallNative.edit_group_call">edit_group_call</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.edit_group_call_member" href="#pytgcalls.group_call_native.GroupCallNative.edit_group_call_member">edit_group_call_member</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.enable_action" href="#pytgcalls.group_call_native.GroupCallNative.enable_action">enable_action</a></code></li>
-<li><code><a title="pytgcalls.group_call_native.GroupCallNative.enable_logs_to_console" href="#pytgcalls.group_call_native.GroupCallNative.enable_logs_to_console">enable_logs_to_console</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.full_chat" href="#pytgcalls.group_call_native.GroupCallNative.full_chat">full_chat</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.get_group_call" href="#pytgcalls.group_call_native.GroupCallNative.get_group_call">get_group_call</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.get_group_call_participants" href="#pytgcalls.group_call_native.GroupCallNative.get_group_call_participants">get_group_call_participants</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.group_call" href="#pytgcalls.group_call_native.GroupCallNative.group_call">group_call</a></code></li>
+<li><code><a title="pytgcalls.group_call_native.GroupCallNative.invite_hash" href="#pytgcalls.group_call_native.GroupCallNative.invite_hash">invite_hash</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.is_connected" href="#pytgcalls.group_call_native.GroupCallNative.is_connected">is_connected</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.join_as" href="#pytgcalls.group_call_native.GroupCallNative.join_as">join_as</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.leave_current_group_call" href="#pytgcalls.group_call_native.GroupCallNative.leave_current_group_call">leave_current_group_call</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.my_peer" href="#pytgcalls.group_call_native.GroupCallNative.my_peer">my_peer</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.my_ssrc" href="#pytgcalls.group_call_native.GroupCallNative.my_ssrc">my_ssrc</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.on_network_status_changed" href="#pytgcalls.group_call_native.GroupCallNative.on_network_status_changed">on_network_status_changed</a></code></li>
-<li><code><a title="pytgcalls.group_call_native.GroupCallNative.path_to_log_file" href="#pytgcalls.group_call_native.GroupCallNative.path_to_log_file">path_to_log_file</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.reconnect" href="#pytgcalls.group_call_native.GroupCallNative.reconnect">reconnect</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.remove_handler" href="dispatcher_mixin.html#pytgcalls.group_call_native.GroupCallNative.remove_handler">remove_handler</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.remove_update_handler" href="#pytgcalls.group_call_native.GroupCallNative.remove_update_handler">remove_update_handler</a></code></li>

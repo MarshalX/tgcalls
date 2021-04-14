@@ -122,6 +122,7 @@ class Dispatcher:
         logger.debug(f&#39;Trigger handlers of {action}&#39;)
 
         for handler in self.get_handlers(action):
+            logger.debug(f&#39;Trigger {handler.__name__}&#39;)
             asyncio.ensure_future(handler(instance, *args, **kwargs), loop=instance.client.loop)</code></pre>
 </details>
 </section>
@@ -199,6 +200,7 @@ class Dispatcher:
         logger.debug(f&#39;Trigger handlers of {action}&#39;)
 
         for handler in self.get_handlers(action):
+            logger.debug(f&#39;Trigger {handler.__name__}&#39;)
             asyncio.ensure_future(handler(instance, *args, **kwargs), loop=instance.client.loop)</code></pre>
 </details>
 <h3>Methods</h3>
@@ -297,6 +299,7 @@ class Dispatcher:
     logger.debug(f&#39;Trigger handlers of {action}&#39;)
 
     for handler in self.get_handlers(action):
+        logger.debug(f&#39;Trigger {handler.__name__}&#39;)
         asyncio.ensure_future(handler(instance, *args, **kwargs), loop=instance.client.loop)</code></pre>
 </details>
 </dd>
