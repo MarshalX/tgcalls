@@ -158,6 +158,13 @@ PYBIND11_MODULE(tgcalls, m) {
             .def_readwrite("isRecordingPaused", &FileAudioDeviceDescriptor::_isRecordingPaused)
             .def_readwrite("playoutEndedCallback", &FileAudioDeviceDescriptor::_playoutEndedCallback);
 
+    py::class_<RawAudioDeviceDescriptor>(m, "RawAudioDeviceDescriptor")
+            .def(py::init<>())
+            .def_readwrite("setRecordedBufferCallback", &RawAudioDeviceDescriptor::_setRecordedBufferCallback)
+            .def_readwrite("getPlayedBufferCallback", &RawAudioDeviceDescriptor::_getPlayedBufferCallback)
+            .def_readwrite("isPlayoutPaused", &RawAudioDeviceDescriptor::_isPlayoutPaused)
+            .def_readwrite("isRecordingPaused", &RawAudioDeviceDescriptor::_isRecordingPaused);
+
     py::enum_<tgcalls::GroupConnectionMode>(m, "GroupConnectionMode")
             .value("GroupConnectionModeNone", tgcalls::GroupConnectionMode::GroupConnectionModeNone)
             .value("GroupConnectionModeRtc", tgcalls::GroupConnectionMode::GroupConnectionModeRtc)
@@ -168,7 +175,8 @@ PYBIND11_MODULE(tgcalls, m) {
             .def(py::init<bool, string>())
             .def("startCall", &NativeInstance::startCall)
             .def("setupGroupCall", &NativeInstance::setupGroupCall)
-            .def("startGroupCall", &NativeInstance::startGroupCall)
+            .def("startGroupCall", py::overload_cast<FileAudioDeviceDescriptor &>(&NativeInstance::startGroupCall))
+            .def("startGroupCall", py::overload_cast<RawAudioDeviceDescriptor &>(&NativeInstance::startGroupCall))
             .def("isGroupCallStarted", &NativeInstance::isGroupCallStarted)
             .def("stopGroupCall", &NativeInstance::stopGroupCall)
             .def("setIsMuted", &NativeInstance::setIsMuted)
