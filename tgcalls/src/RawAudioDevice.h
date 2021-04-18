@@ -1,13 +1,3 @@
-/*
- *  Copyright (c) 2014 The WebRTC project authors. All Rights Reserved.
- *
- *  Use of this source code is governed by a BSD-style license
- *  that can be found in the LICENSE file in the root of the source
- *  tree. An additional intellectual property rights grant can be found
- *  in the file PATENTS.  All contributing project authors may
- *  be found in the AUTHORS file in the root of the source tree.
- */
-
 #include <cstdio>
 
 #include <memory>
@@ -19,39 +9,26 @@
 #include <rtc_base/system/file_wrapper.h>
 #include <rtc_base/time_utils.h>
 
-#include "FileAudioDeviceDescriptor.h"
+#include "RawAudioDeviceDescriptor.h"
 
 namespace rtc {
   class PlatformThread;
-}  // namespace rtc
+}
 
-
-// This is a fake audio device which plays audio from a file as its microphone
-// and plays out into a file.
-class FileAudioDevice : public webrtc::AudioDeviceGeneric {
+class RawAudioDevice : public webrtc::AudioDeviceGeneric {
 public:
-  // Constructs a file audio device with |id|. It will read audio from
-  // |inputFilename| and record output audio to |outputFilename|.
-  //
-  // The input file should be a readable 48k stereo raw file, and the output
-  // file should point to a writable location. The output format will also be
-  // 48k stereo raw audio.
-  explicit FileAudioDevice(FileAudioDeviceDescriptor*);
+  explicit RawAudioDevice(RawAudioDeviceDescriptor*);
 
-  ~FileAudioDevice() override;
+  ~RawAudioDevice() override;
 
-  // Retrieve the currently utilized audio layer
-  int32_t ActiveAudioLayer(
-      webrtc::AudioDeviceModule::AudioLayer &audioLayer) const override;
+  int32_t ActiveAudioLayer(webrtc::AudioDeviceModule::AudioLayer &audioLayer) const override;
 
-  // Main initializaton and termination
   InitStatus Init() override;
 
   int32_t Terminate() override;
 
   bool Initialized() const override;
 
-  // Device enumeration
   int16_t PlayoutDevices() override;
 
   int16_t RecordingDevices() override;
@@ -64,18 +41,14 @@ public:
                               char name[webrtc::kAdmMaxDeviceNameSize],
                               char guid[webrtc::kAdmMaxGuidSize]) override;
 
-  // Device selection
   int32_t SetPlayoutDevice(uint16_t index) override;
 
-  int32_t SetPlayoutDevice(
-      webrtc::AudioDeviceModule::WindowsDeviceType device) override;
+  int32_t SetPlayoutDevice(webrtc::AudioDeviceModule::WindowsDeviceType device) override;
 
   int32_t SetRecordingDevice(uint16_t index) override;
 
-  int32_t SetRecordingDevice(
-      webrtc::AudioDeviceModule::WindowsDeviceType device) override;
+  int32_t SetRecordingDevice(webrtc::AudioDeviceModule::WindowsDeviceType device) override;
 
-  // Audio transport initialization
   int32_t PlayoutIsAvailable(bool &available) override;
 
   int32_t InitPlayout() override;
@@ -101,7 +74,6 @@ public:
 
   bool Recording() const override;
 
-  // Audio mixer initialization
   int32_t InitSpeaker() override;
 
   bool SpeakerIsInitialized() const override;
@@ -110,7 +82,6 @@ public:
 
   bool MicrophoneIsInitialized() const override;
 
-  // Speaker volume controls
   int32_t SpeakerVolumeIsAvailable(bool &available) override;
 
   int32_t SetSpeakerVolume(uint32_t volume) override;
@@ -121,7 +92,6 @@ public:
 
   int32_t MinSpeakerVolume(uint32_t &minVolume) const override;
 
-  // Microphone volume controls
   int32_t MicrophoneVolumeIsAvailable(bool &available) override;
 
   int32_t SetMicrophoneVolume(uint32_t volume) override;
@@ -132,21 +102,18 @@ public:
 
   int32_t MinMicrophoneVolume(uint32_t &minVolume) const override;
 
-  // Speaker mute control
   int32_t SpeakerMuteIsAvailable(bool &available) override;
 
   int32_t SetSpeakerMute(bool enable) override;
 
   int32_t SpeakerMute(bool &enabled) const override;
 
-  // Microphone mute control
   int32_t MicrophoneMuteIsAvailable(bool &available) override;
 
   int32_t SetMicrophoneMute(bool enable) override;
 
   int32_t MicrophoneMute(bool &enabled) const override;
 
-  // Stereo support
   int32_t StereoPlayoutIsAvailable(bool &available) override;
 
   int32_t SetStereoPlayout(bool enable) override;
@@ -159,7 +126,6 @@ public:
 
   int32_t StereoRecording(bool &enabled) const override;
 
-  // Delay information and control
   int32_t PlayoutDelay(uint16_t &delayMS) const override;
 
   void AttachAudioBuffer(webrtc::AudioDeviceBuffer *audioBuffer) override;
@@ -178,7 +144,6 @@ private:
   webrtc::AudioDeviceBuffer *_ptrAudioBuffer;
   int8_t *_recordingBuffer;  // In bytes.
   int8_t *_playoutBuffer;    // In bytes.
-  uint32_t _recordingFramesLeft;
   uint32_t _playoutFramesLeft;
   webrtc::Mutex mutex_;
 
@@ -186,7 +151,6 @@ private:
   size_t _recordingFramesIn10MS;
   size_t _playoutFramesIn10MS;
 
-  // TODO(pbos): Make plain members instead of pointers and stop resetting them.
   std::unique_ptr<rtc::PlatformThread> _ptrThreadRec;
   std::unique_ptr<rtc::PlatformThread> _ptrThreadPlay;
 
@@ -195,8 +159,5 @@ private:
   int64_t _lastCallPlayoutMillis;
   int64_t _lastCallRecordMillis;
 
-  webrtc::FileWrapper _outputFile;
-  webrtc::FileWrapper _inputFile;
-
-  FileAudioDeviceDescriptor *_fileAudioDeviceDescriptor;
+  RawAudioDeviceDescriptor *_rawAudioDeviceDescriptor;
 };

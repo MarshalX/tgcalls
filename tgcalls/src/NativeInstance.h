@@ -7,8 +7,7 @@
 
 #include "InstanceHolder.h"
 #include "RtcServer.h"
-#include "FileAudioDevice.h"
-#include "FileAudioDeviceDescriptor.h"
+#include "WrappedAudioDeviceModuleImpl.h"
 
 namespace py = pybind11;
 
@@ -39,6 +38,7 @@ public:
     );
 
     void startGroupCall(FileAudioDeviceDescriptor &);
+    void startGroupCall(RawAudioDeviceDescriptor &);
     void stopGroupCall() const;
     bool isGroupCallStarted() const;
 
@@ -59,4 +59,7 @@ public:
     void receiveSignalingData(std::vector<uint8_t> &data) const;
     void setJoinResponsePayload(tgcalls::GroupJoinResponsePayload payload, std::vector<tgcalls::GroupParticipantDescription> &&participants) const;
     void setSignalingDataEmittedCallback(const std::function<void(const std::vector<uint8_t> &data)> &f);
+
+private:
+    void createInstanceHolder(std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory*)>);
 };

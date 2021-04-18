@@ -26,20 +26,29 @@
 
 ```python
 from pyrogram import Client, filters
+from pyrogram.utils import MAX_CHANNEL_ID
+
 from pytgcalls import GroupCall
 
 app = Client('pytgcalls')
 group_call = GroupCall(app, 'input.raw')
 
 
+@group_call.on_network_status_changed
+async def on_network_changed(gc: GroupCall, is_connected: bool):
+    chat_id = MAX_CHANNEL_ID - gc.full_chat.id
+    if is_connected:
+        await app.send_message(chat_id, 'Successfully joined!')
+    else:
+        await app.send_message(chat_id, 'Disconnected from voice chat..')
+
+
 @app.on_message(filters.outgoing & filters.command('join'))
 async def join(_, message):
     await group_call.start(message.chat.id)
-    await message.reply_text('Successfully joined!')
 
 
 app.run()
-
 ```
 
 This project consists of two main parts: [tgcalls](#tgcalls), [pytgcalls](#pytgcalls).
@@ -49,15 +58,20 @@ All together, it allows you to create userbots that can record and
 broadcast in voice chats, make and receive private calls.
 
 ### Features
+
 - Python solution.
-- Work with voice chats.
-- Multiply chats.
-- Payout from file.
-- Output (recording) to file.
+- Work with voice chats in channels and chats.
+- [Multiply voice chats](https://github.com/MarshalX/tgcalls/blob/main/examples/radio_as_smart_plugin.py).
+- [Work with data in bytes directly from Python](https://github.com/MarshalX/tgcalls/blob/main/examples/restream_using_raw_data.py).
+- [Payout from file](https://github.com/MarshalX/tgcalls/blob/main/examples/playout.py).
+- [Output (recording) to file](https://github.com/MarshalX/tgcalls/blob/main/examples/recorder_as_smart_plugin.py).
 - Change files at runtime.
+- Pause/resume.
 - Stop payout/output.
-- Speaking status with levels inside and outside of VC.
-- Mute, unmute, volume control, handlers and more...
+- Join as channels.
+- Join using invite (speaker) links.
+- Speaking status with audio levels inside and outside of voice chat.
+- Mute, unmute, volume control, system of handlers and more...
 
 ### Requirements
 
@@ -68,8 +82,7 @@ broadcast in voice chats, make and receive private calls.
 
 ### TODO list
 - Incoming and Outgoing calls (already there and working, but not in release).
-- Video calls (video from/to a file etc).
-- Additional things for working with ffmpeg.
+- Private and group video calls.
 - Windows and macOS Python wheels
 [and more...](https://github.com/MarshalX/tgcalls/issues)
 
@@ -142,10 +155,10 @@ along with MTProto.
 
 ## pytgcalls 
 
-This project is for the most part an example for using [tgcalls](#tgcalls) 
-Python binding together with MTProto.
-A Pyrogram was chosen as a library for working with MTProto. 
-You can easily write your own implementation to work with Telethon.
+This project is implementation of using [tgcalls](#tgcalls) 
+Python binding together with [MTProto](https://core.telegram.org/mtproto).
+A Pyrogram was chosen as a library for working with Telegram Mobile Protocol. 
+You can write your own implementation to work with Telethon or other libraries.
 
 ### Learning by example
 

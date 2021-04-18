@@ -35,8 +35,9 @@ void NativeInstance::setupGroupCall(
   _participantDescriptionsRequired = participantDescriptionsRequired;
 }
 
-void NativeInstance::startGroupCall(
-    FileAudioDeviceDescriptor &fileAudioDeviceDescriptor) {
+void NativeInstance::createInstanceHolder(
+    std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory *)> createAudioDeviceModule
+) {
   tgcalls::GroupInstanceDescriptor descriptor{
       .threads = tgcalls::StaticThreads::getThreads(),
       .config = tgcalls::GroupConfig{.need_log = true,
@@ -48,13 +49,7 @@ void NativeInstance::startGroupCall(
       },
       .audioLevelsUpdated =
       [=](tgcalls::GroupLevelsUpdate const &update) {}, // TODO may be
-      .createAudioDeviceModule = [&](webrtc::TaskQueueFactory *taskQueueFactory)
-          -> rtc::scoped_refptr<webrtc::AudioDeviceModule> {
-        _audioDeviceModule = WrappedAudioDeviceModuleImpl::Create(
-            webrtc::AudioDeviceModule::kDummyAudio, taskQueueFactory, &fileAudioDeviceDescriptor
-        );
-        return _audioDeviceModule;
-      },
+      .createAudioDeviceModule = std::move(createAudioDeviceModule),
       .participantDescriptionsRequired =
       [=](std::vector<uint32_t> const &ssrcs) {
         _participantDescriptionsRequired(ssrcs);
@@ -64,13 +59,35 @@ void NativeInstance::startGroupCall(
   };
 
   instanceHolder = std::make_unique<InstanceHolder>();
-  instanceHolder->groupNativeInstance =
-      std::make_unique<tgcalls::GroupInstanceCustomImpl>(std::move(descriptor));
+  instanceHolder->groupNativeInstance = std::make_unique<tgcalls::GroupInstanceCustomImpl>(std::move(descriptor));
   instanceHolder->groupNativeInstance->emitJoinPayload(
       [=](tgcalls::GroupJoinPayload payload) {
         _emitJoinPayloadCallback(std::move(payload));
+      }
+  );
+}
+
+void NativeInstance::startGroupCall(FileAudioDeviceDescriptor &fileAudioDeviceDescriptor) {
+  createInstanceHolder(
+      [&](webrtc::TaskQueueFactory *taskQueueFactory) -> rtc::scoped_refptr<webrtc::AudioDeviceModule> {
+        _audioDeviceModule = WrappedAudioDeviceModuleImpl::Create(
+            webrtc::AudioDeviceModule::kDummyAudio, taskQueueFactory, &fileAudioDeviceDescriptor
+        );
+
+        return _audioDeviceModule;
       });
-};
+}
+
+void NativeInstance::startGroupCall(RawAudioDeviceDescriptor &rawAudioDeviceDescriptor) {
+  createInstanceHolder(
+      [&](webrtc::TaskQueueFactory *taskQueueFactory) -> rtc::scoped_refptr<webrtc::AudioDeviceModule> {
+        _audioDeviceModule = WrappedAudioDeviceModuleImpl::Create(
+            webrtc::AudioDeviceModule::kDummyAudio, taskQueueFactory, &rawAudioDeviceDescriptor
+        );
+
+        return _audioDeviceModule;
+      });
+}
 
 void NativeInstance::stopGroupCall() const {
   instanceHolder->groupNativeInstance.reset();

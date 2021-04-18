@@ -20,11 +20,12 @@
 from pytgcalls.group_call_native import GroupCallNative, GroupCallNativeAction, GroupCallNativeDispatcherMixin
 from pytgcalls.action import Action
 from pytgcalls.group_call import GroupCall, GroupCallAction, GroupCallDispatcherMixin
+from pytgcalls.group_call_raw import GroupCallRaw
 from pytgcalls.dispatcher import Dispatcher
 from pytgcalls.dispatcher_mixin import DispatcherMixin
 
-__all__ = ['GroupCallNative', 'GroupCall', 'Dispatcher', 'DispatcherMixin', 'Action', 'GroupCallNativeAction',
-           'GroupCallNativeDispatcherMixin', 'GroupCallAction', 'GroupCallDispatcherMixin']
+__all__ = ['GroupCallNative', 'GroupCall', 'GroupCallRaw', 'Dispatcher', 'DispatcherMixin', 'Action',
+           'GroupCallNativeAction', 'GroupCallNativeDispatcherMixin', 'GroupCallAction', 'GroupCallDispatcherMixin']
 __version__ = '0.0.17'
 __pdoc__ = {
     'Action': False,
