@@ -122,7 +122,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         &#39;&#39;&#39;Client of Pyrogram&#39;&#39;&#39;
 
         self.__native_instance = self.__create_and_setup_native_instance(
-            enable_logs_to_console, path_to_log_file or &#39;group_call.log&#39;
+            enable_logs_to_console, path_to_log_file
         )
 
         self.join_as = None
@@ -681,7 +681,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         &#39;&#39;&#39;Client of Pyrogram&#39;&#39;&#39;
 
         self.__native_instance = self.__create_and_setup_native_instance(
-            enable_logs_to_console, path_to_log_file or &#39;group_call.log&#39;
+            enable_logs_to_console, path_to_log_file
         )
 
         self.join_as = None
