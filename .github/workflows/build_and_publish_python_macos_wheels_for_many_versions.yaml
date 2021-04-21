@@ -292,9 +292,12 @@ jobs:
         env:
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
+          CIBW_BEFORE_BUILD: cp -R $LibrariesPath {package}/../Libraries/macos
         run: |
+          cd $REPO_NAME
+
           pip install cibuildwheel
-          cibuildwheel --output-dir dist tgcalls
+          cibuildwheel --output-dir dist
 
       - name: Upload wheels.
         if: env.UPLOAD_WHEELS == 'true'
