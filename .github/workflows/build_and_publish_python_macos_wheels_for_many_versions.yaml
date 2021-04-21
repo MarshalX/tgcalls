@@ -271,7 +271,7 @@ jobs:
         run: |
           pip install cibuildwheel
 
-          cd $LibrariesPath
+          cd $REPO_NAME
           cibuildwheel --output-dir dist
         shell: bash
 
