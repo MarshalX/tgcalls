@@ -6,13 +6,10 @@ on:
       - macos-wheels
 #    paths:
 #      - '.github/workflows/build_and_publish_python_macos_wheels_for_many_versions.yaml'
-#      - 'setup.py'
-#      - 'CMakeLists.txt'
-#      - 'tgcalls/**'
-#      - '.github/workflows/build_and_push_manylinux_images.yaml'
-#      - 'build/manylinux/Dockerfile'
-#      - 'build/manylinux/webrtc/Dockerfile'
 #      - 'tgcalls/third_party/webrtc/**'
+#      - 'tgcalls/**'
+#      - 'CMakeLists.txt'
+#      - 'setup.py'
 jobs:
 
   build_wheels_for_macos:
@@ -290,9 +287,11 @@ jobs:
       - name: Build wheels.
         if: env.BUILD_WHEELS == 'true'
         env:
+          CIBW_ARCHS_MACOS: "x86_64 universal2 arm64"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
-          CIBW_BEFORE_ALL: mkdir {temp_dir}/../Libraries && cp -R $LibrariesPath {temp_dir}/../Libraries
+          CIBW_BEFORE_ALL: cp -R $LibrariesPath {temp_dir}/../
         run: |
           cd $REPO_NAME
 
