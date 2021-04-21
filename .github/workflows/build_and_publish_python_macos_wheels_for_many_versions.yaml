@@ -46,6 +46,9 @@ jobs:
         run: |
           brew install automake cmake git libvpx ninja opus yasm libtool
 
+          # Disable spotlight.
+          sudo mdutil -a -i off
+
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 
           echo $MIN_VER >> CACHE_KEY.txt
@@ -291,10 +294,7 @@ jobs:
           CIBW_SKIP: cp35-*
         run: |
           pip install cibuildwheel
-
-          cd $REPO_NAME
-          cibuildwheel --output-dir dist
-        shell: bash
+          cibuildwheel --output-dir dist tgcalls
 
       - name: Upload wheels.
         if: env.UPLOAD_WHEELS == 'true'
