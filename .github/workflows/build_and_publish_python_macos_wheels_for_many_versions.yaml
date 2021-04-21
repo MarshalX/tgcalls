@@ -23,6 +23,7 @@ jobs:
       MIN_VER: "-mmacosx-version-min=10.12"
       UNGUARDED: "-Werror=unguarded-availability-new"
       PREFIX: "/usr/local/macos"
+      BUILD_WHEELS: "false"
       UPLOAD_WHEELS: "false"
       GLOBAL_CACHE_KEY: "1"
       WEBRTC_CACHE_KEY: "1"
@@ -79,7 +80,14 @@ jobs:
           cmake --build build -j$(nproc)
           sudo cmake --install build
 
+      - name: OpenSSL cache.
+        id: cache-openssl
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/openssl_1_1_1
+          key: ${{ runner.OS }}-openssl-${{ env.CACHE_KEY }}
       - name: OpenSSL.
+        if: steps.cache-openssl.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
 
@@ -89,7 +97,14 @@ jobs:
           ./Configure --prefix=$PREFIX no-tests darwin64-x86_64-cc -static $MIN_VER
           make build_libs -j$(nproc)
 
+      - name: Opus cache.
+        id: cache-opus
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/opus-cache
+          key: ${{ runner.OS }}-opus-${{ env.CACHE_KEY }}
       - name: Opus.
+        if: steps.cache-opus.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
 
@@ -99,7 +114,11 @@ jobs:
           ./autogen.sh
           CFLAGS="$MIN_VER $UNGUARDED" CPPFLAGS="$MIN_VER $UNGUARDED" LDFLAGS="$MIN_VER" ./configure --prefix=$PREFIX
           make -j$(nproc)
-          sudo make install
+          sudo make DESTDIR="$LibrariesPath/opus-cache" install
+      - name: Opus install.
+        run: |
+          cd $LibrariesPath
+          sudo cp -R opus-cache/. /
 
       - name: FFmpeg cache.
         id: cache-ffmpeg
@@ -266,6 +285,7 @@ jobs:
           ninja
 
       - name: Build wheels.
+        if: env.BUILD_WHEELS == 'true'
         env:
           CIBW_SKIP: cp27-* pp27-*
         run: |
