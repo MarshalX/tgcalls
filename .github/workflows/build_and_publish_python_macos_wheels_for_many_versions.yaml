@@ -287,7 +287,7 @@ jobs:
       - name: Build wheels.
         if: env.BUILD_WHEELS == 'true'
         env:
-          CIBW_ARCHS_MACOS: "x86_64 universal2 arm64"
+          CIBW_ARCHS_MACOS: "x86_64"
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
@@ -298,9 +298,11 @@ jobs:
           pip install git+https://github.com/MarshalX/cibuildwheel@temp-dir-macos-placeholder
           cibuildwheel --output-dir dist
 
-      - name: Upload wheels.
+      - name: Upload wheels to PyPi.
         if: env.UPLOAD_WHEELS == 'true'
-        uses: actions/upload-artifact@v2
-        with:
-          name: Wheels for macOS
-          path: ${{ env.REPO_NAME }}/dist/
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          pip install twine
+          twine upload $REPO_NAME/dist/*
