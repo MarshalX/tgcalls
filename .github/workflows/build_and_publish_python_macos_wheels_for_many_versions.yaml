@@ -23,7 +23,7 @@ jobs:
       MIN_VER: "-mmacosx-version-min=10.12"
       UNGUARDED: "-Werror=unguarded-availability-new"
       PREFIX: "/usr/local/macos"
-      BUILD_WHEELS: "false"
+      BUILD_WHEELS: "true"
       UPLOAD_WHEELS: "false"
       GLOBAL_CACHE_KEY: "1"
       WEBRTC_CACHE_KEY: "1"
