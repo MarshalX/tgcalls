@@ -301,7 +301,7 @@ jobs:
 
       - name: Upload wheels.
         if: env.UPLOAD_WHEELS == 'true'
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
-          name: dist
-          path: $REPO_NAME/dist/
+          name: Wheels for macOS
+          path: ${{ env.REPO_NAME }}/dist/
