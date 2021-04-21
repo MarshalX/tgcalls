@@ -24,7 +24,7 @@ jobs:
       UNGUARDED: "-Werror=unguarded-availability-new"
       PREFIX: "/usr/local/macos"
       BUILD_WHEELS: "true"
-      UPLOAD_WHEELS: "false"
+      UPLOAD_WHEELS: "true"
       GLOBAL_CACHE_KEY: "1"
       WEBRTC_CACHE_KEY: "1"
 
@@ -287,7 +287,8 @@ jobs:
       - name: Build wheels.
         if: env.BUILD_WHEELS == 'true'
         env:
-          CIBW_SKIP: cp27-* pp27-*
+          CIBW_BUILD: cp3*-*
+          CIBW_SKIP: cp35-*
         run: |
           pip install cibuildwheel
 
