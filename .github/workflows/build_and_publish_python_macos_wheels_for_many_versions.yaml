@@ -292,7 +292,7 @@ jobs:
         env:
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
-          CIBW_BEFORE_BUILD: mkdir -p {temp_dir}/../Libraries/macos && cp -R $LibrariesPath {temp_dir}/../Libraries/macos
+          CIBW_BEFORE_BUILD: mkdir -p /private{temp_dir}/../Libraries/macos && cp -R $LibrariesPath /private{temp_dir}/../Libraries/macos
         run: |
           cd $REPO_NAME
 
