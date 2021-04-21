@@ -292,11 +292,11 @@ jobs:
         env:
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
-          CIBW_BEFORE_BUILD: cp -R $LibrariesPath {package}/../Libraries/macos
+          CIBW_BEFORE_BUILD: cp -R $LibrariesPath {temp_dir}/../Libraries/macos
         run: |
           cd $REPO_NAME
 
-          pip install cibuildwheel
+          pip install git+https://github.com/MarshalX/cibuildwheel@temp-dir-macos-placeholder
           cibuildwheel --output-dir dist
 
       - name: Upload wheels.
