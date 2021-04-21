@@ -24,6 +24,8 @@ jobs:
       UNGUARDED: "-Werror=unguarded-availability-new"
       PREFIX: "/usr/local/macos"
       UPLOAD_WHEELS: "false"
+      GLOBAL_CACHE_KEY: "1"
+      WEBRTC_CACHE_KEY: "1"
 
     steps:
       - name: Get repository name.
@@ -44,6 +46,12 @@ jobs:
           brew install automake cmake git libvpx ninja opus yasm libtool
 
           sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+          echo $MIN_VER >> CACHE_KEY.txt
+          echo $PREFIX >> CACHE_KEY.txt
+          echo $GLOBAL_CACHE_KEY >> CACHE_KEY.txt
+          echo "$GITHUB_WORKSPACE" >> CACHE_KEY.txt
+          echo "CACHE_KEY=`md5 -q CACHE_KEY.txt`" >> $GITHUB_ENV
 
           mkdir -p Libraries/macos
           cd Libraries/macos
@@ -93,7 +101,14 @@ jobs:
           make -j$(nproc)
           sudo make install
 
+      - name: FFmpeg cache.
+        id: cache-ffmpeg
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/ffmpeg-cache
+          key: ${{ runner.OS }}-ffmpeg-${{ env.CACHE_KEY }}
       - name: FFmpeg.
+        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
 
@@ -103,7 +118,7 @@ jobs:
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig:/usr/lib/pkgconfig:/usr/X11/lib/pkgconfig
           cp ../patches/macos_yasm_wrap.sh ./
 
-          ./configure --prefix=/usr/local/macos \
+          ./configure --prefix=$LibrariesPath/ffmpeg-cache \
           --extra-cflags="$MIN_VER $UNGUARDED" \
           --extra-cxxflags="$MIN_VER $UNGUARDED" \
           --extra-ldflags="$MIN_VER" \
@@ -208,8 +223,30 @@ jobs:
 
           make -j$(nproc)
           sudo make install
+      - name: FFmpeg install.
+        run: |
+          cd $LibrariesPath
+          # List of files from cmake/external/ffmpeg/CMakeLists.txt.
+          copyLib() {
+            mkdir -p ffmpeg/$1
+            \cp -fR ffmpeg-cache/lib/$1.a ffmpeg/$1/$1.a
+          }
+          copyLib libavformat
+          copyLib libavcodec
+          copyLib libswresample
+          copyLib libswscale
+          copyLib libavutil
+          sudo cp -R ffmpeg-cache/. $PREFIX
+          sudo cp -R ffmpeg-cache/include/. ffmpeg/
 
+      - name: WebRTC cache.
+        id: cache-webrtc
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/tg_owt
+          key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}-${{ env.WEBRTC_CACHE_KEY }}
       - name: WebRTC.
+        if: steps.cache-webrtc.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
 
@@ -233,6 +270,8 @@ jobs:
           CIBW_SKIP: cp27-* pp27-*
         run: |
           pip install cibuildwheel
+
+          cd $LibrariesPath
           cibuildwheel --output-dir dist
         shell: bash
 
