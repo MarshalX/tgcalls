@@ -239,6 +239,6 @@ jobs:
       - name: Upload wheels.
         if: env.UPLOAD_WHEELS == 'true'
         uses: actions/upload-artifact@v1
-          with:
-            name: dist
-            path: dist/
+        with:
+          name: dist
+          path: dist/
