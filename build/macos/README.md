@@ -1,5 +1,9 @@
 # Build instruction for macOS
 
+**It works on Apple Silicon (M1). But there is problems with python wheel 
+and [delocate](https://github.com/matthew-brett/delocate). This is a reason why I dont 
+upload bwheel to PyPi**
+
 XCode Command Line Tools and python3 need to installed.
 
 ```shell script

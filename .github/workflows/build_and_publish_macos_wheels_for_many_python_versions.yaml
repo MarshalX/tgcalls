@@ -2,14 +2,13 @@ name: Build and publish wheels for macOS and many Python versions
 on:
   push:
     branches:
-#      - main
-      - macos-wheels
-#    paths:
-#      - '.github/workflows/build_and_publish_python_macos_wheels_for_many_versions.yaml'
-#      - 'tgcalls/third_party/webrtc/**'
-#      - 'tgcalls/**'
-#      - 'CMakeLists.txt'
-#      - 'setup.py'
+      - main
+    paths:
+      - '.github/workflows/build_and_publish_macos_wheels_for_many_python_versions.yaml'
+      - 'tgcalls/third_party/webrtc/**'
+      - 'tgcalls/**'
+      - 'CMakeLists.txt'
+      - 'setup.py'
 jobs:
 
   build_wheels_for_macos:

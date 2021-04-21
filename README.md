@@ -77,13 +77,14 @@ broadcast in voice chats, make and receive private calls.
 
 - Python 3.6 or higher.
 - A [Telegram API key](https://docs.pyrogram.org/intro/setup#api-keys).
-- x86_64 platform and Unix system (WSL for Windows).
+- x86_64 platform and Unix system (WSL for Windows, for Apple Silicon 
+  you need to [build by yourself](build/macos)).
 
 
 ### TODO list
 - Incoming and Outgoing calls (already there and working, but not in release).
 - Private and group video calls.
-- Windows and macOS Python wheels
+- Python binary wheels for Windows
 [and more...](https://github.com/MarshalX/tgcalls/issues)
 
 ### Installing
