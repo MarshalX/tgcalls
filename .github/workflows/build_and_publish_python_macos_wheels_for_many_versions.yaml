@@ -292,7 +292,7 @@ jobs:
         env:
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
-          CIBW_BEFORE_ALL: mkdir -p {temp_dir}/../Libraries/macos && cp -R $LibrariesPath {temp_dir}/../Libraries
+          CIBW_BEFORE_ALL: mkdir {temp_dir}/../Libraries && cp -R $LibrariesPath {temp_dir}/../Libraries
         run: |
           cd $REPO_NAME
 
@@ -304,4 +304,4 @@ jobs:
         uses: actions/upload-artifact@v1
         with:
           name: dist
-          path: dist/
+          path: $REPO_NAME/dist/
