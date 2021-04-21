@@ -291,7 +291,7 @@ jobs:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
-          CIBW_BEFORE_ALL: cp -R $LibrariesPath {temp_dir}/../
+          CIBW_BEFORE_ALL: mkdir {temp_dir}/../Libraries && cp -R $LibrariesPath {temp_dir}/../Libraries
         run: |
           cd $REPO_NAME
 
