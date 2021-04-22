@@ -1,0 +1,154 @@
+name: Build and publish wheels for Windows and many Python versions
+on:
+  push:
+    branches:
+#      - main
+      - win-wheels
+#    paths:
+#      - '.github/workflows/build_and_publish_win_wheels_for_many_python_versions.yaml'
+#      - 'tgcalls/third_party/webrtc/**'
+#      - 'tgcalls/**'
+#      - 'CMakeLists.txt'
+#      - 'setup.py'
+jobs:
+
+  build_wheels_for_win:
+    name: Build and publish wheels for Windows
+    runs-on: windows-latest
+
+    env:
+      VC: "call vcvars32.bat && cd Libraries"
+      BUILD_WHEELS: "false"
+      UPLOAD_WHEELS: "false"
+      GLOBAL_CACHE_KEY: "1"
+      WEBRTC_CACHE_KEY: "1"
+
+    defaults:
+      run:
+        shell: cmd
+
+    steps:
+      - name: Get repository name.
+        shell: bash
+        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+
+      - name: Set up environment paths.
+        shell: bash
+        run: |
+          echo "C:\\Strawberry\\perl\\bin\\" >> $GITHUB_PATH
+          echo "C:\\Program Files\\NASM\\" >> $GITHUB_PATH
+          echo "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Enterprise\\VC\\Auxiliary\\Build\\" >> $GITHUB_PATH
+
+          mkdir Libraries && cd Libraries
+          echo "Convert unix path to win path."
+          p=`pwd | sed 's#^/[d]#d:#g' |sed 's#/#\\\\#g'`
+          echo "LibrariesPath=$p" >> $GITHUB_ENV
+
+      - name: Save msbuild version.
+        run: |
+          call vcvars32.bat
+          msbuild -version > CACHE_KEY.txt
+
+      - name: Clone.
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          path: ${{ env.REPO_NAME }}
+
+      - name: Generate cache key.
+        shell: bash
+        run: |
+          echo $GLOBAL_CACHE_KEY >> CACHE_KEY.txt
+          echo "$GITHUB_WORKSPACE" >> CACHE_KEY.txt
+          echo "CACHE_KEY=`md5sum CACHE_KEY.txt | awk '{ print $1 }'`" >> $GITHUB_ENV
+
+      - name: Choco installs.
+        run: choco install --no-progress -y nasm yasm jom ninja
+
+      - name: Patches.
+        shell: bash
+        run: |
+          cd $LibrariesPath
+          git clone https://github.com/desktop-app/patches.git
+          cd patches
+          git checkout e052c49
+
+      - name: MozJPEG.
+        shell: cmd
+        run: |
+          %VC%
+          git clone -b v4.0.1-rc2 https://github.com/mozilla/mozjpeg.git
+          cd mozjpeg
+          cmake . ^
+          -G "Visual Studio 16 2019" ^
+          -A Win32 ^
+          -DWITH_JPEG8=ON ^
+          -DPNG_SUPPORTED=OFF
+          cmake --build . --config Debug
+
+      - name: OpenSSL cache.
+        id: cache-openssl
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/openssl_1_1_1
+          key: ${{ runner.OS }}-${{ env.CACHE_KEY }}-openssl_1_1_1
+      - name: OpenSSL.
+        if: steps.cache-openssl.outputs.cache-hit != 'true'
+        run: |
+          %VC%
+          git clone https://github.com/openssl/openssl.git openssl_1_1_1
+          cd openssl_1_1_1
+          git checkout OpenSSL_1_1_1-stable
+          perl Configure no-shared no-tests debug-VC-WIN32
+          nmake
+          mkdir out32.dbg
+          move libcrypto.lib out32.dbg
+          move libssl.lib out32.dbg
+          move ossl_static.pdb out32.dbg\ossl_static
+          nmake clean
+          move out32.dbg\ossl_static out32.dbg\ossl_static.pdb
+          perl Configure no-shared no-tests VC-WIN32
+          nmake
+          mkdir out32
+          move libcrypto.lib out32
+          move libssl.lib out32
+          move ossl_static.pdb out32
+          rmdir /S /Q test
+          rmdir /S /Q .git
+
+      - name: Opus cache.
+        id: cache-opus
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/opus
+          key: ${{ runner.OS }}-opus-${{ env.CACHE_KEY }}
+      - name: Opus.
+        if: steps.cache-opus.outputs.cache-hit != 'true'
+        run: |
+          %VC%
+          git clone https://github.com/telegramdesktop/opus.git
+          cd opus
+          git checkout tdesktop
+          cd win32\VS2015
+          msbuild -m opus.sln /property:Configuration=Debug /property:Platform="Win32"
+          msbuild -m opus.sln /property:Configuration=Release /property:Platform="Win32"
+
+      - name: Build wheels.
+        if: env.BUILD_WHEELS == 'true'
+        env:
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
+          CIBW_BUILD: cp3*-*
+          CIBW_SKIP: cp35-*
+          CIBW_ENVIRONMENT: "ROOT_PATH=$(pwd)"
+        run: |
+          pip install cibuildwheel
+          cibuildwheel --output-dir dist tgcalls
+
+      - name: Upload wheels to PyPi.
+        if: env.UPLOAD_WHEELS == 'true'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          pip install twine
+          twine upload dist/*
