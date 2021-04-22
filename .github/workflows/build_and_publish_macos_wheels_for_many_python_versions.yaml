@@ -16,12 +16,16 @@ jobs:
     name: Build and publish wheels for macOS
     runs-on: macos-latest
 
+    strategy:
+      matrix:
+        arch: [ "x86_64", "arm64" ]
+
     env:
       MIN_VER: "-mmacosx-version-min=10.12"
       UNGUARDED: "-Werror=unguarded-availability-new"
       PREFIX: "/usr/local/macos"
-      BUILD_WHEELS: "true"
-      UPLOAD_WHEELS: "true"
+      BUILD_WHEELS: "false"
+      UPLOAD_WHEELS: "false"
       GLOBAL_CACHE_KEY: "1"
       WEBRTC_CACHE_KEY: "1"
 
@@ -80,14 +84,33 @@ jobs:
           cmake --build build -j$(nproc)
           sudo cmake --install build
 
+      - name: OpenSSL ARM cache.
+        if: matrix.arch == 'arm64'
+        id: cache-openssl-arm
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/openssl_1_1_1
+          key: ${{ runner.OS }}-openssl-arm-${{ env.CACHE_KEY }}
+      - name: OpenSSL ARM.
+        if: matrix.arch == 'arm64' && steps.cache-openssl-arm.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone https://github.com/openssl/openssl openssl_1_1_1
+          cd openssl_1_1_1
+          git checkout OpenSSL_1_1_1-stable
+          ./Configure --prefix=$PREFIX no-tests darwin64-arm64-cc -static $MIN_VER
+          make build_libs -j$(nproc)
+
       - name: OpenSSL cache.
+        if: matrix.arch == 'x86_64'
         id: cache-openssl
         uses: actions/cache@v2
         with:
           path: ${{ env.LibrariesPath }}/openssl_1_1_1
           key: ${{ runner.OS }}-openssl-${{ env.CACHE_KEY }}
       - name: OpenSSL.
-        if: steps.cache-openssl.outputs.cache-hit != 'true'
+        if: matrix.arch == 'x86_64' && steps.cache-openssl.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
 
@@ -258,14 +281,15 @@ jobs:
           sudo cp -R ffmpeg-cache/. $PREFIX
           sudo cp -R ffmpeg-cache/include/. ffmpeg/
 
-      - name: WebRTC cache.
-        id: cache-webrtc
+      - name: WebRTC ARM cache.
+        if: matrix.arch == 'arm64'
+        id: cache-webrtc-arm
         uses: actions/cache@v2
         with:
           path: ${{ env.LibrariesPath }}/tg_owt
-          key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}-${{ env.WEBRTC_CACHE_KEY }}
-      - name: WebRTC.
-        if: steps.cache-webrtc.outputs.cache-hit != 'true'
+          key: ${{ runner.OS }}-webrtc-arm-${{ env.CACHE_KEY }}-${{ env.WEBRTC_CACHE_KEY }}
+      - name: WebRTC ARM.
+        if: matrix.arch == 'arm64' && steps.cache-webrtc-arm.outputs.cache-hit != 'true'
         run: |
           cd $LibrariesPath
 
@@ -284,10 +308,47 @@ jobs:
               -DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/macos/include ../..
           ninja
 
-      - name: Build wheels.
-        if: env.BUILD_WHEELS == 'true'
+      - name: WebRTC cache.
+        if: matrix.arch == 'x86_64'
+        id: cache-webrtc
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/tg_owt
+          key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}-${{ env.WEBRTC_CACHE_KEY }}
+      - name: WebRTC.
+        if: matrix.arch == 'x86_64' && steps.cache-webrtc.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          cp -R ../../tgcalls/tgcalls/third_party/webrtc tg_owt
+
+          cd tg_owt
+          mkdir -p out/Release
+          cd out/Release
+
+          cmake -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DTG_OWT_SPECIAL_TARGET=mac \
+              -DTG_OWT_LIBJPEG_INCLUDE_PATH=$PREFIX/include \
+              -DTG_OWT_OPENSSL_INCLUDE_PATH=`pwd`/../../../openssl_1_1_1/include \
+              -DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/macos/include/opus \
+              -DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/macos/include ../..
+          ninja
+
+      - name: Build wheels for M1.
+        if: matrix.arch == 'arm64' && env.BUILD_WHEELS == 'true'
         env:
-          CIBW_ARCHS_MACOS: "x86_64"
+          CIBW_ARCHS_MACOS: "arm64"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
+          CIBW_BUILD: cp3*-*
+          CIBW_ENVIRONMENT: "ROOT_PATH=$(pwd)"
+        run: |
+          pip install cibuildwheel
+          cibuildwheel --output-dir dist tgcalls
+
+      - name: Build wheels.
+        if: matrix.arch == 'x86_64' && env.BUILD_WHEELS == 'true'
+        env:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
