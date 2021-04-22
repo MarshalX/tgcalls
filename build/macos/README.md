@@ -1,5 +1,9 @@
 # Build instruction for macOS
 
+**It works on Apple Silicon (M1). But there is problem with building deps 
+on GitHub CI for ARM using macOS. 
+I build for M1 on my machine and upload to PyPi (only for Python 3.9)**
+
 XCode Command Line Tools and python3 need to installed.
 
 ```shell script
@@ -36,6 +40,9 @@ cd ..
 git clone https://github.com/openssl/openssl openssl_1_1_1
 cd openssl_1_1_1
 git checkout OpenSSL_1_1_1-stable
+# for apple silicon:
+#./Configure --prefix=/usr/local/macos no-tests darwin64-arm64-cc -static $MIN_VER
+# for intel:
 ./Configure --prefix=/usr/local/macos no-tests darwin64-x86_64-cc -static $MIN_VER
 make build_libs $MAKE_THREADS_CNT
 cd ..
