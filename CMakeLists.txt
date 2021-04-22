@@ -3,6 +3,18 @@ cmake_policy(SET CMP0076 NEW)
 # cmake 3.15+ make_policy(SET CMP0091 NEW)
 
 include(cmake/variables.cmake)
+
+set(ROOT_PATH $ENV{ROOT_PATH})
+if (ROOT_PATH)
+    if (build_win64)
+        get_filename_component(libs_loc "${ROOT_PATH}/Libraries/win64" REALPATH)
+    elseif (NOT APPLE OR build_osx)
+        get_filename_component(libs_loc "${ROOT_PATH}/Libraries" REALPATH)
+    else()
+        get_filename_component(libs_loc "${ROOT_PATH}/Libraries/macos" REALPATH)
+    endif()
+endif()
+
 include(cmake/validate_special_target.cmake)
 
 project(tgcalls

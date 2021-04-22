@@ -1,0 +1,369 @@
+name: Build and publish wheels for macOS and many Python versions
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build_and_publish_macos_wheels_for_many_python_versions.yaml'
+      - 'tgcalls/third_party/webrtc/**'
+      - 'tgcalls/**'
+      - 'CMakeLists.txt'
+      - 'setup.py'
+jobs:
+
+  build_wheels_for_macos:
+    name: Build and publish wheels for macOS
+    runs-on: macos-latest
+
+    strategy:
+      matrix:
+        arch: [
+          "x86_64",
+#          "arm64"
+        ]
+
+    env:
+      MIN_VER: "-mmacosx-version-min=10.12"
+      UNGUARDED: "-Werror=unguarded-availability-new"
+      PREFIX: "/usr/local/macos"
+      BUILD_WHEELS: "true"
+      UPLOAD_WHEELS: "true"
+      GLOBAL_CACHE_KEY: "1"
+      WEBRTC_CACHE_KEY: "1"
+
+    steps:
+      - name: Get repository name.
+        run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
+
+      - name: Clone.
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          path: ${{ env.REPO_NAME }}
+
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+
+      - name: First set up.
+        run: |
+          brew install automake cmake git libvpx ninja opus yasm libtool
+
+          # Disable spotlight.
+          sudo mdutil -a -i off
+
+          sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+          echo $MIN_VER >> CACHE_KEY.txt
+          echo $PREFIX >> CACHE_KEY.txt
+          echo $GLOBAL_CACHE_KEY >> CACHE_KEY.txt
+          echo "$GITHUB_WORKSPACE" >> CACHE_KEY.txt
+          echo "CACHE_KEY=`md5 -q CACHE_KEY.txt`" >> $GITHUB_ENV
+
+          mkdir -p Libraries/macos
+          cd Libraries/macos
+          echo "LibrariesPath=`pwd`" >> $GITHUB_ENV
+
+      - name: Patches.
+        run: |
+          cd $LibrariesPath
+          git clone https://github.com/desktop-app/patches.git
+          cd patches
+          git checkout e052c49
+
+      - name: MozJPEG.
+        run: |
+          cd $LibrariesPath
+
+          git clone -b v4.0.1-rc2 https://github.com/mozilla/mozjpeg.git
+          cd mozjpeg
+          cmake -B build . \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DCMAKE_INSTALL_PREFIX=$PREFIX \
+              -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=10.12 \
+              -DWITH_JPEG8=ON \
+              -DPNG_SUPPORTED=OFF
+          cmake --build build -j$(nproc)
+          sudo cmake --install build
+
+      - name: OpenSSL ARM cache.
+        if: matrix.arch == 'arm64'
+        id: cache-openssl-arm
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/openssl_1_1_1
+          key: ${{ runner.OS }}-openssl-arm-${{ env.CACHE_KEY }}
+      - name: OpenSSL ARM.
+        if: matrix.arch == 'arm64' && steps.cache-openssl-arm.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone https://github.com/openssl/openssl openssl_1_1_1
+          cd openssl_1_1_1
+          git checkout OpenSSL_1_1_1-stable
+          ./Configure --prefix=$PREFIX no-tests darwin64-arm64-cc -static $MIN_VER
+          make build_libs -j$(nproc)
+
+      - name: OpenSSL cache.
+        if: matrix.arch == 'x86_64'
+        id: cache-openssl
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/openssl_1_1_1
+          key: ${{ runner.OS }}-openssl-${{ env.CACHE_KEY }}
+      - name: OpenSSL.
+        if: matrix.arch == 'x86_64' && steps.cache-openssl.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone https://github.com/openssl/openssl openssl_1_1_1
+          cd openssl_1_1_1
+          git checkout OpenSSL_1_1_1-stable
+          ./Configure --prefix=$PREFIX no-tests darwin64-x86_64-cc -static $MIN_VER
+          make build_libs -j$(nproc)
+
+      - name: Opus cache.
+        id: cache-opus
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/opus-cache
+          key: ${{ runner.OS }}-opus-${{ env.CACHE_KEY }}
+      - name: Opus.
+        if: steps.cache-opus.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone https://github.com/xiph/opus
+          cd opus
+          git checkout v1.3
+          ./autogen.sh
+          CFLAGS="$MIN_VER $UNGUARDED" CPPFLAGS="$MIN_VER $UNGUARDED" LDFLAGS="$MIN_VER" ./configure --prefix=$PREFIX
+          make -j$(nproc)
+          sudo make DESTDIR="$LibrariesPath/opus-cache" install
+      - name: Opus install.
+        run: |
+          cd $LibrariesPath
+          sudo cp -R opus-cache/. /
+
+      - name: FFmpeg cache.
+        id: cache-ffmpeg
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/ffmpeg-cache
+          key: ${{ runner.OS }}-ffmpeg-${{ env.CACHE_KEY }}
+      - name: FFmpeg.
+        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
+          cd ffmpeg
+          git checkout release/4.2
+          PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig:/usr/lib/pkgconfig:/usr/X11/lib/pkgconfig
+          cp ../patches/macos_yasm_wrap.sh ./
+
+          ./configure --prefix=$LibrariesPath/ffmpeg-cache \
+          --extra-cflags="$MIN_VER $UNGUARDED" \
+          --extra-cxxflags="$MIN_VER $UNGUARDED" \
+          --extra-ldflags="$MIN_VER" \
+          --x86asmexe=`pwd`/macos_yasm_wrap.sh \
+          --enable-protocol=file \
+          --enable-libopus \
+          --disable-programs \
+          --disable-doc \
+          --disable-network \
+          --disable-everything \
+          --enable-hwaccel=h264_videotoolbox \
+          --enable-hwaccel=hevc_videotoolbox \
+          --enable-hwaccel=mpeg1_videotoolbox \
+          --enable-hwaccel=mpeg2_videotoolbox \
+          --enable-hwaccel=mpeg4_videotoolbox \
+          --enable-decoder=aac \
+          --enable-decoder=aac_at \
+          --enable-decoder=aac_fixed \
+          --enable-decoder=aac_latm \
+          --enable-decoder=aasc \
+          --enable-decoder=alac \
+          --enable-decoder=alac_at \
+          --enable-decoder=flac \
+          --enable-decoder=gif \
+          --enable-decoder=h264 \
+          --enable-decoder=hevc \
+          --enable-decoder=mp1 \
+          --enable-decoder=mp1float \
+          --enable-decoder=mp2 \
+          --enable-decoder=mp2float \
+          --enable-decoder=mp3 \
+          --enable-decoder=mp3adu \
+          --enable-decoder=mp3adufloat \
+          --enable-decoder=mp3float \
+          --enable-decoder=mp3on4 \
+          --enable-decoder=mp3on4float \
+          --enable-decoder=mpeg4 \
+          --enable-decoder=msmpeg4v2 \
+          --enable-decoder=msmpeg4v3 \
+          --enable-decoder=opus \
+          --enable-decoder=pcm_alaw \
+          --enable-decoder=pcm_alaw_at \
+          --enable-decoder=pcm_f32be \
+          --enable-decoder=pcm_f32le \
+          --enable-decoder=pcm_f64be \
+          --enable-decoder=pcm_f64le \
+          --enable-decoder=pcm_lxf \
+          --enable-decoder=pcm_mulaw \
+          --enable-decoder=pcm_mulaw_at \
+          --enable-decoder=pcm_s16be \
+          --enable-decoder=pcm_s16be_planar \
+          --enable-decoder=pcm_s16le \
+          --enable-decoder=pcm_s16le_planar \
+          --enable-decoder=pcm_s24be \
+          --enable-decoder=pcm_s24daud \
+          --enable-decoder=pcm_s24le \
+          --enable-decoder=pcm_s24le_planar \
+          --enable-decoder=pcm_s32be \
+          --enable-decoder=pcm_s32le \
+          --enable-decoder=pcm_s32le_planar \
+          --enable-decoder=pcm_s64be \
+          --enable-decoder=pcm_s64le \
+          --enable-decoder=pcm_s8 \
+          --enable-decoder=pcm_s8_planar \
+          --enable-decoder=pcm_u16be \
+          --enable-decoder=pcm_u16le \
+          --enable-decoder=pcm_u24be \
+          --enable-decoder=pcm_u24le \
+          --enable-decoder=pcm_u32be \
+          --enable-decoder=pcm_u32le \
+          --enable-decoder=pcm_u8 \
+          --enable-decoder=pcm_zork \
+          --enable-decoder=vorbis \
+          --enable-decoder=wavpack \
+          --enable-decoder=wmalossless \
+          --enable-decoder=wmapro \
+          --enable-decoder=wmav1 \
+          --enable-decoder=wmav2 \
+          --enable-decoder=wmavoice \
+          --enable-encoder=libopus \
+          --enable-parser=aac \
+          --enable-parser=aac_latm \
+          --enable-parser=flac \
+          --enable-parser=h264 \
+          --enable-parser=hevc \
+          --enable-parser=mpeg4video \
+          --enable-parser=mpegaudio \
+          --enable-parser=opus \
+          --enable-parser=vorbis \
+          --enable-demuxer=aac \
+          --enable-demuxer=flac \
+          --enable-demuxer=gif \
+          --enable-demuxer=h264 \
+          --enable-demuxer=hevc \
+          --enable-demuxer=m4v \
+          --enable-demuxer=mov \
+          --enable-demuxer=mp3 \
+          --enable-demuxer=ogg \
+          --enable-demuxer=wav \
+          --enable-muxer=ogg \
+          --enable-muxer=opus
+
+          make -j$(nproc)
+          sudo make install
+      - name: FFmpeg install.
+        run: |
+          cd $LibrariesPath
+          # List of files from cmake/external/ffmpeg/CMakeLists.txt.
+          copyLib() {
+            mkdir -p ffmpeg/$1
+            \cp -fR ffmpeg-cache/lib/$1.a ffmpeg/$1/$1.a
+          }
+          copyLib libavformat
+          copyLib libavcodec
+          copyLib libswresample
+          copyLib libswscale
+          copyLib libavutil
+          sudo cp -R ffmpeg-cache/. $PREFIX
+          sudo cp -R ffmpeg-cache/include/. ffmpeg/
+
+      - name: WebRTC ARM cache.
+        if: matrix.arch == 'arm64'
+        id: cache-webrtc-arm
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/tg_owt
+          key: ${{ runner.OS }}-webrtc-arm-${{ env.CACHE_KEY }}-${{ env.WEBRTC_CACHE_KEY }}
+      - name: WebRTC ARM.
+        if: matrix.arch == 'arm64' && steps.cache-webrtc-arm.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          cp -R ../../tgcalls/tgcalls/third_party/webrtc tg_owt
+
+          cd tg_owt
+          mkdir -p out/Release
+          cd out/Release
+
+          cmake -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DTG_OWT_SPECIAL_TARGET=mac \
+              -DTG_OWT_LIBJPEG_INCLUDE_PATH=$PREFIX/include \
+              -DTG_OWT_OPENSSL_INCLUDE_PATH=`pwd`/../../../openssl_1_1_1/include \
+              -DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/macos/include/opus \
+              -DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/macos/include ../..
+          ninja
+
+      - name: WebRTC cache.
+        if: matrix.arch == 'x86_64'
+        id: cache-webrtc
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/tg_owt
+          key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}-${{ env.WEBRTC_CACHE_KEY }}
+      - name: WebRTC.
+        if: matrix.arch == 'x86_64' && steps.cache-webrtc.outputs.cache-hit != 'true'
+        run: |
+          cd $LibrariesPath
+
+          cp -R ../../tgcalls/tgcalls/third_party/webrtc tg_owt
+
+          cd tg_owt
+          mkdir -p out/Release
+          cd out/Release
+
+          cmake -G Ninja \
+              -DCMAKE_BUILD_TYPE=Release \
+              -DTG_OWT_SPECIAL_TARGET=mac \
+              -DTG_OWT_LIBJPEG_INCLUDE_PATH=$PREFIX/include \
+              -DTG_OWT_OPENSSL_INCLUDE_PATH=`pwd`/../../../openssl_1_1_1/include \
+              -DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/macos/include/opus \
+              -DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/macos/include ../..
+          ninja
+
+      - name: Build wheels for M1.
+        if: matrix.arch == 'arm64' && env.BUILD_WHEELS == 'true'
+        env:
+          CIBW_ARCHS_MACOS: "arm64"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
+          CIBW_BUILD: cp3*-*
+          CIBW_ENVIRONMENT: "ROOT_PATH=$(pwd)"
+        run: |
+          pip install cibuildwheel
+          cibuildwheel --output-dir dist tgcalls
+
+      - name: Build wheels.
+        if: matrix.arch == 'x86_64' && env.BUILD_WHEELS == 'true'
+        env:
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
+          CIBW_BUILD: cp3*-*
+          CIBW_SKIP: cp35-*
+          CIBW_ENVIRONMENT: "ROOT_PATH=$(pwd)"
+        run: |
+          pip install cibuildwheel
+          cibuildwheel --output-dir dist tgcalls
+
+      - name: Upload wheels to PyPi.
+        if: env.UPLOAD_WHEELS == 'true'
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          pip install twine
+          twine upload dist/*
