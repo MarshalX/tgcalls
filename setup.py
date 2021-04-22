@@ -117,12 +117,13 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setup(
     name='tgcalls',
-    version=f'0.0.12dev1',
-    author='Il\'ya Semyonov',
-    author_email='ilya@marshal.by',
+    version='0.0.12',
+    author='Il`ya Semyonov',
+    author_email='ilya@marshal.dev',
+    license='LGPLv3',
     url='https://github.com/MarshalX/tgcalls',
     keywords='python, library, telegram, async, asynchronous, webrtc, lib, voice-chat, '
-             'voip, group-chat, video-call, calls, pyrogram, pytgcalls, tgcalls ',
+             'voip, group-chat, video-call, calls, pyrogram, pytgcalls, tgcalls',
     description='A python binding for tgcalls',
     long_description=readme,
     long_description_content_type='text/markdown',

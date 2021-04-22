@@ -1,8 +1,8 @@
 # Build instruction for macOS
 
-**It works on Apple Silicon (M1). But there is problems with python wheel 
-and [delocate](https://github.com/matthew-brett/delocate). This is a reason why I dont 
-upload bwheel to PyPi**
+**It works on Apple Silicon (M1). But there is problem with building deps 
+on GitHub CI for ARM using macOS. 
+I build for M1 on my machine and upload to PyPi (only for Python 3.9)**
 
 XCode Command Line Tools and python3 need to installed.
 

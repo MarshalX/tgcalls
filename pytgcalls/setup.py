@@ -37,7 +37,7 @@ setup(
     license='LGPLv3',
     url='https://github.com/MarshalX/tgcalls',
     keywords='python, library, telegram, async, asynchronous, webrtc, lib, voice-chat, '
-             'voip, group-chat, video-call, calls, pyrogram, pytgcalls, tgcalls ',
+             'voip, group-chat, video-call, calls, pyrogram, pytgcalls, tgcalls',
     description='Library connecting python binding for tgcalls and pyrogram',
     long_description=readme,
     long_description_content_type='text/markdown',

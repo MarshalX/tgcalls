@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - macos-wheels
     paths:
       - '.github/workflows/build_and_publish_macos_wheels_for_many_python_versions.yaml'
       - 'tgcalls/third_party/webrtc/**'
@@ -18,14 +17,17 @@ jobs:
 
     strategy:
       matrix:
-        arch: [ "x86_64", "arm64" ]
+        arch: [
+          "x86_64",
+#          "arm64"
+        ]
 
     env:
       MIN_VER: "-mmacosx-version-min=10.12"
       UNGUARDED: "-Werror=unguarded-availability-new"
       PREFIX: "/usr/local/macos"
-      BUILD_WHEELS: "false"
-      UPLOAD_WHEELS: "false"
+      BUILD_WHEELS: "true"
+      UPLOAD_WHEELS: "true"
       GLOBAL_CACHE_KEY: "1"
       WEBRTC_CACHE_KEY: "1"
 
