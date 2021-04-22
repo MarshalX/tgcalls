@@ -71,7 +71,7 @@ jobs:
           cd $LibrariesPath
           git clone https://github.com/MarshalX/patches.git
           cd patches
-          git checkout fix-ffmpeg-build
+          git checkout fix-ffmpeg-build-win
 
       - name: MozJPEG.
         shell: cmd
