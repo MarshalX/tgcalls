@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - macos-wheels
     paths:
       - '.github/workflows/build_and_publish_macos_wheels_for_many_python_versions.yaml'
       - 'tgcalls/third_party/webrtc/**'
@@ -290,12 +291,10 @@ jobs:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
-          CIBW_BEFORE_ALL: mkdir {temp_dir}/../Libraries && cp -R $LibrariesPath {temp_dir}/../Libraries
+          CIBW_ENVIRONMENT: "ROOT_PATH=$(pwd)"
         run: |
-          cd $REPO_NAME
-
-          pip install git+https://github.com/MarshalX/cibuildwheel@temp-dir-macos-placeholder
-          cibuildwheel --output-dir dist
+          pip install cibuildwheel
+          cibuildwheel --output-dir dist tgcalls
 
       - name: Upload wheels to PyPi.
         if: env.UPLOAD_WHEELS == 'true'
@@ -304,4 +303,4 @@ jobs:
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
         run: |
           pip install twine
-          twine upload $REPO_NAME/dist/*
+          twine upload dist/*
