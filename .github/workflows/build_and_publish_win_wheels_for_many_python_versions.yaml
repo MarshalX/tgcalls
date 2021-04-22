@@ -133,6 +133,56 @@ jobs:
           msbuild -m opus.sln /property:Configuration=Debug /property:Platform="Win32"
           msbuild -m opus.sln /property:Configuration=Release /property:Platform="Win32"
 
+      - name: FFmpeg cache.
+        id: cache-ffmpeg
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/ffmpeg
+          key: ${{ runner.OS }}-ffmpeg-${{ env.CACHE_KEY }}-${{ hashFiles('**/build_ffmpeg_win.sh') }}
+      - name: FFmpeg.
+        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+        run: |
+          %VC%
+          choco install --no-progress -y msys2
+          git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
+          cd ffmpeg
+          git checkout release/4.2
+          set CHERE_INVOKING=enabled_from_arguments
+          set MSYS2_PATH_TYPE=inherit
+          call c:\tools\msys64\usr\bin\bash --login ../patches/build_ffmpeg_win.sh
+          rmdir /S /Q .git
+
+      - name: WebRTC cache.
+        id: cache-webrtc
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.LibrariesPath }}/tg_owt
+          key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}-${{ env.WEBRTC_CACHE_KEY }}
+      - name: WebRTC.
+        if: 1 == 2 && steps.cache-webrtc.outputs.cache-hit != 'true'
+        run: |
+          %VC%
+
+          xcopy ..\tgcalls\tgcalls\third_party\webrtc tg_owt\ /E/H
+
+          mkdir tg_owt\out\Release
+          cd tg_owt\out\Release
+          cmake -G Ninja ^
+          -DCMAKE_BUILD_TYPE=Release ^
+          -DTG_OWT_SPECIAL_TARGET=win ^
+          -DTG_OWT_LIBJPEG_INCLUDE_PATH=%cd%/../../../mozjpeg ^
+          -DTG_OWT_OPENSSL_INCLUDE_PATH=%cd%/../../../openssl_1_1_1/include ^
+          -DTG_OWT_OPUS_INCLUDE_PATH=%cd%/../../../opus/include ^
+          -DTG_OWT_FFMPEG_INCLUDE_PATH=%cd%/../../../ffmpeg ^
+          ../..
+          ninja
+          :: Cleanup.
+          cd %LibrariesPath%\tg_owt
+          move out\Debug\tg_owt.lib tg_owt.lib
+          rmdir /S /Q out
+          mkdir out\Debug
+          move tg_owt.lib out\Debug\tg_owt.lib
+
       - name: Build wheels.
         if: env.BUILD_WHEELS == 'true'
         env:
