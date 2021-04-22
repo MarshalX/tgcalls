@@ -140,7 +140,7 @@ jobs:
           path: ${{ env.LibrariesPath }}/ffmpeg
           key: ${{ runner.OS }}-ffmpeg-${{ env.CACHE_KEY }}-${{ hashFiles('**/build_ffmpeg_win.sh') }}
       - name: FFmpeg.
-        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+        if: 1 == 2 && steps.cache-ffmpeg.outputs.cache-hit != 'true'
         run: |
           %VC%
           choco install --no-progress -y msys2
@@ -159,7 +159,7 @@ jobs:
           path: ${{ env.LibrariesPath }}/tg_owt
           key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}-${{ env.WEBRTC_CACHE_KEY }}
       - name: WebRTC.
-        if: steps.cache-webrtc.outputs.cache-hit != 'true'
+        if: 1 == 2 && steps.cache-webrtc.outputs.cache-hit != 'true'
         run: |
           %VC%
 
