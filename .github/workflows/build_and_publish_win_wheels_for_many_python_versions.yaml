@@ -69,9 +69,9 @@ jobs:
         shell: bash
         run: |
           cd $LibrariesPath
-          git clone https://github.com/desktop-app/patches.git
+          git clone https://github.com/MarshalX/patches.git
           cd patches
-          git checkout ad34925
+          git checkout fix-ffmpeg-build
 
       - name: MozJPEG.
         shell: cmd
