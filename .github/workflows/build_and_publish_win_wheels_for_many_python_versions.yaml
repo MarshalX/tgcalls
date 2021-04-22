@@ -20,7 +20,7 @@ jobs:
       VC: "call vcvars32.bat && cd Libraries"
       BUILD_WHEELS: "false"
       UPLOAD_WHEELS: "false"
-      GLOBAL_CACHE_KEY: "1"
+      GLOBAL_CACHE_KEY: "2"
       WEBRTC_CACHE_KEY: "1"
 
     defaults:
@@ -159,7 +159,7 @@ jobs:
           path: ${{ env.LibrariesPath }}/tg_owt
           key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}-${{ env.WEBRTC_CACHE_KEY }}
       - name: WebRTC.
-        if: 1 == 2 && steps.cache-webrtc.outputs.cache-hit != 'true'
+        if: steps.cache-webrtc.outputs.cache-hit != 'true'
         run: |
           %VC%
 
