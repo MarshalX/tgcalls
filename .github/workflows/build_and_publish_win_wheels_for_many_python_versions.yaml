@@ -65,13 +65,18 @@ jobs:
       - name: Choco installs.
         run: choco install --no-progress -y nasm yasm jom ninja
 
+      - name: NuGet sources.
+        run: |
+          nuget sources Disable -Name "Microsoft Visual Studio Offline Packages"
+          nuget sources Add -Source https://api.nuget.org/v3/index.json & exit 0
+
       - name: Patches.
         shell: bash
         run: |
           cd $LibrariesPath
-          git clone https://github.com/MarshalX/patches.git
+          git clone https://github.com/desktop-app/patches.git
           cd patches
-          git checkout fix-ffmpeg-build-win
+          git checkout ad34925
 
       - name: MozJPEG.
         shell: cmd
@@ -133,6 +138,10 @@ jobs:
           msbuild -m opus.sln /property:Configuration=Debug /property:Platform="Win32"
           msbuild -m opus.sln /property:Configuration=Release /property:Platform="Win32"
 
+          echo "Workaround for FFmpeg."
+          copy Win32\Release\m.lib Win32\Release\ssp.lib
+          copy Win32\Release\m.lib Win32\Debug\ssp.lib
+
       - name: FFmpeg cache.
         id: cache-ffmpeg
         uses: actions/cache@v2
@@ -144,12 +153,14 @@ jobs:
         run: |
           %VC%
           choco install --no-progress -y msys2
+
           git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
           cd ffmpeg
           git checkout release/4.2
           set CHERE_INVOKING=enabled_from_arguments
           set MSYS2_PATH_TYPE=inherit
           call c:\tools\msys64\usr\bin\bash --login ../patches/build_ffmpeg_win.sh
+
           rmdir /S /Q .git
 
       - name: WebRTC cache.
