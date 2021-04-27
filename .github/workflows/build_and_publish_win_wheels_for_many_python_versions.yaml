@@ -20,7 +20,7 @@ jobs:
       VC: "call vcvars32.bat && cd Libraries"
       BUILD_WHEELS: "false"
       UPLOAD_WHEELS: "false"
-      GLOBAL_CACHE_KEY: "2"
+      GLOBAL_CACHE_KEY: "3"
       WEBRTC_CACHE_KEY: "1"
 
     defaults:
