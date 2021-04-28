@@ -209,6 +209,12 @@ jobs:
           pip install cibuildwheel
           cibuildwheel --output-dir dist %REPO_NAME%
 
+      - uses: actions/upload-artifact@master
+        name: Upload artifact.
+        with:
+          name: "tgcalls for Windows"
+          path: dist\
+
       - name: Upload wheels to PyPi.
         if: env.UPLOAD_WHEELS == 'true'
         env:
