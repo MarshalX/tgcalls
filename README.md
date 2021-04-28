@@ -63,11 +63,11 @@ broadcast in voice chats, make and receive private calls.
 - Work with voice chats in channels and chats.
 - [Multiply voice chats](https://github.com/MarshalX/tgcalls/blob/main/examples/radio_as_smart_plugin.py).
 - [Work with data in bytes directly from Python](https://github.com/MarshalX/tgcalls/blob/main/examples/restream_using_raw_data.py).
-- [Payout from file](https://github.com/MarshalX/tgcalls/blob/main/examples/playout.py).
+- [Playout from file](https://github.com/MarshalX/tgcalls/blob/main/examples/playout.py).
 - [Output (recording) to file](https://github.com/MarshalX/tgcalls/blob/main/examples/recorder_as_smart_plugin.py).
 - Change files at runtime.
 - Pause/resume.
-- Stop payout/output.
+- Stop playout/output.
 - Join as channels.
 - Join using invite (speaker) links.
 - Speaking status with audio levels inside and outside of voice chat.
