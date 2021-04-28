@@ -199,10 +199,10 @@ void NativeInstance::startCall(vector<RtcServer> servers,
   };
 
   tgcalls::FilePath statsLogPath = tgcalls::FilePath();
-//  statsLogPath.data = "/Users/marshal/projects/tgcalls/python-binding/pytgcalls/tgcalls-stat.txt";
+  statsLogPath.data = "/Users/marshal/projects/tgcalls/python-binding/pytgcalls/tgcalls-stat.txt";
 
   tgcalls::FilePath logPathStruct = tgcalls::FilePath();
-//  logPathStruct.data = std::move(logPath);
+  logPathStruct.data = std::move(logPath);
 
   tgcalls::Descriptor descriptor = {
       .config = {
