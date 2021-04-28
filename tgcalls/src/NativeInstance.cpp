@@ -1,5 +1,7 @@
 #include <rtc_base/ssl_adapter.h>
 
+#include <utility>
+
 #include "NativeInstance.h"
 
 namespace py = pybind11;
@@ -38,9 +40,8 @@ void NativeInstance::setupGroupCall(
 void NativeInstance::createInstanceHolder(
     std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory *)> createAudioDeviceModule
 ) {
-  tgcalls::FilePath logPath = {
-      .data = _logPath
-  };
+  tgcalls::FilePath logPath = tgcalls::FilePath();
+  logPath.data = _logPath;
 
   tgcalls::GroupInstanceDescriptor descriptor{
       .threads = tgcalls::StaticThreads::getThreads(),
@@ -197,13 +198,11 @@ void NativeInstance::startCall(vector<RtcServer> servers,
       .outputVolume = 1.f,
   };
 
-  tgcalls::FilePath statsLogPath = {
-      .data = "/Users/marshal/projects/tgcalls/python-binding/pytgcalls/tgcalls-stat.txt"
-  };
+  tgcalls::FilePath statsLogPath = tgcalls::FilePath();
+  statsLogPath.data = "/Users/marshal/projects/tgcalls/python-binding/pytgcalls/tgcalls-stat.txt";
 
-  tgcalls::FilePath logPathStruct = {
-      .data = logPath
-  };
+  tgcalls::FilePath logPathStruct = tgcalls::FilePath();
+  logPathStruct.data = std::move(logPath);
 
   tgcalls::Descriptor descriptor = {
       .config = {
