@@ -203,6 +203,7 @@ jobs:
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
           CIBW_ENVIRONMENT: 'ROOT_PATH="d:/a/tgcalls/tgcalls"' # todo
+          CIBW_BEFORE_BUILD: 'call vcvars32.bat'
         run: |
           pip install cibuildwheel
           cibuildwheel --output-dir dist %REPO_NAME%
