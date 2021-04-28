@@ -21,6 +21,7 @@ list(APPEND SOURCES
 
 pybind11_add_module(tgcalls ${SOURCES})
 
+target_compile_features(tgcalls PUBLIC cxx_std_20)
 target_link_libraries(tgcalls
 PRIVATE
     lib_tgcalls

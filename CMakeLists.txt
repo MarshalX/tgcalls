@@ -1,5 +1,3 @@
-set (CMAKE_CXX_STANDARD 14)
-
 cmake_minimum_required(VERSION 3.14)
 cmake_policy(SET CMP0076 NEW)
 # cmake 3.15+ make_policy(SET CMP0091 NEW)
