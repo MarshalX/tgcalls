@@ -170,7 +170,7 @@ jobs:
           path: ${{ env.LibrariesPath }}/tg_owt
           key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}-${{ env.WEBRTC_CACHE_KEY }}
       - name: WebRTC.
-        if: steps.cache-webrtc.outputs.cache-hit != 'true'
+        if: 1 == 2 && steps.cache-webrtc.outputs.cache-hit != 'true'
         run: |
           %VC%
 
