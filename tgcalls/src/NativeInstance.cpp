@@ -40,9 +40,13 @@ void NativeInstance::createInstanceHolder(
 ) {
   tgcalls::GroupInstanceDescriptor descriptor{
       .threads = tgcalls::StaticThreads::getThreads(),
-      .config = tgcalls::GroupConfig{.need_log = true,
-          .logPath = {std::move(_logPath)},
-          .logToStdErr = _logToStdErr},
+      .config = {
+          .need_log = true,
+          .logPath = {
+              .data = std::move(_logPath)
+          },
+          .logToStdErr = _logToStdErr
+      },
       .networkStateUpdated =
       [=](tgcalls::GroupNetworkState groupNetworkState) {
         _networkStateUpdated(groupNetworkState.isConnected);
@@ -187,14 +191,12 @@ void NativeInstance::startCall(vector<RtcServer> servers,
       .audioInputId = "VB-Cable",
       //            .audioInputId = "default (Built-in Input)",
       .audioOutputId = "default (Built-in Output)",
-      //            .audioInputId = "0",
-      //            .audioOutputId = "0",
       .inputVolume = 1.f,
-      .outputVolume = 1.f};
+      .outputVolume = 1.f,
+  };
 
   tgcalls::Descriptor descriptor = {
-      .config =
-      tgcalls::Config{
+      .config = {
           .initializationTimeout = 1000,
           .receiveTimeout = 1000,
           .dataSaving = tgcalls::DataSaving::Never,
