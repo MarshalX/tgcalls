@@ -21,7 +21,7 @@ jobs:
       BUILD_WHEELS: "false"
       UPLOAD_WHEELS: "false"
       GLOBAL_CACHE_KEY: "3"
-      WEBRTC_CACHE_KEY: "1"
+      WEBRTC_CACHE_KEY: "2"
 
     defaults:
       run:
