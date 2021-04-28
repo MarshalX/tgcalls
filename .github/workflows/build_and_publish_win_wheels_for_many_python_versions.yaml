@@ -170,7 +170,7 @@ jobs:
           path: ${{ env.LibrariesPath }}/tg_owt
           key: ${{ runner.OS }}-webrtc-${{ env.CACHE_KEY }}-${{ env.WEBRTC_CACHE_KEY }}
       - name: WebRTC.
-        if: 1 == 2 && steps.cache-webrtc.outputs.cache-hit != 'true'
+        if: steps.cache-webrtc.outputs.cache-hit != 'true'
         run: |
           %VC%
 
@@ -186,13 +186,15 @@ jobs:
           -DTG_OWT_OPUS_INCLUDE_PATH=%cd%/../../../opus/include ^
           -DTG_OWT_FFMPEG_INCLUDE_PATH=%cd%/../../../ffmpeg ^
           ../..
+
           ninja
+
           :: Cleanup.
           cd %LibrariesPath%\tg_owt
-          move out\Debug\tg_owt.lib tg_owt.lib
+          move out\Release\tg_owt.lib tg_owt.lib
           rmdir /S /Q out
-          mkdir out\Debug
-          move tg_owt.lib out\Debug\tg_owt.lib
+          mkdir out\Release
+          move tg_owt.lib out\Release\tg_owt.lib
 
       - name: Build wheels.
         if: env.BUILD_WHEELS == 'true'
