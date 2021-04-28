@@ -42,7 +42,7 @@ void NativeInstance::createInstanceHolder(
       .threads = tgcalls::StaticThreads::getThreads(),
       .config = {
           .need_log = true,
-          .logPath = {
+          .logPath = tgcalls::FilePath{
               .data = _logPath
           },
           .logToStdErr = _logToStdErr
@@ -207,10 +207,10 @@ void NativeInstance::startCall(vector<RtcServer> servers,
           .enableNS = true,
           .enableAGC = true,
           .enableVolumeControl = true,
-          .logPath = {
+          .logPath = tgcalls::FilePath {
               .data = logPath
           },
-          .statsLogPath = {
+          .statsLogPath = tgcalls::FilePath {
               .data = "/Users/marshal/projects/tgcalls/python-binding/pytgcalls/tgcalls-stat.txt"
           },
           .maxApiLayer = 92,
