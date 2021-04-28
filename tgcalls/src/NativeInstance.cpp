@@ -38,13 +38,15 @@ void NativeInstance::setupGroupCall(
 void NativeInstance::createInstanceHolder(
     std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory *)> createAudioDeviceModule
 ) {
+  tgcalls::FilePath logPath = {
+      .data = _logPath
+  };
+
   tgcalls::GroupInstanceDescriptor descriptor{
       .threads = tgcalls::StaticThreads::getThreads(),
       .config = {
           .need_log = true,
-          .logPath = tgcalls::FilePath{
-              .data = _logPath
-          },
+          .logPath = logPath,
           .logToStdErr = _logToStdErr
       },
       .networkStateUpdated =
@@ -195,6 +197,14 @@ void NativeInstance::startCall(vector<RtcServer> servers,
       .outputVolume = 1.f,
   };
 
+  tgcalls::FilePath statsLogPath = {
+      .data = "/Users/marshal/projects/tgcalls/python-binding/pytgcalls/tgcalls-stat.txt"
+  };
+
+  tgcalls::FilePath logPathStruct = {
+      .data = logPath
+  };
+
   tgcalls::Descriptor descriptor = {
       .config = {
           .initializationTimeout = 1000,
@@ -207,12 +217,8 @@ void NativeInstance::startCall(vector<RtcServer> servers,
           .enableNS = true,
           .enableAGC = true,
           .enableVolumeControl = true,
-          .logPath = tgcalls::FilePath {
-              .data = logPath
-          },
-          .statsLogPath = tgcalls::FilePath {
-              .data = "/Users/marshal/projects/tgcalls/python-binding/pytgcalls/tgcalls-stat.txt"
-          },
+          .logPath = logPathStruct,
+          .statsLogPath = statsLogPath,
           .maxApiLayer = 92,
           .enableHighBitrateVideo = false,
           .preferredVideoCodecs = std::vector<std::string>(),
