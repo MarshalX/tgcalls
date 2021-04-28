@@ -202,7 +202,7 @@ jobs:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
-          CIBW_ENVIRONMENT: "ROOT_PATH=%cd%"
+          CIBW_ENVIRONMENT: "ROOT_PATH={package}../"
         run: |
           pip install cibuildwheel
           cibuildwheel --output-dir dist %REPO_NAME%
