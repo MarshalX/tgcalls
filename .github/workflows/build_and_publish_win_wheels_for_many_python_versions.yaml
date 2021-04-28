@@ -200,7 +200,7 @@ jobs:
         if: env.BUILD_WHEELS == 'true'
         env:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
-          CIBW_ARCHS: "auto32"
+#          CIBW_ARCHS: "auto32"
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
           CIBW_ENVIRONMENT: 'ROOT_PATH="d:/a/tgcalls/tgcalls"' # todo
