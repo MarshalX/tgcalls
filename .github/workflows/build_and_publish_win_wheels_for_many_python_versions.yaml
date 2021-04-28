@@ -202,10 +202,12 @@ jobs:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
-          CIBW_ENVIRONMENT: "ROOT_PATH=$(pwd)"
+#          CIBW_ENVIRONMENT: "ROOT_PATH=$(pwd)"
         run: |
+          echo %cd%
+
           pip install cibuildwheel
-          cibuildwheel --output-dir dist tgcalls
+          cibuildwheel --output-dir dist %REPO_NAME%
 
       - name: Upload wheels to PyPi.
         if: env.UPLOAD_WHEELS == 'true'
