@@ -177,6 +177,7 @@ PYBIND11_MODULE(tgcalls, m) {
             .def("setupGroupCall", &NativeInstance::setupGroupCall)
             .def("startGroupCall", py::overload_cast<FileAudioDeviceDescriptor &>(&NativeInstance::startGroupCall))
             .def("startGroupCall", py::overload_cast<RawAudioDeviceDescriptor &>(&NativeInstance::startGroupCall))
+            .def("startGroupCall", py::overload_cast<std::string, std::string>(&NativeInstance::startGroupCall))
             .def("isGroupCallStarted", &NativeInstance::isGroupCallStarted)
             .def("stopGroupCall", &NativeInstance::stopGroupCall)
             .def("setIsMuted", &NativeInstance::setIsMuted)

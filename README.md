@@ -61,23 +61,30 @@ broadcast in voice chats, make and receive private calls.
 
 - Python solution.
 - Work with voice chats in channels and chats.
-- [Multiply voice chats](https://github.com/MarshalX/tgcalls/blob/main/examples/radio_as_smart_plugin.py).
-- [Work with data in bytes directly from Python](https://github.com/MarshalX/tgcalls/blob/main/examples/restream_using_raw_data.py).
-- [Payout from file](https://github.com/MarshalX/tgcalls/blob/main/examples/playout.py).
-- [Output (recording) to file](https://github.com/MarshalX/tgcalls/blob/main/examples/recorder_as_smart_plugin.py).
-- Change files at runtime.
-- Pause/resume.
-- Stop payout/output.
-- Join as channels.
+- Multiply voice chats ([example](https://github.com/MarshalX/tgcalls/blob/main/examples/radio_as_smart_plugin.py)).
+- System of custom handlers on events.
+- Join as channels or chats.
 - Join using invite (speaker) links.
 - Speaking status with audio levels inside and outside of voice chat.
-- Mute, unmute, volume control, system of handlers and more...
+- Mute/unmute, pause/resume, stop/play, volume control and more...
+
+### Available sources of input/output data transfers
+
+- File (`GroupCall`, [playout example](https://github.com/MarshalX/tgcalls/blob/main/examples/file_playout.py),
+  [recording example](https://github.com/MarshalX/tgcalls/blob/main/examples/recorder_as_smart_plugin.py))
+  — to use any audio files including named pipe (FIFO).
+- Device (`GroupCallDevice`, [example](https://github.com/MarshalX/tgcalls/blob/main/examples/device_playout.py)) — to use microphone, headphones, etc.
+- Raw (`GroupCallRaw`, [example of restreaming](https://github.com/MarshalX/tgcalls/blob/main/examples/restream_using_raw_data.py))
+  — to send and receive data in `bytes` directly from Python.
+
+Note: All audio data is transmitted in PCM 16 bit, 48k. 
+[Example how to convert files using FFmpeg](All audio information is transmitted in psm 16 bit).
 
 ### Requirements
 
 - Python 3.6 or higher.
 - A [Telegram API key](https://docs.pyrogram.org/intro/setup#api-keys).
-- x86_64/arm64 platform and Unix system (WSL for Windows).
+- x86_64/arm64 platform and Unix system (use WSL for Windows).
 
 
 ### TODO list

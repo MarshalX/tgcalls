@@ -414,6 +414,32 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         await self.edit_group_call(volume)
         self.__set_volume(uint_ssrc(self.my_ssrc), volume / 100)
 
+    def set_audio_input_device(self, name: Optional[str] = None):
+        """Set audio input device.
+
+        Note:
+            If `name` is `None`, will use default system device.
+            And this is works only at first device initialization time!
+
+        Args:
+            name (`str`): Name or GUID of device.
+        """
+
+        self.__native_instance.setAudioInputDevice(name or '')
+
+    def set_audio_output_device(self, name: Optional[str] = None):
+        """Set audio output device.
+
+        Note:
+            If `name` is `None`, will use default system device.
+            And this is works only at first device initialization time!
+
+        Args:
+            name (`str`): Name or GUID of device.
+        """
+
+        self.__native_instance.setAudioOutputDevice(name or '')
+
     def restart_playout(self):
         """Start play current input file from start or just reload file audio device.
 
