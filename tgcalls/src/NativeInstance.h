@@ -39,6 +39,7 @@ public:
 
     void startGroupCall(FileAudioDeviceDescriptor &);
     void startGroupCall(RawAudioDeviceDescriptor &);
+    void startGroupCall(std::string, std::string);
     void stopGroupCall() const;
     bool isGroupCallStarted() const;
 
@@ -61,5 +62,9 @@ public:
     void setSignalingDataEmittedCallback(const std::function<void(const std::vector<uint8_t> &data)> &f);
 
 private:
-    void createInstanceHolder(std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory*)>);
+    void createInstanceHolder(
+        std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory*)>,
+        std::string,
+        std::string
+    );
 };

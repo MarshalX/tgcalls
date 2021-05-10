@@ -9,3 +9,6 @@ Your contribution as building instructions on Windows is appreciated!
 It's even better if you do a GitHub workflow.
 - [A GitHub Action to facilitate configuring MSBuild in the workflow PATH for building .NET Framework applications](https://github.com/microsoft/setup-msbuild).
 - [Example of GitHub Windows workflow](https://github.com/telegramdesktop/tdesktop/blob/dev/.github/workflows/win.yml).
+
+**The biggest part of GitHub workflow with building tgcalls for Windows 
+is available in [win-wheels](https://github.com/MarshalX/tgcalls/tree/win-wheels) branch.**

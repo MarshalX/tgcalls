@@ -36,7 +36,9 @@ void NativeInstance::setupGroupCall(
 }
 
 void NativeInstance::createInstanceHolder(
-    std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory *)> createAudioDeviceModule
+    std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory *)> createAudioDeviceModule,
+    std::string initialInputDeviceId = "",
+    std::string initialOutputDeviceId = ""
 ) {
   tgcalls::GroupInstanceDescriptor descriptor{
       .threads = tgcalls::StaticThreads::getThreads(),
@@ -49,6 +51,8 @@ void NativeInstance::createInstanceHolder(
       },
       .audioLevelsUpdated =
       [=](tgcalls::GroupLevelsUpdate const &update) {}, // TODO may be
+      .initialInputDeviceId = std::move(initialInputDeviceId),
+      .initialOutputDeviceId = std::move(initialOutputDeviceId),
       .createAudioDeviceModule = std::move(createAudioDeviceModule),
       .participantDescriptionsRequired =
       [=](std::vector<uint32_t> const &ssrcs) {

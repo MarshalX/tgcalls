@@ -117,7 +117,7 @@ with open('README.md', 'r', encoding='utf-8') as f:
 
 setup(
     name='tgcalls',
-    version='0.0.12',
+    version='0.0.13',
     author='Il`ya Semyonov',
     author_email='ilya@marshal.dev',
     license='LGPLv3',
