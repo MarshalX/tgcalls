@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.2" />
-<title>pytgcalls.group_call_raw API documentation</title>
+<title>pytgcalls.group_call_device API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -29,7 +29,7 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>pytgcalls.group_call_raw</code></h1>
+<h1 class="title">Module <code>pytgcalls.group_call_device</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
@@ -55,21 +55,20 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see &lt;http://www.gnu.org/licenses/&gt;.
 
-from typing import Union, Callable
+from typing import Union, Optional
 
 import pyrogram
 
-import tgcalls
 from pytgcalls import GroupCallNative
 
 
-class GroupCallRaw(GroupCallNative):
+class GroupCallDevice(GroupCallNative):
 
     def __init__(
             self,
             client: Union[pyrogram.Client, None] = None,
-            on_played_data: Callable[[&#39;GroupCallRaw&#39;, int], bytes] = None,
-            on_recorded_data: Callable[[&#39;GroupCallRaw&#39;, bytes, int], None] = None,
+            audio_input_device: Optional[str] = None,
+            audio_output_device: Optional[str] = None,
             enable_logs_to_console=False,
             path_to_log_file=None
     ):
@@ -80,60 +79,31 @@ class GroupCallRaw(GroupCallNative):
 
         self.__raw_audio_device_descriptor = None
 
-        self.on_played_data = on_played_data
-        self.on_recorded_data = on_recorded_data
-
-    def __create_and_return_raw_audio_device_descriptor(self):
-        self.__raw_audio_device_descriptor = tgcalls.RawAudioDeviceDescriptor()
-        self.__raw_audio_device_descriptor.getPlayedBufferCallback = self.__get_played_buffer_callback
-        self.__raw_audio_device_descriptor.setRecordedBufferCallback = self.__set_recorded_buffer_callback
-        self.__raw_audio_device_descriptor.isPlayoutPaused = self.__is_playout_paused_callback
-        self.__raw_audio_device_descriptor.isRecordingPaused = self.__is_recording_paused_callback
-
-        return self.__raw_audio_device_descriptor
+        self.__audio_input_device = audio_input_device or &#39;&#39;
+        self.__audio_output_device = audio_output_device or &#39;&#39;
 
     def _setup_and_start_group_call(self):
-        self._start_native_group_call(self.__create_and_return_raw_audio_device_descriptor())
+        self._start_native_group_call(self.__audio_input_device, self.__audio_output_device)
 
-    def __get_played_buffer_callback(self, length: int):
-        frame = b&#39;&#39;
-        if self.on_played_data:
-            data = self.on_played_data(self, length)
-            if data:
-                frame = data
+    @property
+    def audio_input_device(self):
+        &#34;&#34;&#34;Get audio input device name or GUID&#34;&#34;&#34;
 
-        return frame.ljust(length, b&#39;\0&#39;)
+        return self.__audio_input_device
 
-    def __set_recorded_buffer_callback(self, frame: bytes, length: int):
-        if self.on_recorded_data:
-            self.on_recorded_data(self, frame, length)
+    @audio_input_device.setter
+    def audio_input_device(self, name=None):
+        self.set_audio_input_device(name)
 
-    def pause_playout(self):
-        &#34;&#34;&#34;Pause playout (playing from callback).&#34;&#34;&#34;
-        self.__is_playout_paused = True
+    @property
+    def audio_output_device(self):
+        &#34;&#34;&#34;Get audio output device name or GUID&#34;&#34;&#34;
 
-    def resume_playout(self):
-        &#34;&#34;&#34;Resume playout (playing from callback).&#34;&#34;&#34;
-        self.__is_playout_paused = False
+        return self.__audio_output_device
 
-    def pause_recording(self):
-        &#34;&#34;&#34;Pause recording (output to callback).&#34;&#34;&#34;
-        self.__is_recording_paused = True
-
-    def resume_recording(self):
-        &#34;&#34;&#34;Resume recording (output to callback).&#34;&#34;&#34;
-        self.__is_recording_paused = False
-
-    def __is_playout_paused_callback(self):
-        return self.__is_playout_paused
-
-    def __is_recording_paused_callback(self):
-        return self.__is_recording_paused
-
-    &#34;&#34;&#34;Stop requesting new data to send.&#34;&#34;&#34;
-    stop_playout = pause_playout
-    &#34;&#34;&#34;Stop getting raw data.&#34;&#34;&#34;
-    stop_output = pause_recording</code></pre>
+    @audio_output_device.setter
+    def audio_output_device(self, name=None):
+        self.set_audio_output_device(name)</code></pre>
 </details>
 </section>
 <section>
@@ -145,9 +115,9 @@ class GroupCallRaw(GroupCallNative):
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw"><code class="flex name class">
-<span>class <span class="ident">GroupCallRaw</span></span>
-<span>(</span><span>client: Union[pyrogram.client.Client, NoneType] = None, on_played_data: Callable[[_ForwardRef('<a title="pytgcalls.group_call_raw.GroupCallRaw" href="#pytgcalls.group_call_raw.GroupCallRaw">GroupCallRaw</a>'), int], bytes] = None, on_recorded_data: Callable[[_ForwardRef('<a title="pytgcalls.group_call_raw.GroupCallRaw" href="#pytgcalls.group_call_raw.GroupCallRaw">GroupCallRaw</a>'), bytes, int], NoneType] = None, enable_logs_to_console=False, path_to_log_file=None)</span>
+<dt id="pytgcalls.group_call_device.GroupCallDevice"><code class="flex name class">
+<span>class <span class="ident">GroupCallDevice</span></span>
+<span>(</span><span>client: Union[pyrogram.client.Client, NoneType] = None, audio_input_device: Union[str, NoneType] = None, audio_output_device: Union[str, NoneType] = None, enable_logs_to_console=False, path_to_log_file=None)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -155,13 +125,13 @@ class GroupCallRaw(GroupCallNative):
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class GroupCallRaw(GroupCallNative):
+<pre><code class="python">class GroupCallDevice(GroupCallNative):
 
     def __init__(
             self,
             client: Union[pyrogram.Client, None] = None,
-            on_played_data: Callable[[&#39;GroupCallRaw&#39;, int], bytes] = None,
-            on_recorded_data: Callable[[&#39;GroupCallRaw&#39;, bytes, int], None] = None,
+            audio_input_device: Optional[str] = None,
+            audio_output_device: Optional[str] = None,
             enable_logs_to_console=False,
             path_to_log_file=None
     ):
@@ -172,60 +142,31 @@ class GroupCallRaw(GroupCallNative):
 
         self.__raw_audio_device_descriptor = None
 
-        self.on_played_data = on_played_data
-        self.on_recorded_data = on_recorded_data
-
-    def __create_and_return_raw_audio_device_descriptor(self):
-        self.__raw_audio_device_descriptor = tgcalls.RawAudioDeviceDescriptor()
-        self.__raw_audio_device_descriptor.getPlayedBufferCallback = self.__get_played_buffer_callback
-        self.__raw_audio_device_descriptor.setRecordedBufferCallback = self.__set_recorded_buffer_callback
-        self.__raw_audio_device_descriptor.isPlayoutPaused = self.__is_playout_paused_callback
-        self.__raw_audio_device_descriptor.isRecordingPaused = self.__is_recording_paused_callback
-
-        return self.__raw_audio_device_descriptor
+        self.__audio_input_device = audio_input_device or &#39;&#39;
+        self.__audio_output_device = audio_output_device or &#39;&#39;
 
     def _setup_and_start_group_call(self):
-        self._start_native_group_call(self.__create_and_return_raw_audio_device_descriptor())
+        self._start_native_group_call(self.__audio_input_device, self.__audio_output_device)
 
-    def __get_played_buffer_callback(self, length: int):
-        frame = b&#39;&#39;
-        if self.on_played_data:
-            data = self.on_played_data(self, length)
-            if data:
-                frame = data
+    @property
+    def audio_input_device(self):
+        &#34;&#34;&#34;Get audio input device name or GUID&#34;&#34;&#34;
 
-        return frame.ljust(length, b&#39;\0&#39;)
+        return self.__audio_input_device
 
-    def __set_recorded_buffer_callback(self, frame: bytes, length: int):
-        if self.on_recorded_data:
-            self.on_recorded_data(self, frame, length)
+    @audio_input_device.setter
+    def audio_input_device(self, name=None):
+        self.set_audio_input_device(name)
 
-    def pause_playout(self):
-        &#34;&#34;&#34;Pause playout (playing from callback).&#34;&#34;&#34;
-        self.__is_playout_paused = True
+    @property
+    def audio_output_device(self):
+        &#34;&#34;&#34;Get audio output device name or GUID&#34;&#34;&#34;
 
-    def resume_playout(self):
-        &#34;&#34;&#34;Resume playout (playing from callback).&#34;&#34;&#34;
-        self.__is_playout_paused = False
+        return self.__audio_output_device
 
-    def pause_recording(self):
-        &#34;&#34;&#34;Pause recording (output to callback).&#34;&#34;&#34;
-        self.__is_recording_paused = True
-
-    def resume_recording(self):
-        &#34;&#34;&#34;Resume recording (output to callback).&#34;&#34;&#34;
-        self.__is_recording_paused = False
-
-    def __is_playout_paused_callback(self):
-        return self.__is_playout_paused
-
-    def __is_recording_paused_callback(self):
-        return self.__is_recording_paused
-
-    &#34;&#34;&#34;Stop requesting new data to send.&#34;&#34;&#34;
-    stop_playout = pause_playout
-    &#34;&#34;&#34;Stop getting raw data.&#34;&#34;&#34;
-    stop_output = pause_recording</code></pre>
+    @audio_output_device.setter
+    def audio_output_device(self, name=None):
+        self.set_audio_output_device(name)</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -235,7 +176,7 @@ class GroupCallRaw(GroupCallNative):
 </ul>
 <h3>Class variables</h3>
 <dl>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.SEND_ACTION_UPDATE_EACH"><code class="name">var <span class="ident">SEND_ACTION_UPDATE_EACH</span></code></dt>
+<dt id="pytgcalls.group_call_device.GroupCallDevice.SEND_ACTION_UPDATE_EACH"><code class="name">var <span class="ident">SEND_ACTION_UPDATE_EACH</span></code></dt>
 <dd>
 <p class="inheritance">
 <em>Inherited from:</em>
@@ -246,7 +187,35 @@ class GroupCallRaw(GroupCallNative):
 </dl>
 <h3>Instance variables</h3>
 <dl>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.chat_peer"><code class="name">var <span class="ident">chat_peer</span></code></dt>
+<dt id="pytgcalls.group_call_device.GroupCallDevice.audio_input_device"><code class="name">var <span class="ident">audio_input_device</span></code></dt>
+<dd>
+<div class="desc"><p>Get audio input device name or GUID</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def audio_input_device(self):
+    &#34;&#34;&#34;Get audio input device name or GUID&#34;&#34;&#34;
+
+    return self.__audio_input_device</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.group_call_device.GroupCallDevice.audio_output_device"><code class="name">var <span class="ident">audio_output_device</span></code></dt>
+<dd>
+<div class="desc"><p>Get audio output device name or GUID</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def audio_output_device(self):
+    &#34;&#34;&#34;Get audio output device name or GUID&#34;&#34;&#34;
+
+    return self.__audio_output_device</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.group_call_device.GroupCallDevice.chat_peer"><code class="name">var <span class="ident">chat_peer</span></code></dt>
 <dd>
 <p class="inheritance">
 <em>Inherited from:</em>
@@ -254,7 +223,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Chat peer where bot is now</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.client"><code class="name">var <span class="ident">client</span></code></dt>
+<dt id="pytgcalls.group_call_device.GroupCallDevice.client"><code class="name">var <span class="ident">client</span></code></dt>
 <dd>
 <p class="inheritance">
 <em>Inherited from:</em>
@@ -262,7 +231,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Client of Pyrogram</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.enable_action"><code class="name">var <span class="ident">enable_action</span></code></dt>
+<dt id="pytgcalls.group_call_device.GroupCallDevice.enable_action"><code class="name">var <span class="ident">enable_action</span></code></dt>
 <dd>
 <p class="inheritance">
 <em>Inherited from:</em>
@@ -270,7 +239,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Is enable sending of speaking action</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.full_chat"><code class="name">var <span class="ident">full_chat</span></code></dt>
+<dt id="pytgcalls.group_call_device.GroupCallDevice.full_chat"><code class="name">var <span class="ident">full_chat</span></code></dt>
 <dd>
 <p class="inheritance">
 <em>Inherited from:</em>
@@ -278,7 +247,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Full chat information</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.group_call"><code class="name">var <span class="ident">group_call</span></code></dt>
+<dt id="pytgcalls.group_call_device.GroupCallDevice.group_call"><code class="name">var <span class="ident">group_call</span></code></dt>
 <dd>
 <p class="inheritance">
 <em>Inherited from:</em>
@@ -286,7 +255,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Instance of Pyrogram's group call</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.invite_hash"><code class="name">var <span class="ident">invite_hash</span></code></dt>
+<dt id="pytgcalls.group_call_device.GroupCallDevice.invite_hash"><code class="name">var <span class="ident">invite_hash</span></code></dt>
 <dd>
 <p class="inheritance">
 <em>Inherited from:</em>
@@ -294,7 +263,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Hash from invite link to join as speaker</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.is_connected"><code class="name">var <span class="ident">is_connected</span></code></dt>
+<dt id="pytgcalls.group_call_device.GroupCallDevice.is_connected"><code class="name">var <span class="ident">is_connected</span></code></dt>
 <dd>
 <p class="inheritance">
 <em>Inherited from:</em>
@@ -302,7 +271,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Is connected to voice chat via tgcalls</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.join_as"><code class="name">var <span class="ident">join_as</span></code></dt>
+<dt id="pytgcalls.group_call_device.GroupCallDevice.join_as"><code class="name">var <span class="ident">join_as</span></code></dt>
 <dd>
 <p class="inheritance">
 <em>Inherited from:</em>
@@ -310,7 +279,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>How to present yourself in participants list</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.my_peer"><code class="name">var <span class="ident">my_peer</span></code></dt>
+<dt id="pytgcalls.group_call_device.GroupCallDevice.my_peer"><code class="name">var <span class="ident">my_peer</span></code></dt>
 <dd>
 <p class="inheritance">
 <em>Inherited from:</em>
@@ -318,7 +287,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Client user peer</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.my_ssrc"><code class="name">var <span class="ident">my_ssrc</span></code></dt>
+<dt id="pytgcalls.group_call_device.GroupCallDevice.my_ssrc"><code class="name">var <span class="ident">my_ssrc</span></code></dt>
 <dd>
 <p class="inheritance">
 <em>Inherited from:</em>
@@ -329,7 +298,7 @@ class GroupCallRaw(GroupCallNative):
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.add_handler"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.add_handler"><code class="name flex">
 <span>def <span class="ident">add_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> collections.abc.Coroutine</span>
 </code></dt>
 <dd>
@@ -339,7 +308,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Register new handler …</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.check_group_call"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.check_group_call"><code class="name flex">
 <span>async def <span class="ident">check_group_call</span></span>(<span>self) ‑> bool</span>
 </code></dt>
 <dd>
@@ -349,7 +318,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Check if client is in a voice chat …</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.edit_group_call"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.edit_group_call"><code class="name flex">
 <span>async def <span class="ident">edit_group_call</span></span>(<span>self, volume: int = None, muted=False)</span>
 </code></dt>
 <dd>
@@ -359,7 +328,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Edit own settings of group call …</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.edit_group_call_member"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.edit_group_call_member"><code class="name flex">
 <span>async def <span class="ident">edit_group_call_member</span></span>(<span>self, peer: pyrogram.raw.base.peer.Peer, volume: int = None, muted=False)</span>
 </code></dt>
 <dd>
@@ -369,7 +338,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Edit setting of user in voice chat (required voice chat management permission) …</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.get_group_call"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.get_group_call"><code class="name flex">
 <span>async def <span class="ident">get_group_call</span></span>(<span>self, group: Union[str, int, pyrogram.raw.types.input_peer_channel.InputPeerChannel, pyrogram.raw.types.input_peer_chat.InputPeerChat])</span>
 </code></dt>
 <dd>
@@ -379,7 +348,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Get group call input of chat …</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.get_group_call_participants"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.get_group_call_participants"><code class="name flex">
 <span>async def <span class="ident">get_group_call_participants</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -389,7 +358,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Get group call participants of current chat.</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.leave_current_group_call"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.leave_current_group_call"><code class="name flex">
 <span>async def <span class="ident">leave_current_group_call</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -399,7 +368,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Leave group call from server side (MTProto part).</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.on_network_status_changed"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.on_network_status_changed"><code class="name flex">
 <span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: Coroutine) ‑> Coroutine</span>
 </code></dt>
 <dd>
@@ -409,35 +378,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>When a status of network will be changed …</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.pause_playout"><code class="name flex">
-<span>def <span class="ident">pause_playout</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Pause playout (playing from callback).</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def pause_playout(self):
-    &#34;&#34;&#34;Pause playout (playing from callback).&#34;&#34;&#34;
-    self.__is_playout_paused = True</code></pre>
-</details>
-</dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.pause_recording"><code class="name flex">
-<span>def <span class="ident">pause_recording</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Pause recording (output to callback).</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def pause_recording(self):
-    &#34;&#34;&#34;Pause recording (output to callback).&#34;&#34;&#34;
-    self.__is_recording_paused = True</code></pre>
-</details>
-</dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.reconnect"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.reconnect"><code class="name flex">
 <span>async def <span class="ident">reconnect</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -447,7 +388,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Connect to voice chat using the same native instance.</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.remove_handler"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.remove_handler"><code class="name flex">
 <span>def <span class="ident">remove_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> bool</span>
 </code></dt>
 <dd>
@@ -457,7 +398,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Unregister the handler …</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.remove_update_handler"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.remove_update_handler"><code class="name flex">
 <span>def <span class="ident">remove_update_handler</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -467,7 +408,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Remove pytgcalls handler in pyrogram client.</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.restart_playout"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.restart_playout"><code class="name flex">
 <span>def <span class="ident">restart_playout</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -477,7 +418,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Start play current input file from start or just reload file audio device …</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.restart_recording"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.restart_recording"><code class="name flex">
 <span>def <span class="ident">restart_recording</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -487,35 +428,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Start recording to output file from begin or just restart recording device …</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.resume_playout"><code class="name flex">
-<span>def <span class="ident">resume_playout</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Resume playout (playing from callback).</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def resume_playout(self):
-    &#34;&#34;&#34;Resume playout (playing from callback).&#34;&#34;&#34;
-    self.__is_playout_paused = False</code></pre>
-</details>
-</dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.resume_recording"><code class="name flex">
-<span>def <span class="ident">resume_recording</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Resume recording (output to callback).</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def resume_recording(self):
-    &#34;&#34;&#34;Resume recording (output to callback).&#34;&#34;&#34;
-    self.__is_recording_paused = False</code></pre>
-</details>
-</dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.send_speaking_group_call_action"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.send_speaking_group_call_action"><code class="name flex">
 <span>async def <span class="ident">send_speaking_group_call_action</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -525,7 +438,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Send speaking action to current chat.</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.set_audio_input_device"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.set_audio_input_device"><code class="name flex">
 <span>def <span class="ident">set_audio_input_device</span></span>(<span>self, name: Union[str, NoneType] = None)</span>
 </code></dt>
 <dd>
@@ -535,7 +448,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Set audio input device …</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.set_audio_output_device"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.set_audio_output_device"><code class="name flex">
 <span>def <span class="ident">set_audio_output_device</span></span>(<span>self, name: Union[str, NoneType] = None)</span>
 </code></dt>
 <dd>
@@ -545,7 +458,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Set audio output device …</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.set_is_mute"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.set_is_mute"><code class="name flex">
 <span>def <span class="ident">set_is_mute</span></span>(<span>self, is_muted: bool)</span>
 </code></dt>
 <dd>
@@ -555,7 +468,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Set is mute …</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.set_my_volume"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.set_my_volume"><code class="name flex">
 <span>async def <span class="ident">set_my_volume</span></span>(<span>self, volume)</span>
 </code></dt>
 <dd>
@@ -565,7 +478,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Set volume for current client …</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.start"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.start"><code class="name flex">
 <span>async def <span class="ident">start</span></span>(<span>self, group: Union[str, int, pyrogram.raw.types.input_peer_channel.InputPeerChannel, pyrogram.raw.types.input_peer_chat.InputPeerChat], join_as: Union[str, int, pyrogram.raw.types.input_peer_channel.InputPeerChannel, pyrogram.raw.types.input_peer_chat.InputPeerChat, pyrogram.raw.types.input_peer_user.InputPeerUser, NoneType] = None, invite_hash: Union[str, NoneType] = None, enable_action=True)</span>
 </code></dt>
 <dd>
@@ -575,7 +488,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Start voice chat (join and play/record from initial values) …</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.stop"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.stop"><code class="name flex">
 <span>async def <span class="ident">stop</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -585,35 +498,7 @@ class GroupCallRaw(GroupCallNative):
 </p>
 <div class="desc inherited"><p>Properly stop tgcalls, remove pyrogram handler, leave from server side.</p></div>
 </dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.stop_output"><code class="name flex">
-<span>def <span class="ident">stop_output</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Pause recording (output to callback).</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def pause_recording(self):
-    &#34;&#34;&#34;Pause recording (output to callback).&#34;&#34;&#34;
-    self.__is_recording_paused = True</code></pre>
-</details>
-</dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.stop_playout"><code class="name flex">
-<span>def <span class="ident">stop_playout</span></span>(<span>self)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Pause playout (playing from callback).</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def pause_playout(self):
-    &#34;&#34;&#34;Pause playout (playing from callback).&#34;&#34;&#34;
-    self.__is_playout_paused = True</code></pre>
-</details>
-</dd>
-<dt id="pytgcalls.group_call_raw.GroupCallRaw.trigger_handlers"><code class="name flex">
+<dt id="pytgcalls.group_call_device.GroupCallDevice.trigger_handlers"><code class="name flex">
 <span>def <span class="ident">trigger_handlers</span></span>(<span>self, action: str, instance: GroupCallNative, *args, **kwargs)</span>
 </code></dt>
 <dd>
@@ -648,7 +533,7 @@ Sources
 </p>
 <div class="gcse-search" style="height: 70px"
 data-as_oq="site:tgcalls.org"
-data-gaCategoryParameter="pytgcalls.group_call_raw">
+data-gaCategoryParameter="pytgcalls.group_call_device">
 </div>
 <h1>Index</h1>
 <div class="toc">
@@ -663,46 +548,42 @@ data-gaCategoryParameter="pytgcalls.group_call_raw">
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="pytgcalls.group_call_raw.GroupCallRaw" href="#pytgcalls.group_call_raw.GroupCallRaw">GroupCallRaw</a></code></h4>
+<h4><code><a title="pytgcalls.group_call_device.GroupCallDevice" href="#pytgcalls.group_call_device.GroupCallDevice">GroupCallDevice</a></code></h4>
 <ul class="">
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.SEND_ACTION_UPDATE_EACH" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.SEND_ACTION_UPDATE_EACH">SEND_ACTION_UPDATE_EACH</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.add_handler" href="dispatcher_mixin.html#pytgcalls.group_call_raw.GroupCallRaw.add_handler">add_handler</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.chat_peer" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.chat_peer">chat_peer</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.check_group_call" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.check_group_call">check_group_call</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.client" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.client">client</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.edit_group_call" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.edit_group_call">edit_group_call</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.edit_group_call_member" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.edit_group_call_member">edit_group_call_member</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.enable_action" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.enable_action">enable_action</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.full_chat" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.full_chat">full_chat</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.get_group_call" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.get_group_call">get_group_call</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.get_group_call_participants" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.get_group_call_participants">get_group_call_participants</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.group_call" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.group_call">group_call</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.invite_hash" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.invite_hash">invite_hash</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.is_connected" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.is_connected">is_connected</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.join_as" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.join_as">join_as</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.leave_current_group_call" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.leave_current_group_call">leave_current_group_call</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.my_peer" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.my_peer">my_peer</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.my_ssrc" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.my_ssrc">my_ssrc</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.on_network_status_changed" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.on_network_status_changed">on_network_status_changed</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.pause_playout" href="#pytgcalls.group_call_raw.GroupCallRaw.pause_playout">pause_playout</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.pause_recording" href="#pytgcalls.group_call_raw.GroupCallRaw.pause_recording">pause_recording</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.reconnect" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.reconnect">reconnect</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.remove_handler" href="dispatcher_mixin.html#pytgcalls.group_call_raw.GroupCallRaw.remove_handler">remove_handler</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.remove_update_handler" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.remove_update_handler">remove_update_handler</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.restart_playout" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.restart_playout">restart_playout</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.restart_recording" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.restart_recording">restart_recording</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.resume_playout" href="#pytgcalls.group_call_raw.GroupCallRaw.resume_playout">resume_playout</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.resume_recording" href="#pytgcalls.group_call_raw.GroupCallRaw.resume_recording">resume_recording</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.send_speaking_group_call_action" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.send_speaking_group_call_action">send_speaking_group_call_action</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.set_audio_input_device" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.set_audio_input_device">set_audio_input_device</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.set_audio_output_device" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.set_audio_output_device">set_audio_output_device</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.set_is_mute" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.set_is_mute">set_is_mute</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.set_my_volume" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.set_my_volume">set_my_volume</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.start" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.start">start</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.stop" href="group_call_native.html#pytgcalls.group_call_raw.GroupCallRaw.stop">stop</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.stop_output" href="#pytgcalls.group_call_raw.GroupCallRaw.stop_output">stop_output</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.stop_playout" href="#pytgcalls.group_call_raw.GroupCallRaw.stop_playout">stop_playout</a></code></li>
-<li><code><a title="pytgcalls.group_call_raw.GroupCallRaw.trigger_handlers" href="dispatcher_mixin.html#pytgcalls.group_call_raw.GroupCallRaw.trigger_handlers">trigger_handlers</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.SEND_ACTION_UPDATE_EACH" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.SEND_ACTION_UPDATE_EACH">SEND_ACTION_UPDATE_EACH</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.add_handler" href="dispatcher_mixin.html#pytgcalls.group_call_device.GroupCallDevice.add_handler">add_handler</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.audio_input_device" href="#pytgcalls.group_call_device.GroupCallDevice.audio_input_device">audio_input_device</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.audio_output_device" href="#pytgcalls.group_call_device.GroupCallDevice.audio_output_device">audio_output_device</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.chat_peer" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.chat_peer">chat_peer</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.check_group_call" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.check_group_call">check_group_call</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.client" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.client">client</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.edit_group_call" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.edit_group_call">edit_group_call</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.edit_group_call_member" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.edit_group_call_member">edit_group_call_member</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.enable_action" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.enable_action">enable_action</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.full_chat" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.full_chat">full_chat</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.get_group_call" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.get_group_call">get_group_call</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.get_group_call_participants" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.get_group_call_participants">get_group_call_participants</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.group_call" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.group_call">group_call</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.invite_hash" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.invite_hash">invite_hash</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.is_connected" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.is_connected">is_connected</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.join_as" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.join_as">join_as</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.leave_current_group_call" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.leave_current_group_call">leave_current_group_call</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.my_peer" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.my_peer">my_peer</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.my_ssrc" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.my_ssrc">my_ssrc</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.on_network_status_changed" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.on_network_status_changed">on_network_status_changed</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.reconnect" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.reconnect">reconnect</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.remove_handler" href="dispatcher_mixin.html#pytgcalls.group_call_device.GroupCallDevice.remove_handler">remove_handler</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.remove_update_handler" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.remove_update_handler">remove_update_handler</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.restart_playout" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.restart_playout">restart_playout</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.restart_recording" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.restart_recording">restart_recording</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.send_speaking_group_call_action" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.send_speaking_group_call_action">send_speaking_group_call_action</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.set_audio_input_device" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.set_audio_input_device">set_audio_input_device</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.set_audio_output_device" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.set_audio_output_device">set_audio_output_device</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.set_is_mute" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.set_is_mute">set_is_mute</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.set_my_volume" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.set_my_volume">set_my_volume</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.start" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.start">start</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.stop" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.stop">stop</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.trigger_handlers" href="dispatcher_mixin.html#pytgcalls.group_call_device.GroupCallDevice.trigger_handlers">trigger_handlers</a></code></li>
 </ul>
 </li>
 </ul>

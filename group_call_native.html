@@ -452,6 +452,32 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         await self.edit_group_call(volume)
         self.__set_volume(uint_ssrc(self.my_ssrc), volume / 100)
 
+    def set_audio_input_device(self, name: Optional[str] = None):
+        &#34;&#34;&#34;Set audio input device.
+
+        Note:
+            If `name` is `None`, will use default system device.
+            And this is works only at first device initialization time!
+
+        Args:
+            name (`str`): Name or GUID of device.
+        &#34;&#34;&#34;
+
+        self.__native_instance.setAudioInputDevice(name or &#39;&#39;)
+
+    def set_audio_output_device(self, name: Optional[str] = None):
+        &#34;&#34;&#34;Set audio output device.
+
+        Note:
+            If `name` is `None`, will use default system device.
+            And this is works only at first device initialization time!
+
+        Args:
+            name (`str`): Name or GUID of device.
+        &#34;&#34;&#34;
+
+        self.__native_instance.setAudioOutputDevice(name or &#39;&#39;)
+
     def restart_playout(self):
         &#34;&#34;&#34;Start play current input file from start or just reload file audio device.
 
@@ -1011,6 +1037,32 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         await self.edit_group_call(volume)
         self.__set_volume(uint_ssrc(self.my_ssrc), volume / 100)
 
+    def set_audio_input_device(self, name: Optional[str] = None):
+        &#34;&#34;&#34;Set audio input device.
+
+        Note:
+            If `name` is `None`, will use default system device.
+            And this is works only at first device initialization time!
+
+        Args:
+            name (`str`): Name or GUID of device.
+        &#34;&#34;&#34;
+
+        self.__native_instance.setAudioInputDevice(name or &#39;&#39;)
+
+    def set_audio_output_device(self, name: Optional[str] = None):
+        &#34;&#34;&#34;Set audio output device.
+
+        Note:
+            If `name` is `None`, will use default system device.
+            And this is works only at first device initialization time!
+
+        Args:
+            name (`str`): Name or GUID of device.
+        &#34;&#34;&#34;
+
+        self.__native_instance.setAudioOutputDevice(name or &#39;&#39;)
+
     def restart_playout(self):
         &#34;&#34;&#34;Start play current input file from start or just reload file audio device.
 
@@ -1168,6 +1220,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 <h3>Subclasses</h3>
 <ul class="hlist">
 <li><a title="pytgcalls.group_call.GroupCall" href="group_call.html#pytgcalls.group_call.GroupCall">GroupCall</a></li>
+<li><a title="pytgcalls.group_call_device.GroupCallDevice" href="group_call_device.html#pytgcalls.group_call_device.GroupCallDevice">GroupCallDevice</a></li>
 <li><a title="pytgcalls.group_call_raw.GroupCallRaw" href="group_call_raw.html#pytgcalls.group_call_raw.GroupCallRaw">GroupCallRaw</a></li>
 </ul>
 <h3>Class variables</h3>
@@ -1532,6 +1585,62 @@ muted (<code>bool</code>): Is muted.</p></div>
     )</code></pre>
 </details>
 </dd>
+<dt id="pytgcalls.group_call_native.GroupCallNative.set_audio_input_device"><code class="name flex">
+<span>def <span class="ident">set_audio_input_device</span></span>(<span>self, name: Union[str, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Set audio input device.</p>
+<h2 id="note">Note</h2>
+<p>If <code>name</code> is <code>None</code>, will use default system device.
+And this is works only at first device initialization time!</p>
+<h2 id="args">Args</h2>
+<p>name (<code>str</code>): Name or GUID of device.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_audio_input_device(self, name: Optional[str] = None):
+    &#34;&#34;&#34;Set audio input device.
+
+    Note:
+        If `name` is `None`, will use default system device.
+        And this is works only at first device initialization time!
+
+    Args:
+        name (`str`): Name or GUID of device.
+    &#34;&#34;&#34;
+
+    self.__native_instance.setAudioInputDevice(name or &#39;&#39;)</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.group_call_native.GroupCallNative.set_audio_output_device"><code class="name flex">
+<span>def <span class="ident">set_audio_output_device</span></span>(<span>self, name: Union[str, NoneType] = None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Set audio output device.</p>
+<h2 id="note">Note</h2>
+<p>If <code>name</code> is <code>None</code>, will use default system device.
+And this is works only at first device initialization time!</p>
+<h2 id="args">Args</h2>
+<p>name (<code>str</code>): Name or GUID of device.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_audio_output_device(self, name: Optional[str] = None):
+    &#34;&#34;&#34;Set audio output device.
+
+    Note:
+        If `name` is `None`, will use default system device.
+        And this is works only at first device initialization time!
+
+    Args:
+        name (`str`): Name or GUID of device.
+    &#34;&#34;&#34;
+
+    self.__native_instance.setAudioOutputDevice(name or &#39;&#39;)</code></pre>
+</details>
+</dd>
 <dt id="pytgcalls.group_call_native.GroupCallNative.set_is_mute"><code class="name flex">
 <span>def <span class="ident">set_is_mute</span></span>(<span>self, is_muted: bool)</span>
 </code></dt>
@@ -1885,6 +1994,8 @@ data-gaCategoryParameter="pytgcalls.group_call_native">
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.restart_playout" href="#pytgcalls.group_call_native.GroupCallNative.restart_playout">restart_playout</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.restart_recording" href="#pytgcalls.group_call_native.GroupCallNative.restart_recording">restart_recording</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.send_speaking_group_call_action" href="#pytgcalls.group_call_native.GroupCallNative.send_speaking_group_call_action">send_speaking_group_call_action</a></code></li>
+<li><code><a title="pytgcalls.group_call_native.GroupCallNative.set_audio_input_device" href="#pytgcalls.group_call_native.GroupCallNative.set_audio_input_device">set_audio_input_device</a></code></li>
+<li><code><a title="pytgcalls.group_call_native.GroupCallNative.set_audio_output_device" href="#pytgcalls.group_call_native.GroupCallNative.set_audio_output_device">set_audio_output_device</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.set_is_mute" href="#pytgcalls.group_call_native.GroupCallNative.set_is_mute">set_is_mute</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.set_my_volume" href="#pytgcalls.group_call_native.GroupCallNative.set_my_volume">set_my_volume</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.start" href="#pytgcalls.group_call_native.GroupCallNative.start">start</a></code></li>
