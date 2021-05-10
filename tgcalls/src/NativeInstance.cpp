@@ -93,6 +93,10 @@ void NativeInstance::startGroupCall(RawAudioDeviceDescriptor &rawAudioDeviceDesc
       });
 }
 
+void NativeInstance::startGroupCall(std::string initialInputDeviceId = "", std::string initialOutputDeviceId = "") {
+  createInstanceHolder(nullptr, std::move(initialInputDeviceId), std::move(initialOutputDeviceId));
+}
+
 void NativeInstance::stopGroupCall() const {
   instanceHolder->groupNativeInstance.reset();
 }
