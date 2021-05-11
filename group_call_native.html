@@ -452,6 +452,24 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         await self.edit_group_call(volume)
         self.__set_volume(uint_ssrc(self.my_ssrc), volume / 100)
 
+    def print_available_playout_devices(self):
+        &#34;&#34;&#34;Print name and guid of available playout audio devices in system. Just helper method
+
+        Note:
+            You should use this method after calling .start()!
+        &#34;&#34;&#34;
+
+        self.__native_instance.printAvailablePlayoutDevices()
+
+    def print_available_recording_devices(self):
+        &#34;&#34;&#34;Print name and guid of available recording audio devices in system. Just helper method
+
+        Note:
+            You should use this method after calling .start()!
+        &#34;&#34;&#34;
+
+        self.__native_instance.printAvailableRecordingDevices()
+
     def set_audio_input_device(self, name: Optional[str] = None):
         &#34;&#34;&#34;Set audio input device.
 
@@ -1037,6 +1055,24 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         await self.edit_group_call(volume)
         self.__set_volume(uint_ssrc(self.my_ssrc), volume / 100)
 
+    def print_available_playout_devices(self):
+        &#34;&#34;&#34;Print name and guid of available playout audio devices in system. Just helper method
+
+        Note:
+            You should use this method after calling .start()!
+        &#34;&#34;&#34;
+
+        self.__native_instance.printAvailablePlayoutDevices()
+
+    def print_available_recording_devices(self):
+        &#34;&#34;&#34;Print name and guid of available recording audio devices in system. Just helper method
+
+        Note:
+            You should use this method after calling .start()!
+        &#34;&#34;&#34;
+
+        self.__native_instance.printAvailableRecordingDevices()
+
     def set_audio_input_device(self, name: Optional[str] = None):
         &#34;&#34;&#34;Set audio input device.
 
@@ -1478,6 +1514,48 @@ muted (<code>bool</code>): Is muted.</p></div>
 <code><a title="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin" href="#pytgcalls.group_call_native.GroupCallNativeDispatcherMixin">GroupCallNativeDispatcherMixin</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin.on_network_status_changed" href="#pytgcalls.group_call_native.GroupCallNativeDispatcherMixin.on_network_status_changed">on_network_status_changed</a></code>
 </p>
 <div class="desc inherited"><p>When a status of network will be changed …</p></div>
+</dd>
+<dt id="pytgcalls.group_call_native.GroupCallNative.print_available_playout_devices"><code class="name flex">
+<span>def <span class="ident">print_available_playout_devices</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Print name and guid of available playout audio devices in system. Just helper method</p>
+<h2 id="note">Note</h2>
+<p>You should use this method after calling .start()!</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def print_available_playout_devices(self):
+    &#34;&#34;&#34;Print name and guid of available playout audio devices in system. Just helper method
+
+    Note:
+        You should use this method after calling .start()!
+    &#34;&#34;&#34;
+
+    self.__native_instance.printAvailablePlayoutDevices()</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.group_call_native.GroupCallNative.print_available_recording_devices"><code class="name flex">
+<span>def <span class="ident">print_available_recording_devices</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Print name and guid of available recording audio devices in system. Just helper method</p>
+<h2 id="note">Note</h2>
+<p>You should use this method after calling .start()!</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def print_available_recording_devices(self):
+    &#34;&#34;&#34;Print name and guid of available recording audio devices in system. Just helper method
+
+    Note:
+        You should use this method after calling .start()!
+    &#34;&#34;&#34;
+
+    self.__native_instance.printAvailableRecordingDevices()</code></pre>
+</details>
 </dd>
 <dt id="pytgcalls.group_call_native.GroupCallNative.reconnect"><code class="name flex">
 <span>async def <span class="ident">reconnect</span></span>(<span>self)</span>
@@ -1988,6 +2066,8 @@ data-gaCategoryParameter="pytgcalls.group_call_native">
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.my_peer" href="#pytgcalls.group_call_native.GroupCallNative.my_peer">my_peer</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.my_ssrc" href="#pytgcalls.group_call_native.GroupCallNative.my_ssrc">my_ssrc</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.on_network_status_changed" href="#pytgcalls.group_call_native.GroupCallNative.on_network_status_changed">on_network_status_changed</a></code></li>
+<li><code><a title="pytgcalls.group_call_native.GroupCallNative.print_available_playout_devices" href="#pytgcalls.group_call_native.GroupCallNative.print_available_playout_devices">print_available_playout_devices</a></code></li>
+<li><code><a title="pytgcalls.group_call_native.GroupCallNative.print_available_recording_devices" href="#pytgcalls.group_call_native.GroupCallNative.print_available_recording_devices">print_available_recording_devices</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.reconnect" href="#pytgcalls.group_call_native.GroupCallNative.reconnect">reconnect</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.remove_handler" href="dispatcher_mixin.html#pytgcalls.group_call_native.GroupCallNative.remove_handler">remove_handler</a></code></li>
 <li><code><a title="pytgcalls.group_call_native.GroupCallNative.remove_update_handler" href="#pytgcalls.group_call_native.GroupCallNative.remove_update_handler">remove_update_handler</a></code></li>

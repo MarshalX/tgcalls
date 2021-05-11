@@ -87,7 +87,11 @@ class GroupCallDevice(GroupCallNative):
 
     @property
     def audio_input_device(self):
-        &#34;&#34;&#34;Get audio input device name or GUID&#34;&#34;&#34;
+        &#34;&#34;&#34;Get audio input device name or GUID
+
+        Note:
+            To get system recording device list you can use `print_available_recording_devices()` method.
+        &#34;&#34;&#34;
 
         return self.__audio_input_device
 
@@ -97,7 +101,11 @@ class GroupCallDevice(GroupCallNative):
 
     @property
     def audio_output_device(self):
-        &#34;&#34;&#34;Get audio output device name or GUID&#34;&#34;&#34;
+        &#34;&#34;&#34;Get audio output device name or GUID
+
+        Note:
+            To get system playout device list you can use `print_available_playout_devices()` method.
+        &#34;&#34;&#34;
 
         return self.__audio_output_device
 
@@ -150,7 +158,11 @@ class GroupCallDevice(GroupCallNative):
 
     @property
     def audio_input_device(self):
-        &#34;&#34;&#34;Get audio input device name or GUID&#34;&#34;&#34;
+        &#34;&#34;&#34;Get audio input device name or GUID
+
+        Note:
+            To get system recording device list you can use `print_available_recording_devices()` method.
+        &#34;&#34;&#34;
 
         return self.__audio_input_device
 
@@ -160,7 +172,11 @@ class GroupCallDevice(GroupCallNative):
 
     @property
     def audio_output_device(self):
-        &#34;&#34;&#34;Get audio output device name or GUID&#34;&#34;&#34;
+        &#34;&#34;&#34;Get audio output device name or GUID
+
+        Note:
+            To get system playout device list you can use `print_available_playout_devices()` method.
+        &#34;&#34;&#34;
 
         return self.__audio_output_device
 
@@ -189,28 +205,40 @@ class GroupCallDevice(GroupCallNative):
 <dl>
 <dt id="pytgcalls.group_call_device.GroupCallDevice.audio_input_device"><code class="name">var <span class="ident">audio_input_device</span></code></dt>
 <dd>
-<div class="desc"><p>Get audio input device name or GUID</p></div>
+<div class="desc"><p>Get audio input device name or GUID</p>
+<h2 id="note">Note</h2>
+<p>To get system recording device list you can use <code>print_available_recording_devices()</code> method.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@property
 def audio_input_device(self):
-    &#34;&#34;&#34;Get audio input device name or GUID&#34;&#34;&#34;
+    &#34;&#34;&#34;Get audio input device name or GUID
+
+    Note:
+        To get system recording device list you can use `print_available_recording_devices()` method.
+    &#34;&#34;&#34;
 
     return self.__audio_input_device</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.group_call_device.GroupCallDevice.audio_output_device"><code class="name">var <span class="ident">audio_output_device</span></code></dt>
 <dd>
-<div class="desc"><p>Get audio output device name or GUID</p></div>
+<div class="desc"><p>Get audio output device name or GUID</p>
+<h2 id="note">Note</h2>
+<p>To get system playout device list you can use <code>print_available_playout_devices()</code> method.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">@property
 def audio_output_device(self):
-    &#34;&#34;&#34;Get audio output device name or GUID&#34;&#34;&#34;
+    &#34;&#34;&#34;Get audio output device name or GUID
+
+    Note:
+        To get system playout device list you can use `print_available_playout_devices()` method.
+    &#34;&#34;&#34;
 
     return self.__audio_output_device</code></pre>
 </details>
@@ -377,6 +405,26 @@ def audio_output_device(self):
 <code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.on_network_status_changed" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.on_network_status_changed">on_network_status_changed</a></code>
 </p>
 <div class="desc inherited"><p>When a status of network will be changed …</p></div>
+</dd>
+<dt id="pytgcalls.group_call_device.GroupCallDevice.print_available_playout_devices"><code class="name flex">
+<span>def <span class="ident">print_available_playout_devices</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.print_available_playout_devices" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.print_available_playout_devices">print_available_playout_devices</a></code>
+</p>
+<div class="desc inherited"><p>Print name and guid of available playout audio devices in system. Just helper method …</p></div>
+</dd>
+<dt id="pytgcalls.group_call_device.GroupCallDevice.print_available_recording_devices"><code class="name flex">
+<span>def <span class="ident">print_available_recording_devices</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.group_call_native.GroupCallNative.print_available_recording_devices" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNative.print_available_recording_devices">print_available_recording_devices</a></code>
+</p>
+<div class="desc inherited"><p>Print name and guid of available recording audio devices in system. Just helper method …</p></div>
 </dd>
 <dt id="pytgcalls.group_call_device.GroupCallDevice.reconnect"><code class="name flex">
 <span>async def <span class="ident">reconnect</span></span>(<span>self)</span>
@@ -571,6 +619,8 @@ data-gaCategoryParameter="pytgcalls.group_call_device">
 <li><code><a title="pytgcalls.group_call_device.GroupCallDevice.my_peer" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.my_peer">my_peer</a></code></li>
 <li><code><a title="pytgcalls.group_call_device.GroupCallDevice.my_ssrc" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.my_ssrc">my_ssrc</a></code></li>
 <li><code><a title="pytgcalls.group_call_device.GroupCallDevice.on_network_status_changed" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.on_network_status_changed">on_network_status_changed</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.print_available_playout_devices" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.print_available_playout_devices">print_available_playout_devices</a></code></li>
+<li><code><a title="pytgcalls.group_call_device.GroupCallDevice.print_available_recording_devices" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.print_available_recording_devices">print_available_recording_devices</a></code></li>
 <li><code><a title="pytgcalls.group_call_device.GroupCallDevice.reconnect" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.reconnect">reconnect</a></code></li>
 <li><code><a title="pytgcalls.group_call_device.GroupCallDevice.remove_handler" href="dispatcher_mixin.html#pytgcalls.group_call_device.GroupCallDevice.remove_handler">remove_handler</a></code></li>
 <li><code><a title="pytgcalls.group_call_device.GroupCallDevice.remove_update_handler" href="group_call_native.html#pytgcalls.group_call_device.GroupCallDevice.remove_update_handler">remove_update_handler</a></code></li>
