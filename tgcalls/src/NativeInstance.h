@@ -51,6 +51,8 @@ public:
     void restartAudioInputDevice() const;
     void restartAudioOutputDevice() const;
 
+    void printAvailablePlayoutDevices() const;
+    void printAvailableRecordingDevices() const;
     void setAudioOutputDevice(std::string id) const;
     void setAudioInputDevice(std::string id) const;
 
