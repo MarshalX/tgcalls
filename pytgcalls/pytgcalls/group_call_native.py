@@ -414,6 +414,24 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         await self.edit_group_call(volume)
         self.__set_volume(uint_ssrc(self.my_ssrc), volume / 100)
 
+    def print_available_playout_devices(self):
+        """Print name and guid of available playout audio devices in system. Just helper method
+
+        Note:
+            You should use this method after calling .start()!
+        """
+
+        self.__native_instance.printAvailablePlayoutDevices()
+
+    def print_available_recording_devices(self):
+        """Print name and guid of available recording audio devices in system. Just helper method
+
+        Note:
+            You should use this method after calling .start()!
+        """
+
+        self.__native_instance.printAvailableRecordingDevices()
+
     def set_audio_input_device(self, name: Optional[str] = None):
         """Set audio input device.
 

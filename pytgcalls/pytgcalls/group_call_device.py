@@ -49,7 +49,11 @@ class GroupCallDevice(GroupCallNative):
 
     @property
     def audio_input_device(self):
-        """Get audio input device name or GUID"""
+        """Get audio input device name or GUID
+
+        Note:
+            To get system recording device list you can use `print_available_recording_devices()` method.
+        """
 
         return self.__audio_input_device
 
@@ -59,7 +63,11 @@ class GroupCallDevice(GroupCallNative):
 
     @property
     def audio_output_device(self):
-        """Get audio output device name or GUID"""
+        """Get audio output device name or GUID
+
+        Note:
+            To get system playout device list you can use `print_available_playout_devices()` method.
+        """
 
         return self.__audio_output_device
 

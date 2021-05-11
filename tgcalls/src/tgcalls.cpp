@@ -184,6 +184,8 @@ PYBIND11_MODULE(tgcalls, m) {
             .def("setVolume", &NativeInstance::setVolume)
             .def("restartAudioInputDevice", &NativeInstance::restartAudioInputDevice)
             .def("restartAudioOutputDevice", &NativeInstance::restartAudioOutputDevice)
+            .def("printAvailablePlayoutDevices", &NativeInstance::printAvailablePlayoutDevices)
+            .def("printAvailableRecordingDevices", &NativeInstance::printAvailableRecordingDevices)
             .def("setAudioOutputDevice", &NativeInstance::setAudioOutputDevice)
             .def("setAudioInputDevice", &NativeInstance::setAudioInputDevice)
             .def("removeSsrcs", &NativeInstance::removeSsrcs)

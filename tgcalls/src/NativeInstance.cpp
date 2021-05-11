@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <rtc_base/ssl_adapter.h>
 
 #include "NativeInstance.h"
@@ -94,7 +96,15 @@ void NativeInstance::startGroupCall(RawAudioDeviceDescriptor &rawAudioDeviceDesc
 }
 
 void NativeInstance::startGroupCall(std::string initialInputDeviceId = "", std::string initialOutputDeviceId = "") {
-  createInstanceHolder(nullptr, std::move(initialInputDeviceId), std::move(initialOutputDeviceId));
+  createInstanceHolder(
+      [&](webrtc::TaskQueueFactory *taskQueueFactory) -> rtc::scoped_refptr<webrtc::AudioDeviceModule> {
+        _audioDeviceModule = webrtc::AudioDeviceModule::Create(
+            webrtc::AudioDeviceModule::kPlatformDefaultAudio,
+            taskQueueFactory
+        );
+
+        return _audioDeviceModule;
+      }, std::move(initialInputDeviceId), std::move(initialOutputDeviceId));
 }
 
 void NativeInstance::stopGroupCall() const {
@@ -165,6 +175,52 @@ void NativeInstance::restartAudioOutputDevice() const {
         }
       });
 }
+
+void NativeInstance::printAvailablePlayoutDevices() const {
+  instanceHolder->groupNativeInstance->_internal->perform(
+      RTC_FROM_HERE,
+      [=](tgcalls::GroupInstanceCustomInternal *internal) {
+        const auto count = _audioDeviceModule ? _audioDeviceModule->PlayoutDevices() : int16_t(-1);
+
+        if (count < 0) {
+          std::cout << "Can't find available playout devices" << std::endl;
+          return;
+        }
+
+        for (auto i = 0; i != count; ++i) {
+          char name[webrtc::kAdmMaxDeviceNameSize + 1] = {0};
+          char guid[webrtc::kAdmMaxGuidSize + 1] = {0};
+          _audioDeviceModule->PlayoutDeviceName(i, name, guid);
+          std::cout << "Playout device #" << i << std::endl
+          << "name: " << name << std::endl
+          << "guid: " << guid << std::endl;
+        }
+      });
+}
+
+
+void NativeInstance::printAvailableRecordingDevices() const {
+  instanceHolder->groupNativeInstance->_internal->perform(
+      RTC_FROM_HERE,
+      [=](tgcalls::GroupInstanceCustomInternal *internal) {
+        const auto count = _audioDeviceModule ? _audioDeviceModule->RecordingDevices() : int16_t(-1);
+
+        if (count < 0) {
+          std::cout << "Can't find available recording devices" << std::endl;
+          return;
+        }
+
+        for (auto i = 0; i != count; ++i) {
+          char name[webrtc::kAdmMaxDeviceNameSize + 1] = {0};
+          char guid[webrtc::kAdmMaxGuidSize + 1] = {0};
+          _audioDeviceModule->RecordingDeviceName(i, name, guid);
+          std::cout << "Recording device #" << i << std::endl
+          << "name: " << name << std::endl
+          << "guid: " << guid << std::endl;
+        }
+      });
+}
+
 
 void NativeInstance::setAudioOutputDevice(std::string id) const {
   instanceHolder->groupNativeInstance->setAudioOutputDevice(std::move(id));
