@@ -283,6 +283,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             raise RuntimeError(f'Can\'t get full chat by {group}')
 
         self.group_call = self.full_chat.call
+        self.join_as = self.full_chat.groupcall_default_join_as
 
         return self.group_call
 
@@ -350,7 +351,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             raise RuntimeError('Chat without a voice chat')
 
         if join_as is None:
-            self.join_as = self.my_peer
+            self.join_as = self.join_as or self.my_peer
         elif isinstance(join_as, str) or isinstance(join_as, int):
             self.join_as = await self.client.resolve_peer(join_as)
         else:
