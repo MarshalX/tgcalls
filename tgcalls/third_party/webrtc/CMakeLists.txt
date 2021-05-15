@@ -470,7 +470,6 @@ PRIVATE
     api/neteq/neteq.cc
     api/neteq/tick_timer.cc
     api/peer_connection_interface.cc
-    api/proxy.cc
     api/rtc_error.cc
     api/rtc_event_log/rtc_event.cc
     api/rtc_event_log/rtc_event_log.cc
@@ -1865,7 +1864,7 @@ PRIVATE
     modules/remote_bitrate_estimator/remote_estimator_proxy.cc
     sdk/media_constraints.cc
 
-    #screen drawer
+    # screen drawer
     modules/desktop_capture/screen_drawer.cc
     modules/desktop_capture/screen_drawer.h
     modules/desktop_capture/screen_drawer_mac.cc
@@ -1873,7 +1872,7 @@ PRIVATE
     modules/desktop_capture/screen_drawer_lock_posix.h
 
 
-    #primitives
+    # primitives
     modules/desktop_capture/desktop_capture_types.h
     modules/desktop_capture/desktop_frame.cc
     modules/desktop_capture/desktop_frame.h
@@ -1886,14 +1885,14 @@ PRIVATE
     modules/desktop_capture/shared_memory.cc
     modules/desktop_capture/shared_memory.h
 
-
-    #generic
+    # generic
     modules/desktop_capture/blank_detector_desktop_capturer_wrapper.cc
     modules/desktop_capture/blank_detector_desktop_capturer_wrapper.h
     modules/desktop_capture/cropped_desktop_frame.cc
     modules/desktop_capture/cropped_desktop_frame.h
     modules/desktop_capture/cropping_window_capturer.cc
     modules/desktop_capture/cropping_window_capturer.h
+    modules/desktop_capture/cropping_window_capturer_win.cc
     modules/desktop_capture/desktop_and_cursor_composer.cc
     modules/desktop_capture/desktop_and_cursor_composer.h
     modules/desktop_capture/desktop_capture_options.cc
@@ -1908,6 +1907,8 @@ PRIVATE
     modules/desktop_capture/desktop_frame_generator.h
     modules/desktop_capture/desktop_frame_rotation.cc
     modules/desktop_capture/desktop_frame_rotation.h
+    modules/desktop_capture/desktop_frame_win.cc
+    modules/desktop_capture/desktop_frame_win.h
     modules/desktop_capture/differ_block.cc
     modules/desktop_capture/differ_block.h
     modules/desktop_capture/fake_desktop_capturer.cc
@@ -1921,7 +1922,8 @@ PRIVATE
     modules/desktop_capture/mouse_cursor.cc
     modules/desktop_capture/mouse_cursor.h
     modules/desktop_capture/mouse_cursor_monitor.h
-    modules/desktop_capture/mouse_cursor_monitor_null.cc
+    modules/desktop_capture/mouse_cursor_monitor_mac.mm
+    modules/desktop_capture/mouse_cursor_monitor_win.cc
     modules/desktop_capture/resolution_tracker.cc
     modules/desktop_capture/resolution_tracker.h
     modules/desktop_capture/rgba_color.cc
@@ -1929,14 +1931,26 @@ PRIVATE
     modules/desktop_capture/screen_capture_frame_queue.h
     modules/desktop_capture/screen_capturer_helper.cc
     modules/desktop_capture/screen_capturer_helper.h
-    modules/desktop_capture/screen_capturer_null.cc
+    modules/desktop_capture/screen_capturer_darwin.mm
+    modules/desktop_capture/screen_capturer_win.cc
+    modules/desktop_capture/screen_drawer_win.cc
+    modules/desktop_capture/window_capturer_mac.mm
+    modules/desktop_capture/window_capturer_win.cc
     modules/desktop_capture/window_finder.cc
     modules/desktop_capture/window_finder.h
-    
+    modules/desktop_capture/window_finder_mac.h
+    modules/desktop_capture/window_finder_mac.mm
+    modules/desktop_capture/window_finder_win.cc
+    modules/desktop_capture/window_finder_win.h
+
     #stubs for non-mac
     modules/desktop_capture/window_capturer_null.cc
+    # stubs for non-supported
+    modules/desktop_capture/mouse_cursor_monitor_null.cc
+    modules/desktop_capture/screen_capturer_null.cc
+    modules/desktop_capture/window_capturer_null.cc
 
-    #mac specific //
+    # mac specific
     modules/desktop_capture/mac/desktop_configuration.mm
     modules/desktop_capture/mac/desktop_frame_cgimage.h
     modules/desktop_capture/mac/desktop_frame_cgimage.mm
@@ -1946,11 +1960,6 @@ PRIVATE
     modules/desktop_capture/mac/desktop_frame_provider.mm
     modules/desktop_capture/mac/screen_capturer_mac.h
     modules/desktop_capture/mac/screen_capturer_mac.mm
-    modules/desktop_capture/mouse_cursor_monitor_mac.mm
-    modules/desktop_capture/screen_capturer_darwin.mm
-    modules/desktop_capture/window_capturer_mac.mm
-    modules/desktop_capture/window_finder_mac.h
-    modules/desktop_capture/window_finder_mac.mm
 
     modules/desktop_capture/mac/desktop_configuration.h
     modules/desktop_capture/mac/desktop_configuration_monitor.cc
@@ -1960,14 +1969,60 @@ PRIVATE
     modules/desktop_capture/mac/window_list_utils.cc
     modules/desktop_capture/mac/window_list_utils.h
 
-   
-
+    # win specific
+    modules/desktop_capture/win/cursor.cc
+    modules/desktop_capture/win/cursor.h
+    modules/desktop_capture/win/d3d_device.cc
+    modules/desktop_capture/win/d3d_device.h
+    modules/desktop_capture/win/desktop.cc
+    modules/desktop_capture/win/desktop.h
+    modules/desktop_capture/win/desktop_capture_utils.cc
+    modules/desktop_capture/win/desktop_capture_utils.h
+    modules/desktop_capture/win/display_configuration_monitor.cc
+    modules/desktop_capture/win/display_configuration_monitor.h
+    modules/desktop_capture/win/dxgi_adapter_duplicator.cc
+    modules/desktop_capture/win/dxgi_adapter_duplicator.h
+    modules/desktop_capture/win/dxgi_context.cc
+    modules/desktop_capture/win/dxgi_context.h
+    modules/desktop_capture/win/dxgi_duplicator_controller.cc
+    modules/desktop_capture/win/dxgi_duplicator_controller.h
+    modules/desktop_capture/win/dxgi_frame.cc
+    modules/desktop_capture/win/dxgi_frame.h
+    modules/desktop_capture/win/dxgi_output_duplicator.cc
+    modules/desktop_capture/win/dxgi_output_duplicator.h
+    modules/desktop_capture/win/dxgi_texture.cc
+    modules/desktop_capture/win/dxgi_texture.h
+    modules/desktop_capture/win/dxgi_texture_mapping.cc
+    modules/desktop_capture/win/dxgi_texture_mapping.h
+    modules/desktop_capture/win/dxgi_texture_staging.cc
+    modules/desktop_capture/win/dxgi_texture_staging.h
+    modules/desktop_capture/win/full_screen_win_application_handler.cc
+    modules/desktop_capture/win/full_screen_win_application_handler.h
+    modules/desktop_capture/win/scoped_gdi_object.h
+    modules/desktop_capture/win/scoped_thread_desktop.cc
+    modules/desktop_capture/win/scoped_thread_desktop.h
+    modules/desktop_capture/win/screen_capture_utils.cc
+    modules/desktop_capture/win/screen_capture_utils.h
+    modules/desktop_capture/win/screen_capturer_win_directx.cc
+    modules/desktop_capture/win/screen_capturer_win_directx.h
+    modules/desktop_capture/win/screen_capturer_win_gdi.cc
+    modules/desktop_capture/win/screen_capturer_win_gdi.h
+    modules/desktop_capture/win/screen_capturer_win_magnifier.cc
+    modules/desktop_capture/win/screen_capturer_win_magnifier.h
+    modules/desktop_capture/win/selected_window_context.cc
+    modules/desktop_capture/win/selected_window_context.h
+    modules/desktop_capture/win/wgc_capture_session.cc
+    modules/desktop_capture/win/wgc_capture_session.h
+    modules/desktop_capture/win/window_capture_utils.cc
+    modules/desktop_capture/win/window_capture_utils.h
+    modules/desktop_capture/win/window_capturer_win_gdi.cc
+    modules/desktop_capture/win/window_capturer_win_gdi.h
+    modules/desktop_capture/win/window_capturer_win_wgc.cc
+    modules/desktop_capture/win/window_capturer_win_wgc.h
 
     stats/rtc_stats_report.cc
     stats/rtc_stats.cc
     stats/rtcstats_objects.cc
-
-
 )
 
 if (is_x86 OR is_x64)
@@ -2001,15 +2056,14 @@ if (NOT WIN32)
         rtc_base/win32.h
         rtc_base/win32_window.cc
         rtc_base/win32_window.h
-        rtc_base/task_queue_win.cc
-        rtc_base/task_queue_win.h
-        api/task_queue/default_task_queue_factory_win.cc
     )
 endif()
 
-if (APPLE)
+if (APPLE OR WIN32)
     remove_target_sources(tg_owt ${webrtc_loc}
         modules/desktop_capture/window_capturer_null.cc
+        modules/desktop_capture/screen_capturer_null.cc
+        modules/desktop_capture/mouse_cursor_monitor_null.cc
     )
 endif()
 
