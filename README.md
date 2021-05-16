@@ -130,11 +130,29 @@ also [available as a subtree](https://github.com/MarshalX/tgcalls/tree/main/tgca
 
 ### How to build
 
-- [Linux](build/ubuntu).
+Short answer for linux:
+```bash
+git clone git@github.com:MarshalX/tgcalls.git --recursive
+cd tgcalls
+```
+For x86_64:
+```bash
+docker-compose up tgcalls_x86_64
+```
+For AArch64 (ARM64):
+```bash
+docker-compose up tgcalls_aarch64
+```
+
+Python wheels will be available in `dist` folder in root of `tgcalls`.
+
+More info:
+- [Manylinux](build/manylinux/dev).
+- [Ubuntu](build/ubuntu).
 - [macOS](build/macos).
 - [Windows](build/windows).
 
-Also you can investigate into [manylinux builds](build/manylinux).
+Also you can investigate into [manylinux GitHub Actions builds](build/manylinux).
 
 ### Documentation
 
