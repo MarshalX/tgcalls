@@ -82,7 +82,6 @@ RUN ./configure \
 	--disable-network \
 	--disable-autodetect \
 	--disable-everything \
-	--disable-alsa \
 	--disable-asm \
 	--disable-iconv \
 	--disable-shared \

@@ -1380,6 +1380,13 @@ PRIVATE
     modules/video_capture/device_info_impl.cc
     modules/video_capture/linux/device_info_linux.cc
     modules/video_capture/linux/video_capture_linux.cc
+    modules/audio_device/linux/alsasymboltable_linux.cc
+    modules/audio_device/linux/audio_device_alsa_linux.cc
+    modules/audio_device/linux/audio_device_pulse_linux.cc
+    modules/audio_device/linux/audio_mixer_manager_alsa_linux.cc
+    modules/audio_device/linux/audio_mixer_manager_pulse_linux.cc
+    modules/audio_device/linux/latebindingsymboltable_linux.cc
+    modules/audio_device/linux/pulseaudiosymboltable_linux.cc
     modules/video_capture/windows/device_info_ds.cc
     modules/video_capture/windows/device_info_ds.h
     modules/video_capture/windows/help_functions_ds.cc

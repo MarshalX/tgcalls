@@ -24,12 +24,12 @@ INTERFACE
     RTC_ENABLE_VP9
 )
 
-if (NOT APPLE)
-    target_compile_definitions(libwebrtcbuild
-    INTERFACE
-        WEBRTC_DUMMY_AUDIO_BUILD
-    )
-endif()
+#if (NOT APPLE)
+#    target_compile_definitions(libwebrtcbuild
+#    INTERFACE
+#        WEBRTC_DUMMY_AUDIO_BUILD
+#    )
+#endif()
 
 if (WIN32)
     target_compile_definitions(libwebrtcbuild
