@@ -16,7 +16,7 @@ function repair_wheel {
 # build
 arrPYTHON_VERSIONS=(${PYTHON_VERSIONS// / })
 for PYTHON_VER in "${arrPYTHON_VERSIONS[@]}"; do
-    /opt/python/"${PYTHON_VER}"/bin/pip wheel . --no-deps -w ../wheelhouse/ --use-feature=in-tree-build
+    /opt/python/"${PYTHON_VER}"/bin/pip wheel . --no-deps -w ../wheelhouse/
 done
 
 # repair
