@@ -1,6 +1,7 @@
 #include "StaticThreads.h"
 
 #include "rtc_base/thread.h"
+#include "call/call.h"
 
 #include <mutex>
 #include <algorithm>
@@ -62,6 +63,7 @@ public:
     network_ = create_network("tgc-net" + suffix);
     media_ = create("tgc-media" + suffix);
     worker_ = create("tgc-work"  + suffix);
+    shared_module_thread_ = webrtc::SharedModuleThread::Create(webrtc::ProcessThread::Create("tgc-module"), nullptr);
   }
 
   rtc::Thread *getNetworkThread() override {
@@ -73,11 +75,15 @@ public:
   rtc::Thread *getWorkerThread() override {
     return worker_.get();
   }
+  rtc::scoped_refptr<webrtc::SharedModuleThread> getSharedModuleThread() override {
+    return shared_module_thread_;
+  }
 
 private:
   Thread network_;
   Thread media_;
   Thread worker_;
+  rtc::scoped_refptr<webrtc::SharedModuleThread> shared_module_thread_;
 
   static Thread create(const std::string &name) {
     return init(std::unique_ptr<rtc::Thread>(rtc::Thread::Create()), name);

@@ -86,7 +86,8 @@ struct GroupInstanceDescriptor {
     std::function<void(uint32_t, const AudioFrame &)> onAudioFrame;
     std::string initialInputDeviceId;
     std::string initialOutputDeviceId;
-    bool debugIgnoreMissingSsrcs = false;
+    bool useDummyChannel{true};
+    bool disableIncomingChannels{false};
     std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory*)> createAudioDeviceModule;
     std::shared_ptr<VideoCaptureInterface> videoCapture;
     std::function<void(std::vector<uint32_t> const &)> incomingVideoSourcesUpdated;
