@@ -30,7 +30,7 @@ jobs:
       BUILD_WHEELS: "true"
       UPLOAD_WHEELS: "true"
       GLOBAL_CACHE_KEY: "1"
-      WEBRTC_CACHE_KEY: "1"
+      WEBRTC_CACHE_KEY: "2"
 
     steps:
       - name: Get repository name.
@@ -366,7 +366,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: Wheels for macOS
-          path: ${{ env.REPO_NAME }}/dist/
+          path: dist/
 
       - name: Upload wheels to PyPi.
         if: env.UPLOAD_WHEELS == 'true' && github.ref == 'refs/heads/main'
