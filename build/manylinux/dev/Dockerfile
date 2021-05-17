@@ -1,34 +1,25 @@
-FROM ubuntu:latest AS builder
+ARG MANYLINUX_PLATFORM
+FROM quay.io/pypa/$MANYLINUX_PLATFORM AS builder
 
-ENV DEBIAN_FRONTEND=noninteractive
 ENV PKG_CONFIG_PATH /usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig
 ENV OPENSSL_PREFIX /usr/local/desktop-app/openssl-1.1.1
 
-RUN apt-get update \
-    && apt-get install -y \
-    wget \
-    pkg-config \
-    git \
-    build-essential \
-    cmake \
-    autoconf \
-    libtool \
-    yasm \
-    libasound2-dev \
-    libpulse-dev \
-    ninja-build \
-    python-dev-is-python3
+RUN yum -y install epel-release
+
+RUN yum -y install wget git cmake3 meson ninja-build autoconf automake libtool \
+	zlib-devel alsa-lib-devel pulseaudio-libs-devel pkgconfig bison \
+	yasm file which devtoolset-8-make devtoolset-8-gcc \
+	devtoolset-8-gcc-c++ devtoolset-8-binutils
+
+SHELL [ "scl", "enable", "devtoolset-8", "--", "bash", "-c" ]
+RUN ln -s cmake3 /usr/bin/cmake
 
 ENV MainPath /usr/src
 ENV LibrariesPath ${MainPath}/Libraries
 WORKDIR $LibrariesPath
 
-RUN wget https://bootstrap.pypa.io/get-pip.py
-RUN python3 get-pip.py
-RUN rm get-pip.py
-
 FROM builder AS mozjpeg
-RUN git clone -b v4.0.1-rc2 --depth=1 https://github.com/mozilla/mozjpeg.git
+RUN git clone -b v4.0.2 --depth=1 https://github.com/mozilla/mozjpeg.git
 
 WORKDIR mozjpeg
 RUN cmake -B build . \
@@ -220,4 +211,7 @@ WORKDIR ..
 COPY ./ ${MainPath}/tgcalls
 WORKDIR ${MainPath}/tgcalls
 
-CMD pip3 wheel . --no-deps -w ../dist/ --use-feature=in-tree-build
+COPY ./build/manylinux/dev/entrypoint.sh /entrypoint.sh
+
+RUN ["chmod", "+x", "/entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]

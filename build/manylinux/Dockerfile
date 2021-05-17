@@ -1,10 +1,7 @@
 ARG MANYLINUX_PLATFORM
 FROM quay.io/pypa/$MANYLINUX_PLATFORM AS builder
 
-ENV MANYLINUX_PLATFORM $MANYLINUX_PLATFORM
 ENV PKG_CONFIG_PATH /usr/local/lib64/pkgconfig:/usr/local/lib/pkgconfig:/usr/local/share/pkgconfig
-ENV GIT https://github.com
-ENV OPENSSL_VER 1_1_1
 ENV OPENSSL_PREFIX /usr/local/desktop-app/openssl-1.1.1
 
 RUN yum -y install epel-release
@@ -21,7 +18,7 @@ ENV LibrariesPath /usr/src/Libraries
 WORKDIR $LibrariesPath
 
 FROM builder AS mozjpeg
-RUN git clone -b v4.0.2 --depth=1 $GIT/mozilla/mozjpeg.git
+RUN git clone -b v4.0.2 --depth=1 https://github.com/mozilla/mozjpeg.git
 
 WORKDIR mozjpeg
 RUN cmake3 -B build . \
@@ -39,7 +36,7 @@ WORKDIR ..
 RUN rm -rf mozjpeg
 
 FROM builder AS opus
-RUN git clone -b v1.3 --depth=1 $GIT/xiph/opus.git
+RUN git clone -b v1.3 --depth=1 https://github.com/xiph/opus.git
 
 WORKDIR opus
 RUN ./autogen.sh
@@ -51,9 +48,9 @@ WORKDIR ..
 RUN rm -rf opus
 
 FROM builder AS openssl
-ENV opensslDir openssl_${OPENSSL_VER}
-RUN git clone -b OpenSSL_${OPENSSL_VER}-stable --depth=1 \
-	$GIT/openssl/openssl.git $opensslDir
+ENV opensslDir openssl_1_1_1
+RUN git clone -b OpenSSL_1_1_1-stable --depth=1 \
+	https://github.com/openssl/openssl.git $opensslDir
 
 WORKDIR ${opensslDir}
 RUN ./config \
@@ -70,7 +67,7 @@ RUN rm -rf $opensslDir
 
 FROM builder AS ffmpeg
 COPY --from=opus ${LibrariesPath}/opus-cache /
-RUN git clone -b release/4.2 --depth=1 $GIT/FFmpeg/FFmpeg.git ffmpeg
+RUN git clone -b release/4.2 --depth=1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
 
 WORKDIR ffmpeg
 RUN ./configure \
@@ -80,7 +77,6 @@ RUN ./configure \
 	--disable-network \
 	--disable-autodetect \
 	--disable-everything \
-	--disable-alsa \
 	--disable-asm \
 	--disable-iconv \
 	--disable-shared \

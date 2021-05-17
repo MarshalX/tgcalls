@@ -9,6 +9,7 @@ PRIVATE
     __Userspace__
     SCTP_SIMPLE_ALLOCATOR
     SCTP_PROCESS_LEVEL_LOCKS
+    HAVE_NETINET_IN_H
 )
 
 if (WIN32)
@@ -20,10 +21,15 @@ elseif (APPLE)
     target_compile_definitions(libusrsctp
     PRIVATE
         __Userspace_os_Darwin
+        _APPLE_USE_RFC_2292
+        HAVE_SA_LEN
+        HAVE_SCONN_LEN
     )
     target_compile_options(libusrsctp
     PRIVATE
         -U__APPLE__
+        -UINET
+        -UINET6
     )
 else()
     target_compile_definitions(libusrsctp

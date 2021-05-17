@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - dev
     paths:
       - '.github/workflows/build_and_publish_macos_wheels_for_many_python_versions.yaml'
       - 'tgcalls/third_party/webrtc/**'
@@ -29,7 +30,7 @@ jobs:
       BUILD_WHEELS: "true"
       UPLOAD_WHEELS: "true"
       GLOBAL_CACHE_KEY: "1"
-      WEBRTC_CACHE_KEY: "1"
+      WEBRTC_CACHE_KEY: "2"
 
     steps:
       - name: Get repository name.
@@ -75,7 +76,7 @@ jobs:
         run: |
           cd $LibrariesPath
 
-          git clone -b v4.0.1-rc2 https://github.com/mozilla/mozjpeg.git
+          git clone -b v4.0.2 https://github.com/mozilla/mozjpeg.git
           cd mozjpeg
           cmake -B build . \
               -DCMAKE_BUILD_TYPE=Release \
@@ -344,6 +345,7 @@ jobs:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
           CIBW_BUILD: cp3*-*
           CIBW_ENVIRONMENT: "ROOT_PATH=$(pwd)"
+          CIBW_TEST_COMMAND: python -c "import tgcalls; tgcalls.ping()"
         run: |
           pip install cibuildwheel
           cibuildwheel --output-dir dist tgcalls
@@ -355,12 +357,19 @@ jobs:
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
           CIBW_ENVIRONMENT: "ROOT_PATH=$(pwd)"
+          CIBW_TEST_COMMAND: python -c "import tgcalls; tgcalls.ping()"
         run: |
           pip install cibuildwheel
           cibuildwheel --output-dir dist tgcalls
 
+      - name: Upload artifacts.
+        uses: actions/upload-artifact@v2
+        with:
+          name: Wheels for macOS
+          path: dist/
+
       - name: Upload wheels to PyPi.
-        if: env.UPLOAD_WHEELS == 'true'
+        if: env.UPLOAD_WHEELS == 'true' && github.ref == 'refs/heads/main'
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}

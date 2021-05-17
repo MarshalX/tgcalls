@@ -331,7 +331,7 @@ public:
         frame.ntp_time_ms = 0;
         _onAudioFrame(_channel_id.actualSsrc, frame);
       }
-      if (audio.channels == 1) {
+      if (_update && audio.channels == 1) {
             const int16_t *samples = (const int16_t *)audio.data;
             int numberOfSamplesInFrame = (int)audio.samples_per_channel;
 
@@ -559,9 +559,7 @@ public:
         outgoingAudioDescription.reset();
         incomingAudioDescription.reset();
 
-        std::unique_ptr<AudioSinkImpl> audioLevelSink(new AudioSinkImpl([onAudioLevelUpdated = std::move(onAudioLevelUpdated)](AudioSinkImpl::Update update) {
-            onAudioLevelUpdated(update);
-        }, _ssrc, std::move(onAudioFrame)));
+        std::unique_ptr<AudioSinkImpl> audioLevelSink(new AudioSinkImpl(onAudioLevelUpdated, _ssrc, std::move(onAudioFrame)));
         _audioChannel->media_channel()->SetRawAudioSink(ssrc.networkSsrc, std::move(audioLevelSink));
 
         _audioChannel->SignalSentPacket().connect(this, &IncomingAudioChannel::OnSentPacket_w);
@@ -797,6 +795,8 @@ public:
     _participantDescriptionsRequired(descriptor.participantDescriptionsRequired),
     _requestBroadcastPart(descriptor.requestBroadcastPart),
     _videoCapture(descriptor.videoCapture),
+    _disableIncomingChannels(descriptor.disableIncomingChannels),
+    _useDummyChannel(descriptor.useDummyChannel),
     _eventLog(std::make_unique<webrtc::RtcEventLogNull>()),
     _taskQueueFactory(webrtc::CreateDefaultTaskQueueFactory()),
 	_createAudioDeviceModule(descriptor.createAudioDeviceModule),
@@ -845,6 +845,7 @@ public:
         webrtc::field_trial::InitFieldTrialsFromString(
             "WebRTC-Audio-Allocation/min:32kbps,max:512kbps/"
             "WebRTC-Audio-OpusMinPacketLossRate/Enabled-1/"
+//            "WebRTC-TaskQueuePacer/Enabled/"
         );
 
         _networkManager.reset(new ThreadLocalObject<GroupNetworkManager>(_threads->getNetworkThread(), [weak, threads = _threads] () mutable {
@@ -897,20 +898,22 @@ public:
         mediaDeps.video_encoder_factory = PlatformInterface::SharedInstance()->makeVideoEncoderFactory();
         mediaDeps.video_decoder_factory = PlatformInterface::SharedInstance()->makeVideoDecoderFactory();
 
-        auto analyzer = new AudioCaptureAnalyzer([weak, threads = _threads](GroupLevelValue const &level) {
-            threads->getMediaThread()->PostTask(RTC_FROM_HERE, [weak, level](){
-                auto strong = weak.lock();
-                if (!strong) {
-                    return;
-                }
-                strong->_myAudioLevel = level;
+        if (_audioLevelsUpdated) {
+            auto analyzer = new AudioCaptureAnalyzer([weak, threads = _threads](GroupLevelValue const &level) {
+                threads->getMediaThread()->PostTask(RTC_FROM_HERE, [weak, level](){
+                    auto strong = weak.lock();
+                    if (!strong) {
+                        return;
+                    }
+                    strong->_myAudioLevel = level;
+                });
             });
-        });
 
-        webrtc::AudioProcessingBuilder builder;
-        builder.SetCaptureAnalyzer(std::unique_ptr<AudioCaptureAnalyzer>(analyzer));
+            webrtc::AudioProcessingBuilder builder;
+            builder.SetCaptureAnalyzer(std::unique_ptr<AudioCaptureAnalyzer>(analyzer));
 
-        mediaDeps.audio_processing = builder.Create();
+            mediaDeps.audio_processing = builder.Create();
+        }
 
         _audioDeviceModule = createAudioDeviceModule();
         if (!_audioDeviceModule) {
@@ -932,6 +935,7 @@ public:
         callConfig.task_queue_factory = _taskQueueFactory.get();
         callConfig.trials = &_fieldTrials;
         callConfig.audio_state = _channelManager->media_engine()->voice().GetAudioState();
+        //_call.reset(webrtc::Call::Create(callConfig, _threads->getSharedModuleThread()));
         _call.reset(webrtc::Call::Create(callConfig));
 
         _uniqueRandomIdGenerator.reset(new rtc::UniqueRandomIdGenerator());
@@ -951,7 +955,9 @@ public:
             _outgoingVideoChannel->UpdateRtpTransport(nullptr);
         }
 
-        beginLevelsTimer(50);
+        if (_audioLevelsUpdated) {
+            beginLevelsTimer(50);
+        }
 
         if (_videoCapture) {
             setVideoCapture(_videoCapture, [](GroupJoinPayload) {}, true);
@@ -959,7 +965,9 @@ public:
 
         adjustBitratePreferences(true);
 
-        addIncomingAudioChannel("_dummy", ChannelId(1), true);
+        if (_useDummyChannel) {
+            addIncomingAudioChannel("_dummy", ChannelId(1), true);
+        }
 
         beginNetworkStatusTimer(0);
     }
@@ -2031,25 +2039,30 @@ public:
 
         const auto weak = std::weak_ptr<GroupInstanceCustomInternal>(shared_from_this());
 
+        std::function<void(AudioSinkImpl::Update)> onAudioSinkUpdate;
+        if (_audioLevelsUpdated) {
+          onAudioSinkUpdate = [weak, ssrc = ssrc, threads = _threads](AudioSinkImpl::Update update) {
+            threads->getMediaThread()->PostTask(RTC_FROM_HERE, [weak, ssrc, update]() {
+              auto strong = weak.lock();
+              if (!strong) {
+                return;
+              }
+              GroupLevelValue mappedUpdate;
+              mappedUpdate.level = update.level;
+              mappedUpdate.voice = update.hasSpeech;
+              strong->_audioLevels[ssrc] = mappedUpdate;
+            });
+          };
+        }
+
         std::unique_ptr<IncomingAudioChannel> channel(new IncomingAudioChannel(
-            _channelManager.get(),
+          _channelManager.get(),
             _call.get(),
             _rtpTransport,
             _uniqueRandomIdGenerator.get(),
             isRawPcm,
             ssrc,
-            [weak, ssrc = ssrc, threads = _threads](AudioSinkImpl::Update update) {
-                threads->getMediaThread()->PostTask(RTC_FROM_HERE, [weak, ssrc, update]() {
-                    auto strong = weak.lock();
-                    if (!strong) {
-                        return;
-                    }
-                    GroupLevelValue mappedUpdate;
-                    mappedUpdate.level = update.level;
-                    mappedUpdate.voice = update.hasSpeech;
-                    strong->_audioLevels[ssrc] = mappedUpdate;
-                });
-            },
+            std::move(onAudioSinkUpdate),
             _onAudioFrame,
             *_threads
         ));
@@ -2181,6 +2194,7 @@ private:
     std::function<std::shared_ptr<BroadcastPartTask>(int64_t, int64_t, std::function<void(BroadcastPart &&)>)> _requestBroadcastPart;
     std::shared_ptr<VideoCaptureInterface> _videoCapture;
     bool _disableIncomingChannels = false;
+    bool _useDummyChannel{true};
 
     int64_t _lastUnknownSsrcsReport = 0;
     std::set<uint32_t> _pendingUnknownSsrcs;
