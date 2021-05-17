@@ -342,7 +342,7 @@ jobs:
       - name: Build wheels for M1.
 #        if: matrix.arch == 'arm64' && env.BUILD_WHEELS == 'true'
         env:
-          CIBW_ARCHS_MACOS: "arm64"
+          CIBW_ARCHS_MACOS: "universal2"
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
           CIBW_BUILD: cp39*
           CIBW_ENVIRONMENT: "ROOT_PATH=$(pwd)"
