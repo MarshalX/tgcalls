@@ -20,6 +20,10 @@ async def main(client):
     group_call = pytgcalls.GroupCallDevice(client, INPUT_DEVICE_NAME, OUTPUT_DEVICE_NAME)
     await group_call.start(CHAT_ID)
 
+    # to get available device names
+    group_call.print_available_playout_devices()
+    group_call.print_available_recording_devices()
+
     await pyrogram.idle()
 
 
