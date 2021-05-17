@@ -4,6 +4,7 @@ on:
     branches:
       - main
       - dev
+      - apple-silicon
     paths:
       - '.github/workflows/build_and_publish_macos_wheels_for_many_python_versions.yaml'
       - 'tgcalls/third_party/webrtc/**'
@@ -339,11 +340,11 @@ jobs:
           ninja
 
       - name: Build wheels for M1.
-        if: matrix.arch == 'arm64' && env.BUILD_WHEELS == 'true'
+#        if: matrix.arch == 'arm64' && env.BUILD_WHEELS == 'true'
         env:
           CIBW_ARCHS_MACOS: "arm64"
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
-          CIBW_BUILD: cp3*-*
+          CIBW_BUILD: cp39*
           CIBW_ENVIRONMENT: "ROOT_PATH=$(pwd)"
           CIBW_TEST_COMMAND: python -c "import tgcalls; tgcalls.ping()"
         run: |
@@ -351,7 +352,7 @@ jobs:
           cibuildwheel --output-dir dist tgcalls
 
       - name: Build wheels.
-        if: matrix.arch == 'x86_64' && env.BUILD_WHEELS == 'true'
+        if: 1 == 2 && matrix.arch == 'x86_64' && env.BUILD_WHEELS == 'true'
         env:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
           CIBW_BUILD: cp3*-*
