@@ -25,7 +25,7 @@ cd patches
 git checkout e052c49
 cd ..
 
-git clone -b v4.0.1-rc2 https://github.com/mozilla/mozjpeg.git
+git clone -b v4.0.2 https://github.com/mozilla/mozjpeg.git
 cd mozjpeg
 cmake -B build . \
     -DCMAKE_BUILD_TYPE=Release \
