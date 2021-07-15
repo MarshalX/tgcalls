@@ -20,7 +20,7 @@
 import asyncio
 import json
 import logging
-from typing import List, Union, Coroutine, Optional
+from typing import Callable, List, Union, Optional
 
 import pyrogram
 from pyrogram import raw
@@ -46,15 +46,14 @@ class GroupCallNativeAction:
 
 
 class GroupCallNativeDispatcherMixin(DispatcherMixin):
-
-    def on_network_status_changed(self, func: Coroutine) -> Coroutine:
+    def on_network_status_changed(self, func: Callable) -> Callable:
         """When a status of network will be changed.
 
         Args:
-            func (`Coroutine`): A functions that accept group_call and is_connected args.
+            func (`Callable`): A functions that accept group_call and is_connected args.
 
         Returns:
-            `Coroutine`: passed to args callback function.
+            `Callable`: passed to args callback function.
         """
 
         return self.add_handler(func, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
@@ -74,18 +73,16 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
     '''How often to send speaking action to chat'''
 
     def __init__(
-            self,
-            client: Union[pyrogram.Client, None],
-            enable_logs_to_console: bool,
-            path_to_log_file,
+        self,
+        client: Union[pyrogram.Client, None],
+        enable_logs_to_console: bool,
+        path_to_log_file,
     ):
         super().__init__(GroupCallNativeAction)
         self.client = client
         '''Client of Pyrogram'''
 
-        self.__native_instance = self.__create_and_setup_native_instance(
-            enable_logs_to_console, path_to_log_file
-        )
+        self.__native_instance = self.__create_and_setup_native_instance(enable_logs_to_console, path_to_log_file)
 
         self.join_as = None
         '''How to present yourself in participants list'''
@@ -136,7 +133,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         native_instance.setupGroupCall(
             self.__emit_join_payload_callback,
             self.__network_state_updated_callback,
-            self.__participant_descriptions_required_callback
+            self.__participant_descriptions_required_callback,
         )
 
         logger.debug('Native instance created.')
@@ -190,10 +187,9 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             return False
 
         try:
-            in_group_call = (await (self.client.send(functions.phone.CheckGroupCall(
-                call=self.group_call,
-                source=int_ssrc(self.my_ssrc)
-            ))))
+            in_group_call = await (
+                self.client.send(functions.phone.CheckGroupCall(call=self.group_call, source=int_ssrc(self.my_ssrc)))
+            )
         except BadRequest as e:
             if e.x != '[400 GROUPCALL_JOIN_MISSING]':
                 raise e
@@ -204,9 +200,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     async def get_group_call_participants(self):
         """Get group call participants of current chat."""
-        return (await (self.client.send(functions.phone.GetGroupCall(
-            call=self.full_chat.call
-        )))).participants
+        return (await (self.client.send(functions.phone.GetGroupCall(call=self.full_chat.call)))).participants
 
     async def leave_current_group_call(self):
         """Leave group call from server side (MTProto part)."""
@@ -215,10 +209,9 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         if not self.full_chat.call or not self.my_ssrc:
             return
 
-        response = await self.client.send(functions.phone.LeaveGroupCall(
-            call=self.full_chat.call,
-            source=int_ssrc(self.my_ssrc)
-        ))
+        response = await self.client.send(
+            functions.phone.LeaveGroupCall(call=self.full_chat.call, source=int_ssrc(self.my_ssrc))
+        )
         await self.client.handle_updates(response)
 
         logger.debug('Completely leave current group call.')
@@ -248,12 +241,14 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             muted (`bool`): Is muted.
         """
 
-        response = await self.client.send(functions.phone.EditGroupCallParticipant(
-            call=self.full_chat.call,
-            participant=peer,
-            muted=muted,
-            volume=max(1, volume * 100) if volume is not None else None
-        ))
+        response = await self.client.send(
+            functions.phone.EditGroupCallParticipant(
+                call=self.full_chat.call,
+                participant=peer,
+                muted=muted,
+                volume=max(1, volume * 100) if volume is not None else None,
+            )
+        )
         await self.client.handle_updates(response)
 
     async def get_group_call(self, group: Union[str, int, InputPeerChannel, InputPeerChat]):
@@ -271,13 +266,13 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.chat_peer = await self.client.resolve_peer(group)
 
         if isinstance(self.chat_peer, InputPeerChannel):
-            self.full_chat = (await (self.client.send(functions.channels.GetFullChannel(
-                channel=self.chat_peer
-            )))).full_chat
+            self.full_chat = (
+                await (self.client.send(functions.channels.GetFullChannel(channel=self.chat_peer)))
+            ).full_chat
         elif isinstance(self.chat_peer, InputPeerChat):
-            self.full_chat = (await (self.client.send(functions.messages.GetFullChat(
-                chat_id=self.chat_peer.chat_id
-            )))).full_chat
+            self.full_chat = (
+                await (self.client.send(functions.messages.GetFullChat(chat_id=self.chat_peer.chat_id)))
+            ).full_chat
 
         if self.full_chat is None:
             raise RuntimeError(f'Can\'t get full chat by {group}')
@@ -322,11 +317,11 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.add_handler(on_disconnect_handler, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
 
     async def start(
-            self,
-            group: Union[str, int, InputPeerChannel, InputPeerChat],
-            join_as: Optional[Union[str, int, InputPeerChannel, InputPeerChat, InputPeerUser]] = None,
-            invite_hash: Optional[str] = None,
-            enable_action=True
+        self,
+        group: Union[str, int, InputPeerChannel, InputPeerChat],
+        join_as: Optional[Union[str, int, InputPeerChannel, InputPeerChat, InputPeerUser]] = None,
+        invite_hash: Optional[str] = None,
+        enable_action=True,
     ):
         """Start voice chat (join and play/record from initial values).
 
@@ -477,13 +472,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.__native_instance.restartAudioOutputDevice()
 
     def __participant_descriptions_required_callback(self, ssrcs_list: List[int]):
-        # TODO optimize
-        # optimization:
-        # - try to find ssrc in current (cached) list of participants
-        # - add description if they exists
-        # - if we cant find ssrc we need to update participants list by mtproto request
-        # current impl. request actual part. list from server each method call
-
         logger.debug('Participant descriptions required..')
 
         def _(future):
@@ -525,10 +513,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
     async def send_speaking_group_call_action(self):
         """Send speaking action to current chat."""
         await self.client.send(
-            raw.functions.messages.SetTyping(
-                peer=self.chat_peer,
-                action=raw.types.SpeakingInGroupCallAction()
-            )
+            raw.functions.messages.SetTyping(peer=self.chat_peer, action=raw.types.SpeakingInGroupCallAction())
         )
 
     def __set_connection_mode(self, mode: tgcalls.GroupConnectionMode, keep_broadcast_if_was_enabled=False):
@@ -576,28 +561,21 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         self.my_ssrc = payload.ssrc
 
-        fingerprints = [{
-            'hash': f.hash,
-            'setup': f.setup,
-            'fingerprint': f.fingerprint
-        } for f in payload.fingerprints]
+        fingerprints = [{'hash': f.hash, 'setup': f.setup, 'fingerprint': f.fingerprint} for f in payload.fingerprints]
 
-        params = {
-            'ufrag': payload.ufrag,
-            'pwd': payload.pwd,
-            'fingerprints': fingerprints,
-            'ssrc': payload.ssrc
-        }
+        params = {'ufrag': payload.ufrag, 'pwd': payload.pwd, 'fingerprints': fingerprints, 'ssrc': payload.ssrc}
 
         async def _():
             try:
-                response = await self.client.send(functions.phone.JoinGroupCall(
-                    call=self.group_call,
-                    join_as=self.join_as,
-                    invite_hash=self.invite_hash,
-                    params=types.DataJSON(data=json.dumps(params)),
-                    muted=True
-                ))
+                response = await self.client.send(
+                    functions.phone.JoinGroupCall(
+                        call=self.group_call,
+                        join_as=self.join_as,
+                        invite_hash=self.invite_hash,
+                        params=types.DataJSON(data=json.dumps(params)),
+                        muted=True,
+                    )
+                )
 
                 await self.client.handle_updates(response)
                 logger.debug(f'Successfully connected to VC with ssrc={self.my_ssrc} as {type(self.join_as).__name__}.')

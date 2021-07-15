@@ -78,7 +78,7 @@ broadcast in voice chats, make and receive private calls.
   — to send and receive data in `bytes` directly from Python.
 
 Note: All audio data is transmitted in PCM 16 bit, 48k. 
-[Example how to convert files using FFmpeg](All audio information is transmitted in psm 16 bit).
+[Example how to convert files using FFmpeg](#audio-file-formats).
 
 ### Requirements
 
@@ -97,6 +97,12 @@ Note: All audio data is transmitted in PCM 16 bit, 48k.
 
 ``` bash
 pip3 install pytgcalls -U
+```
+
+#### Dev version
+
+``` bash
+pip3 install -U git+https://github.com/MarshalX/tgcalls@dev#subdirectory=pytgcalls
 ```
 
 <hr>
@@ -196,7 +202,7 @@ Visit [this page](https://github.com/MarshalX/tgcalls/tree/main/examples) to dis
 ### Audio file formats
 
 RAW files are now used. You will have to convert to this format yourself
-using ffmpeg. This procedure may [become easier in the future](https://github.com/MarshalX/tgcalls/issues/15).
+using ffmpeg. The example how to transcode files from a code is available [here](https://github.com/MarshalX/tgcalls/blob/e0b2d667728cc92cc0da437b9c85bcc909e4ac9c/examples/player_as_smart_plugin.py#L41).
 
 From mp3 to raw (to play in voice chat):
 ```

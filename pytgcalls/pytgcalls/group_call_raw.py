@@ -26,14 +26,13 @@ from pytgcalls import GroupCallNative
 
 
 class GroupCallRaw(GroupCallNative):
-
     def __init__(
-            self,
-            client: Union[pyrogram.Client, None] = None,
-            on_played_data: Callable[['GroupCallRaw', int], bytes] = None,
-            on_recorded_data: Callable[['GroupCallRaw', bytes, int], None] = None,
-            enable_logs_to_console=False,
-            path_to_log_file=None
+        self,
+        client: Union[pyrogram.Client, None] = None,
+        on_played_data: Callable[['GroupCallRaw', int], bytes] = None,
+        on_recorded_data: Callable[['GroupCallRaw', bytes, int], None] = None,
+        enable_logs_to_console=False,
+        path_to_log_file=None,
     ):
         super().__init__(client, enable_logs_to_console, path_to_log_file)
 
