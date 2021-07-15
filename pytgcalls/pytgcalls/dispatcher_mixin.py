@@ -17,6 +17,7 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 from typing import Callable, TYPE_CHECKING
+
 if TYPE_CHECKING:
     from . import GroupCallNative
 
@@ -24,7 +25,6 @@ from .dispatcher import Dispatcher
 
 
 class DispatcherMixin:
-
     def __init__(self, actions):
         self._dispatcher = Dispatcher(actions)
 

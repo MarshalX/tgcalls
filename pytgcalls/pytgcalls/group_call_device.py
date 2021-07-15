@@ -25,14 +25,13 @@ from pytgcalls import GroupCallNative
 
 
 class GroupCallDevice(GroupCallNative):
-
     def __init__(
-            self,
-            client: Union[pyrogram.Client, None] = None,
-            audio_input_device: Optional[str] = None,
-            audio_output_device: Optional[str] = None,
-            enable_logs_to_console=False,
-            path_to_log_file=None
+        self,
+        client: Union[pyrogram.Client, None] = None,
+        audio_input_device: Optional[str] = None,
+        audio_output_device: Optional[str] = None,
+        enable_logs_to_console=False,
+        path_to_log_file=None,
     ):
         super().__init__(client, enable_logs_to_console, path_to_log_file)
 

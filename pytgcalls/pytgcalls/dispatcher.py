@@ -22,6 +22,7 @@ import logging
 from typing import Callable, List
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from . import GroupCallNative
 
@@ -29,7 +30,6 @@ logger = logging.getLogger(__name__)
 
 
 class Dispatcher:
-
     def __init__(self, available_actions: type):
         self.actions = available_actions
         self.__action_to_handlers = self.__build_handler_storage()

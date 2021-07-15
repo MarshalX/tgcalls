@@ -31,7 +31,6 @@ class GroupCallAction(GroupCallNativeAction):
 
 
 class GroupCallDispatcherMixin(GroupCallNativeDispatcherMixin):
-
     def on_playout_ended(self, func: Callable) -> Callable:
         """When a input file is ended.
 
@@ -46,15 +45,14 @@ class GroupCallDispatcherMixin(GroupCallNativeDispatcherMixin):
 
 
 class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
-
     def __init__(
-            self,
-            client: Union[pyrogram.Client, None] = None,
-            input_filename: str = None,
-            output_filename: str = None,
-            play_on_repeat=True,
-            enable_logs_to_console=False,
-            path_to_log_file=None
+        self,
+        client: Union[pyrogram.Client, None] = None,
+        input_filename: str = None,
+        output_filename: str = None,
+        play_on_repeat=True,
+        enable_logs_to_console=False,
+        path_to_log_file=None,
     ):
         super().__init__(client, enable_logs_to_console, path_to_log_file)
         super(GroupCallDispatcherMixin, self).__init__(GroupCallAction)

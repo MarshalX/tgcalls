@@ -28,7 +28,7 @@ from pyrogram import errors
 from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
 
-from pytgcalls import GroupCall, GroupCallAction
+from pytgcalls import GroupCall, GroupCallAction, GroupCallDevice
 import tgcalls
 from helpers import b2i, calc_fingerprint, check_g, generate_visualization, i2b
 
@@ -44,7 +44,6 @@ class DH:
 
 
 class Call:
-
     def __init__(self, client: pyrogram.Client):
         if not client.is_connected:
             raise RuntimeError('Client must be started first')
@@ -160,21 +159,23 @@ class Call:
             self.call_ended()
 
     async def received_call(self):
-        r = await self.client.send(functions.phone.ReceivedCall(
-            peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash)
-        ))
+        r = await self.client.send(
+            functions.phone.ReceivedCall(peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash))
+        )
         print(r)
 
     async def discard_call(self, reason=None):
         if not reason:
             reason = types.PhoneCallDiscardReasonDisconnect()
         try:
-            r = await self.client.send(functions.phone.DiscardCall(
-                peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash),
-                duration=0,  # TODO
-                connection_id=0,
-                reason=reason
-            ))
+            r = await self.client.send(
+                functions.phone.DiscardCall(
+                    peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash),
+                    duration=0,  # TODO
+                    connection_id=0,
+                    reason=reason,
+                )
+            )
             print(self.call_id)
         except (errors.CallAlreadyDeclined, errors.CallAlreadyAccepted) as e:
             pass
@@ -183,11 +184,13 @@ class Call:
 
     def signalling_data_emitted_callback(self, data):
         async def _():
-            await self.client.send(functions.phone.SendSignalingData(
-                # peer=self.call_peer,
-                peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash),
-                data=bytes(data)
-            ))
+            await self.client.send(
+                functions.phone.SendSignalingData(
+                    # peer=self.call_peer,
+                    peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash),
+                    data=bytes(data),
+                )
+            )
 
         asyncio.ensure_future(_(), loop=self.client.loop)
 
@@ -222,12 +225,16 @@ class OutgoingCall(Call):
         self.g_a = pow(self.dhc.g, self.a, self.dhc.p)
         self.g_a_hash = hashlib.sha256(i2b(self.g_a)).digest()
 
-        self.call = (await self.client.send(functions.phone.RequestCall(
-            user_id=self.peer,
-            random_id=randint(0, 0x7fffffff - 1),
-            g_a_hash=self.g_a_hash,
-            protocol=self.get_protocol(),
-        ))).phone_call
+        self.call = (
+            await self.client.send(
+                functions.phone.RequestCall(
+                    user_id=self.peer,
+                    random_id=randint(0, 0x7FFFFFFF - 1),
+                    g_a_hash=self.g_a_hash,
+                    protocol=self.get_protocol(),
+                )
+            )
+        ).phone_call
 
         self.update_state('WAITING')
 
@@ -249,13 +256,17 @@ class OutgoingCall(Call):
         self.auth_key = pow(self.g_b, self.a, self.dhc.p)
         self.key_fingerprint = calc_fingerprint(self.auth_key_bytes)
 
-        self.call = (await self.client.send(functions.phone.ConfirmCall(
-            key_fingerprint=self.key_fingerprint,
-            # peer=self.call_peer,
-            peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash),
-            g_a=i2b(self.g_a),
-            protocol=self.get_protocol(),
-        ))).phone_call
+        self.call = (
+            await self.client.send(
+                functions.phone.ConfirmCall(
+                    key_fingerprint=self.key_fingerprint,
+                    # peer=self.call_peer,
+                    peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash),
+                    g_a=i2b(self.g_a),
+                    protocol=self.get_protocol(),
+                )
+            )
+        ).phone_call
 
         await self._initiate_encrypted_call()
 
@@ -299,11 +310,15 @@ class IncomingCall(Call):
         self.g_a_hash = self.call.g_a_hash
 
         try:
-            self.call = (await self.client.send(functions.phone.AcceptCall(
-                peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash),
-                g_b=i2b(self.g_b),
-                protocol=self.get_protocol()
-            ))).phone_call
+            self.call = (
+                await self.client.send(
+                    functions.phone.AcceptCall(
+                        peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash),
+                        g_b=i2b(self.g_b),
+                        protocol=self.get_protocol(),
+                    )
+                )
+            ).phone_call
         except Exception as e:
             print(e)
 
@@ -369,20 +384,20 @@ class Tgcalls:
         if isinstance(update, types.UpdatePhoneCall):
             call = update.phone_call
             if isinstance(call, types.PhoneCallRequested):
+
                 async def _():
                     voip_call = self.get_incoming_call_class()(call, client=self.client)
                     for handler in self.incoming_call_handlers:
-                        asyncio.iscoroutinefunction(handler) and asyncio.ensure_future(handler(voip_call),
-                                                                                       loop=self.client.loop)
+                        asyncio.iscoroutinefunction(handler) and asyncio.ensure_future(
+                            handler(voip_call), loop=self.client.loop
+                        )
 
                 asyncio.ensure_future(_(), loop=self.client.loop)
         raise pyrogram.ContinuePropagation
 
 
 def rtc_servers(connections):
-    return [tgcalls.RtcServer(
-        c.ip, c.ipv6, c.port, c.username, c.password, c.turn, c.stun
-    ) for c in connections]
+    return [tgcalls.RtcServer(c.ip, c.ipv6, c.port, c.username, c.password, c.turn, c.stun) for c in connections]
 
 
 async def start(client1, client2, make_out, make_inc):
@@ -398,6 +413,7 @@ async def start(client1, client2, make_out, make_inc):
     inc = Tgcalls(client2) if make_inc else None
 
     if inc is not None:
+
         @inc.on_incoming_call
         async def process_inc_call(inc_call: IncomingCall):
             await inc_call.accept()
@@ -410,10 +426,7 @@ async def start(client1, client2, make_out, make_inc):
                 call.native_instance = tgcalls.NativeInstance()
                 call.native_instance.setSignalingDataEmittedCallback(call.signalling_data_emitted_callback)
                 call.native_instance.startCall(
-                    rtc_servers(call.call.connections),
-                    [x for x in call.auth_key_bytes],
-                    call.is_outgoing,
-                    log_path2
+                    rtc_servers(call.call.connections), [x for x in call.auth_key_bytes], call.is_outgoing, log_path2
                 )
 
                 # await asyncio.sleep(10)
@@ -422,6 +435,7 @@ async def start(client1, client2, make_out, make_inc):
                 await call.discard_call()
 
     if out_call is not None:
+
         @out_call.on_init_encrypted_call
         async def process_call(call: Call):
             print('Outgoing call: ', call.auth_key_visualization)
@@ -430,10 +444,7 @@ async def start(client1, client2, make_out, make_inc):
             out_call.native_instance = tgcalls.NativeInstance()
             out_call.native_instance.setSignalingDataEmittedCallback(out_call.signalling_data_emitted_callback)
             out_call.native_instance.startCall(
-                rtc_servers(call.call.connections),
-                [x for x in call.auth_key_bytes],
-                out_call.is_outgoing,
-                log_path1
+                rtc_servers(call.call.connections), [x for x in call.auth_key_bytes], out_call.is_outgoing, log_path1
             )
 
             # await asyncio.sleep(10)
@@ -443,7 +454,8 @@ async def start(client1, client2, make_out, make_inc):
 
 
 import logging
-logging.basicConfig(level=logging.DEBUG)
+
+logging.basicConfig(level=logging.INFO)
 
 for name, logger in logging.root.manager.loggerDict.items():
     if name.startswith('pyrogram'):
@@ -453,6 +465,8 @@ for name, logger in logging.root.manager.loggerDict.items():
 async def network_status_changed_handler(group_call: GroupCall, is_connected: bool):
     if is_connected:
         print('Connected')
+
+        # group_call.audio_input_device = 'default'
 
 
 async def main(client1, client2, make_out, make_inc):
@@ -465,32 +479,26 @@ async def main(client1, client2, make_out, make_inc):
     # @client2.on_message(filters.text & filters.outgoing & ~filters.edited & filters.command('test', prefixes='!'))
     # async def test(client, message):
     group_call = GroupCall(client2, 'input.raw', enable_logs_to_console=False)
+    # group_call = GroupCallDevice(client2, audio_output_device='MacBook Air Speakers', enable_logs_to_console=False)
+    # group_call = GroupCallDevice(client2, audio_output_device='External Headphones', enable_logs_to_console=False)
+    await group_call.start('@ilya_marshal')
     # await group_call.start('@MarshalR', '@MarshalR')
-    await group_call.start('@MarshalR', '@MarshalR')
+    # group_call.print_available_playout_devices()
+    # group_call.print_available_recording_devices()
+
+    await asyncio.sleep(5)
+
+    # group_call.audio_input_device = 'default1'
+    # group_call.audio_output_device = 'External Headphones'
+    # group_call.audio_output_device = 'default'
     # await group_call.start('@MarshalR', '@ilya_marshal')
     # await group_call.start('@MarshalR')
 
-    group_call.add_handler(
-        network_status_changed_handler,
-        GroupCallAction.NETWORK_STATUS_CHANGED
-    )
+    group_call.add_handler(network_status_changed_handler, GroupCallAction.NETWORK_STATUS_CHANGED)
 
     @group_call.on_playout_ended
     async def playout_ended_handler(group_call, filename):
         print(f'{filename} is ended')
-
-    await asyncio.sleep(5)
-    await group_call.set_my_volume(200)
-    # group_call.pause_playout()
-    # await asyncio.sleep(5)
-    # group_call.resume_playout()
-    # await asyncio.sleep(5)
-    # group_call.input_filename = 'input.raw'
-    # await asyncio.sleep(5)
-    # group_call.stop_playout()
-    # group_call.restart_playout()
-    # await asyncio.sleep(5)
-    # await group_call.stop()
 
     # group_call.native_instance.setAudioInputDevice('VB-Cable')
     # group_call.native_instance.setAudioOutputDevice('default (Built-in Output)')
@@ -503,16 +511,15 @@ async def main(client1, client2, make_out, make_inc):
 if __name__ == '__main__':
     tgcalls.ping()
 
-    c1 = pyrogram.Client(
-        os.environ.get('SESSION_NAME'),
-        api_hash=os.environ.get('API_HASH'),
-        api_id=os.environ.get('API_ID')
-    )
+    # c1 = pyrogram.Client(
+    #     os.environ.get('SESSION_NAME'),
+    #     api_hash=os.environ.get('API_HASH'),
+    #     api_id=os.environ.get('API_ID')
+    # )
 
-    c2 = pyrogram.Client(
-        os.environ.get('SESSION_NAME2'),
-        api_hash=os.environ.get('API_HASH'),
-        api_id=os.environ.get('API_ID')
+    c2 = None
+    c1 = pyrogram.Client(
+        os.environ.get('SESSION_NAME2'), api_hash=os.environ.get('API_HASH'), api_id=os.environ.get('API_ID')
     )
 
     make_out = False
