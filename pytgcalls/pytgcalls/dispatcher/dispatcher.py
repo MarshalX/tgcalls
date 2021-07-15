@@ -1,5 +1,5 @@
-#  tgcalls - Python binding for tgcalls (c++ lib by Telegram)
-#  pytgcalls - Library connecting python binding for tgcalls and Pyrogram
+#  tgcalls - a Python binding for C++ library by Telegram
+#  pytgcalls - a library connecting the Python binding with MTProto
 #  Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>
 #
 #  This file is part of tgcalls and pytgcalls.
@@ -84,4 +84,4 @@ class Dispatcher:
 
         for handler in self.get_handlers(action):
             logger.debug(f'Trigger {handler.__name__}')
-            asyncio.ensure_future(handler(instance, *args, **kwargs), loop=instance.client.loop)
+            asyncio.ensure_future(handler(instance, *args, **kwargs), loop=instance.mtproto_bridge.get_event_loop())

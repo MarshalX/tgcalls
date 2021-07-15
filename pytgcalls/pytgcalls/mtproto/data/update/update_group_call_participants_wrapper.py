@@ -17,18 +17,14 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-from pytgcalls.group_call_factory import GroupCallFactory
-from pytgcalls.implementation.group_call_file import GroupCallFileAction
-from pytgcalls.implementation.group_call_native import GroupCallNativeAction
+from typing import List, TYPE_CHECKING
 
-__all__ = ['GroupCallFactory', 'GroupCallFileAction', 'GroupCallNativeAction']
-__version__ = '0.0.23dev'
-__pdoc__ = {
-    'Action': False,
-    'Dispatcher': False,
-    'DispatcherMixin': False,
-    'GroupCallDispatcherMixin': False,
-    'GroupCallNativeAction': False,
-    'GroupCallNativeDispatcherMixin': False,
-    'GroupCallNative': False,
-}
+from pytgcalls.mtproto.data import WrapperBase
+
+if TYPE_CHECKING:
+    from pytgcalls.mtproto.data import ParticipantWrapper
+
+
+class UpdateGroupCallParticipantsWrapper(WrapperBase):
+    def __init__(self, participants: List['ParticipantWrapper']):
+        self.participants = participants

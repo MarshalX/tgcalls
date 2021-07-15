@@ -17,18 +17,17 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-from pytgcalls.group_call_factory import GroupCallFactory
-from pytgcalls.implementation.group_call_file import GroupCallFileAction
-from pytgcalls.implementation.group_call_native import GroupCallNativeAction
+import tgcalls
 
-__all__ = ['GroupCallFactory', 'GroupCallFileAction', 'GroupCallNativeAction']
-__version__ = '0.0.23dev'
-__pdoc__ = {
-    'Action': False,
-    'Dispatcher': False,
-    'DispatcherMixin': False,
-    'GroupCallDispatcherMixin': False,
-    'GroupCallNativeAction': False,
-    'GroupCallNativeDispatcherMixin': False,
-    'GroupCallNative': False,
-}
+
+uint_ssrc = lambda ssrc: ssrc if ssrc >= 0 else ssrc + 2 ** 32
+int_ssrc = lambda ssrc: ssrc if ssrc < 2 ** 31 else ssrc - 2 ** 32
+
+
+def parse_call_participant(participant_data):
+    native_participant = tgcalls.GroupParticipantDescription()
+
+    native_participant.audioSsrc = uint_ssrc(participant_data.source)
+    native_participant.isRemoved = participant_data.left
+
+    return native_participant

@@ -17,18 +17,12 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-from pytgcalls.group_call_factory import GroupCallFactory
-from pytgcalls.implementation.group_call_file import GroupCallFileAction
-from pytgcalls.implementation.group_call_native import GroupCallNativeAction
+from pytgcalls.dispatcher.action import Action
+from pytgcalls.dispatcher.dispatcher import Dispatcher
+from pytgcalls.dispatcher.dispatcher_mixin import DispatcherMixin
 
-__all__ = ['GroupCallFactory', 'GroupCallFileAction', 'GroupCallNativeAction']
-__version__ = '0.0.23dev'
-__pdoc__ = {
-    'Action': False,
-    'Dispatcher': False,
-    'DispatcherMixin': False,
-    'GroupCallDispatcherMixin': False,
-    'GroupCallNativeAction': False,
-    'GroupCallNativeDispatcherMixin': False,
-    'GroupCallNative': False,
-}
+__all__ = [
+    'Action',
+    'Dispatcher',
+    'DispatcherMixin',
+]

@@ -17,18 +17,12 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-from pytgcalls.group_call_factory import GroupCallFactory
-from pytgcalls.implementation.group_call_file import GroupCallFileAction
-from pytgcalls.implementation.group_call_native import GroupCallNativeAction
+from pytgcalls.mtproto.base_bridge import MTProtoBridgeBase
+from pytgcalls.mtproto.pyrogram_bridge import PyrogramBridge
+from pytgcalls.mtproto.telethon_bridge import TelethonBridge
 
-__all__ = ['GroupCallFactory', 'GroupCallFileAction', 'GroupCallNativeAction']
-__version__ = '0.0.23dev'
-__pdoc__ = {
-    'Action': False,
-    'Dispatcher': False,
-    'DispatcherMixin': False,
-    'GroupCallDispatcherMixin': False,
-    'GroupCallNativeAction': False,
-    'GroupCallNativeDispatcherMixin': False,
-    'GroupCallNative': False,
-}
+__all__ = [
+    'MTProtoBridgeBase',
+    'PyrogramBridge',
+    'TelethonBridge',
+]
