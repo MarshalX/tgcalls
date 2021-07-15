@@ -189,7 +189,7 @@ class PyrogramBridge(MTProtoBridgeBase):
                     join_as=self.join_as,
                     invite_hash=invite_hash,
                     params=types.DataJSON(data=params),
-                    muted=True,
+                    muted=muted,
                 )
             )
 
