@@ -64,14 +64,13 @@ from pytgcalls import GroupCallNative
 
 
 class GroupCallRaw(GroupCallNative):
-
     def __init__(
-            self,
-            client: Union[pyrogram.Client, None] = None,
-            on_played_data: Callable[[&#39;GroupCallRaw&#39;, int], bytes] = None,
-            on_recorded_data: Callable[[&#39;GroupCallRaw&#39;, bytes, int], None] = None,
-            enable_logs_to_console=False,
-            path_to_log_file=None
+        self,
+        client: Union[pyrogram.Client, None] = None,
+        on_played_data: Callable[[&#39;GroupCallRaw&#39;, int], bytes] = None,
+        on_recorded_data: Callable[[&#39;GroupCallRaw&#39;, bytes, int], None] = None,
+        enable_logs_to_console=False,
+        path_to_log_file=None,
     ):
         super().__init__(client, enable_logs_to_console, path_to_log_file)
 
@@ -156,14 +155,13 @@ class GroupCallRaw(GroupCallNative):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class GroupCallRaw(GroupCallNative):
-
     def __init__(
-            self,
-            client: Union[pyrogram.Client, None] = None,
-            on_played_data: Callable[[&#39;GroupCallRaw&#39;, int], bytes] = None,
-            on_recorded_data: Callable[[&#39;GroupCallRaw&#39;, bytes, int], None] = None,
-            enable_logs_to_console=False,
-            path_to_log_file=None
+        self,
+        client: Union[pyrogram.Client, None] = None,
+        on_played_data: Callable[[&#39;GroupCallRaw&#39;, int], bytes] = None,
+        on_recorded_data: Callable[[&#39;GroupCallRaw&#39;, bytes, int], None] = None,
+        enable_logs_to_console=False,
+        path_to_log_file=None,
     ):
         super().__init__(client, enable_logs_to_console, path_to_log_file)
 
@@ -330,7 +328,7 @@ class GroupCallRaw(GroupCallNative):
 <h3>Methods</h3>
 <dl>
 <dt id="pytgcalls.group_call_raw.GroupCallRaw.add_handler"><code class="name flex">
-<span>def <span class="ident">add_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> collections.abc.Coroutine</span>
+<span>def <span class="ident">add_handler</span></span>(<span>self, callback: Callable, action: str) ‑> Callable</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -400,7 +398,7 @@ class GroupCallRaw(GroupCallNative):
 <div class="desc inherited"><p>Leave group call from server side (MTProto part).</p></div>
 </dd>
 <dt id="pytgcalls.group_call_raw.GroupCallRaw.on_network_status_changed"><code class="name flex">
-<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: Coroutine) ‑> Coroutine</span>
+<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: Callable) ‑> Callable</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -468,7 +466,7 @@ class GroupCallRaw(GroupCallNative):
 <div class="desc inherited"><p>Connect to voice chat using the same native instance.</p></div>
 </dd>
 <dt id="pytgcalls.group_call_raw.GroupCallRaw.remove_handler"><code class="name flex">
-<span>def <span class="ident">remove_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> bool</span>
+<span>def <span class="ident">remove_handler</span></span>(<span>self, callback: Callable, action: str) ‑> bool</span>
 </code></dt>
 <dd>
 <p class="inheritance">

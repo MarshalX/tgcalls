@@ -54,9 +54,8 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 #
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see &lt;http://www.gnu.org/licenses/&gt;.
-from collections import Coroutine
+from typing import Callable, TYPE_CHECKING
 
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from . import GroupCallNative
 
@@ -64,28 +63,27 @@ from .dispatcher import Dispatcher
 
 
 class DispatcherMixin:
-
     def __init__(self, actions):
         self._dispatcher = Dispatcher(actions)
 
-    def add_handler(self, callback: Coroutine, action: str) -&gt; Coroutine:
+    def add_handler(self, callback: Callable, action: str) -&gt; Callable:
         &#34;&#34;&#34;Register new handler.
 
         Args:
-            callback (`Coroutine`): Callback function.
+            callback (`Callable`): Callback function.
             action (`str`): Action.
 
         Returns:
-            `Coroutine`: original callback.
+            `Callable`: original callback.
         &#34;&#34;&#34;
 
         return self._dispatcher.add_handler(callback, action)
 
-    def remove_handler(self, callback: Coroutine, action: str) -&gt; bool:
+    def remove_handler(self, callback: Callable, action: str) -&gt; bool:
         &#34;&#34;&#34;Unregister the handler.
 
         Args:
-            callback (`Coroutine`): Callback function.
+            callback (`Callable`): Callback function.
             action (`str`): Action.
 
         Returns:
@@ -127,28 +125,27 @@ class DispatcherMixin:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class DispatcherMixin:
-
     def __init__(self, actions):
         self._dispatcher = Dispatcher(actions)
 
-    def add_handler(self, callback: Coroutine, action: str) -&gt; Coroutine:
+    def add_handler(self, callback: Callable, action: str) -&gt; Callable:
         &#34;&#34;&#34;Register new handler.
 
         Args:
-            callback (`Coroutine`): Callback function.
+            callback (`Callable`): Callback function.
             action (`str`): Action.
 
         Returns:
-            `Coroutine`: original callback.
+            `Callable`: original callback.
         &#34;&#34;&#34;
 
         return self._dispatcher.add_handler(callback, action)
 
-    def remove_handler(self, callback: Coroutine, action: str) -&gt; bool:
+    def remove_handler(self, callback: Callable, action: str) -&gt; bool:
         &#34;&#34;&#34;Unregister the handler.
 
         Args:
-            callback (`Coroutine`): Callback function.
+            callback (`Callable`): Callback function.
             action (`str`): Action.
 
         Returns:
@@ -176,40 +173,40 @@ class DispatcherMixin:
 <h3>Methods</h3>
 <dl>
 <dt id="pytgcalls.dispatcher_mixin.DispatcherMixin.add_handler"><code class="name flex">
-<span>def <span class="ident">add_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> collections.abc.Coroutine</span>
+<span>def <span class="ident">add_handler</span></span>(<span>self, callback: Callable, action: str) ‑> Callable</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Register new handler.</p>
 <h2 id="args">Args</h2>
-<p>callback (<code>Coroutine</code>): Callback function.
+<p>callback (<code>Callable</code>): Callback function.
 action (<code>str</code>): Action.</p>
 <h2 id="returns">Returns</h2>
-<p><code>Coroutine</code>: original callback.</p></div>
+<p><code>Callable</code>: original callback.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def add_handler(self, callback: Coroutine, action: str) -&gt; Coroutine:
+<pre><code class="python">def add_handler(self, callback: Callable, action: str) -&gt; Callable:
     &#34;&#34;&#34;Register new handler.
 
     Args:
-        callback (`Coroutine`): Callback function.
+        callback (`Callable`): Callback function.
         action (`str`): Action.
 
     Returns:
-        `Coroutine`: original callback.
+        `Callable`: original callback.
     &#34;&#34;&#34;
 
     return self._dispatcher.add_handler(callback, action)</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.dispatcher_mixin.DispatcherMixin.remove_handler"><code class="name flex">
-<span>def <span class="ident">remove_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> bool</span>
+<span>def <span class="ident">remove_handler</span></span>(<span>self, callback: Callable, action: str) ‑> bool</span>
 </code></dt>
 <dd>
 <div class="desc"><p>Unregister the handler.</p>
 <h2 id="args">Args</h2>
-<p>callback (<code>Coroutine</code>): Callback function.
+<p>callback (<code>Callable</code>): Callback function.
 action (<code>str</code>): Action.</p>
 <h2 id="returns">Returns</h2>
 <p><code>bool</code>: Return <code>True</code> if success.</p></div>
@@ -217,11 +214,11 @@ action (<code>str</code>): Action.</p>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def remove_handler(self, callback: Coroutine, action: str) -&gt; bool:
+<pre><code class="python">def remove_handler(self, callback: Callable, action: str) -&gt; bool:
     &#34;&#34;&#34;Unregister the handler.
 
     Args:
-        callback (`Coroutine`): Callback function.
+        callback (`Callable`): Callback function.
         action (`str`): Action.
 
     Returns:

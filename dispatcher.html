@@ -57,10 +57,10 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 
 import asyncio
 import logging
-from collections import Coroutine
-from typing import List
+from typing import Callable, List
 
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from . import GroupCallNative
 
@@ -68,7 +68,6 @@ logger = logging.getLogger(__name__)
 
 
 class Dispatcher:
-
     def __init__(self, available_actions: type):
         self.actions = available_actions
         self.__action_to_handlers = self.__build_handler_storage()
@@ -77,7 +76,7 @@ class Dispatcher:
         logger.debug(&#39;Build storage of handlers for dispatcher.&#39;)
         return {action: [] for action in dir(self.actions) if not action.startswith(&#39;_&#39;)}
 
-    def add_handler(self, callback: Coroutine, action: str) -&gt; Coroutine:
+    def add_handler(self, callback: Callable, action: str) -&gt; Callable:
         logger.debug(f&#39;Add handler to {action} action..&#39;)
         if not asyncio.iscoroutinefunction(callback):
             raise RuntimeError(&#39;Sync callback does not supported&#39;)
@@ -95,7 +94,7 @@ class Dispatcher:
         logger.debug(&#39;Handler added.&#39;)
         return callback
 
-    def remove_handler(self, callback: Coroutine, action: str) -&gt; bool:
+    def remove_handler(self, callback: Callable, action: str) -&gt; bool:
         logger.debug(f&#39;Remove handler of {action} action..&#39;)
         try:
             handlers = self.__action_to_handlers[action]
@@ -111,7 +110,7 @@ class Dispatcher:
     def remove_all(self):
         self.__action_to_handlers = self.__build_handler_storage()
 
-    def get_handlers(self, action: str) -&gt; List[Coroutine]:
+    def get_handlers(self, action: str) -&gt; List[Callable]:
         try:
             logger.debug(f&#39;Get handlers of {action}&#39;)
             return self.__action_to_handlers[action]
@@ -146,7 +145,6 @@ class Dispatcher:
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">class Dispatcher:
-
     def __init__(self, available_actions: type):
         self.actions = available_actions
         self.__action_to_handlers = self.__build_handler_storage()
@@ -155,7 +153,7 @@ class Dispatcher:
         logger.debug(&#39;Build storage of handlers for dispatcher.&#39;)
         return {action: [] for action in dir(self.actions) if not action.startswith(&#39;_&#39;)}
 
-    def add_handler(self, callback: Coroutine, action: str) -&gt; Coroutine:
+    def add_handler(self, callback: Callable, action: str) -&gt; Callable:
         logger.debug(f&#39;Add handler to {action} action..&#39;)
         if not asyncio.iscoroutinefunction(callback):
             raise RuntimeError(&#39;Sync callback does not supported&#39;)
@@ -173,7 +171,7 @@ class Dispatcher:
         logger.debug(&#39;Handler added.&#39;)
         return callback
 
-    def remove_handler(self, callback: Coroutine, action: str) -&gt; bool:
+    def remove_handler(self, callback: Callable, action: str) -&gt; bool:
         logger.debug(f&#39;Remove handler of {action} action..&#39;)
         try:
             handlers = self.__action_to_handlers[action]
@@ -189,7 +187,7 @@ class Dispatcher:
     def remove_all(self):
         self.__action_to_handlers = self.__build_handler_storage()
 
-    def get_handlers(self, action: str) -&gt; List[Coroutine]:
+    def get_handlers(self, action: str) -&gt; List[Callable]:
         try:
             logger.debug(f&#39;Get handlers of {action}&#39;)
             return self.__action_to_handlers[action]
@@ -206,7 +204,7 @@ class Dispatcher:
 <h3>Methods</h3>
 <dl>
 <dt id="pytgcalls.dispatcher.Dispatcher.add_handler"><code class="name flex">
-<span>def <span class="ident">add_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> collections.abc.Coroutine</span>
+<span>def <span class="ident">add_handler</span></span>(<span>self, callback: Callable, action: str) ‑> Callable</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -214,7 +212,7 @@ class Dispatcher:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def add_handler(self, callback: Coroutine, action: str) -&gt; Coroutine:
+<pre><code class="python">def add_handler(self, callback: Callable, action: str) -&gt; Callable:
     logger.debug(f&#39;Add handler to {action} action..&#39;)
     if not asyncio.iscoroutinefunction(callback):
         raise RuntimeError(&#39;Sync callback does not supported&#39;)
@@ -234,7 +232,7 @@ class Dispatcher:
 </details>
 </dd>
 <dt id="pytgcalls.dispatcher.Dispatcher.get_handlers"><code class="name flex">
-<span>def <span class="ident">get_handlers</span></span>(<span>self, action: str) ‑> List[collections.abc.Coroutine]</span>
+<span>def <span class="ident">get_handlers</span></span>(<span>self, action: str) ‑> List[Callable]</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -242,7 +240,7 @@ class Dispatcher:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def get_handlers(self, action: str) -&gt; List[Coroutine]:
+<pre><code class="python">def get_handlers(self, action: str) -&gt; List[Callable]:
     try:
         logger.debug(f&#39;Get handlers of {action}&#39;)
         return self.__action_to_handlers[action]
@@ -264,7 +262,7 @@ class Dispatcher:
 </details>
 </dd>
 <dt id="pytgcalls.dispatcher.Dispatcher.remove_handler"><code class="name flex">
-<span>def <span class="ident">remove_handler</span></span>(<span>self, callback: collections.abc.Coroutine, action: str) ‑> bool</span>
+<span>def <span class="ident">remove_handler</span></span>(<span>self, callback: Callable, action: str) ‑> bool</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -272,7 +270,7 @@ class Dispatcher:
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def remove_handler(self, callback: Coroutine, action: str) -&gt; bool:
+<pre><code class="python">def remove_handler(self, callback: Callable, action: str) -&gt; bool:
     logger.debug(f&#39;Remove handler of {action} action..&#39;)
     try:
         handlers = self.__action_to_handlers[action]
