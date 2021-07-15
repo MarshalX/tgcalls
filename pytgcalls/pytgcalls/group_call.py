@@ -17,7 +17,7 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Union, Coroutine
+from typing import Callable, Union
 
 import pyrogram
 
@@ -32,14 +32,14 @@ class GroupCallAction(GroupCallNativeAction):
 
 class GroupCallDispatcherMixin(GroupCallNativeDispatcherMixin):
 
-    def on_playout_ended(self, func: Coroutine) -> Coroutine:
+    def on_playout_ended(self, func: Callable) -> Callable:
         """When a input file is ended.
 
         Args:
-            func (`Coroutine`): A functions that accept group_call and filename args.
+            func (`Callable`): A functions that accept group_call and filename args.
 
         Returns:
-            `Coroutine`: passed to args callback function.
+            `Callable`: passed to args callback function.
         """
 
         return self.add_handler(func, GroupCallAction.PLAYOUT_ENDED)

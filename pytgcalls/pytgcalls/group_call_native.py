@@ -20,7 +20,7 @@
 import asyncio
 import json
 import logging
-from typing import List, Union, Coroutine, Optional
+from typing import Callable, List, Union, Optional
 
 import pyrogram
 from pyrogram import raw
@@ -47,14 +47,14 @@ class GroupCallNativeAction:
 
 class GroupCallNativeDispatcherMixin(DispatcherMixin):
 
-    def on_network_status_changed(self, func: Coroutine) -> Coroutine:
+    def on_network_status_changed(self, func: Callable) -> Callable:
         """When a status of network will be changed.
 
         Args:
-            func (`Coroutine`): A functions that accept group_call and is_connected args.
+            func (`Callable`): A functions that accept group_call and is_connected args.
 
         Returns:
-            `Coroutine`: passed to args callback function.
+            `Callable`: passed to args callback function.
         """
 
         return self.add_handler(func, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
@@ -477,13 +477,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.__native_instance.restartAudioOutputDevice()
 
     def __participant_descriptions_required_callback(self, ssrcs_list: List[int]):
-        # TODO optimize
-        # optimization:
-        # - try to find ssrc in current (cached) list of participants
-        # - add description if they exists
-        # - if we cant find ssrc we need to update participants list by mtproto request
-        # current impl. request actual part. list from server each method call
-
         logger.debug('Participant descriptions required..')
 
         def _(future):

@@ -16,9 +16,7 @@
 #
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
-from collections import Coroutine
-
-from typing import TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING
 if TYPE_CHECKING:
     from . import GroupCallNative
 
@@ -30,24 +28,24 @@ class DispatcherMixin:
     def __init__(self, actions):
         self._dispatcher = Dispatcher(actions)
 
-    def add_handler(self, callback: Coroutine, action: str) -> Coroutine:
+    def add_handler(self, callback: Callable, action: str) -> Callable:
         """Register new handler.
 
         Args:
-            callback (`Coroutine`): Callback function.
+            callback (`Callable`): Callback function.
             action (`str`): Action.
 
         Returns:
-            `Coroutine`: original callback.
+            `Callable`: original callback.
         """
 
         return self._dispatcher.add_handler(callback, action)
 
-    def remove_handler(self, callback: Coroutine, action: str) -> bool:
+    def remove_handler(self, callback: Callable, action: str) -> bool:
         """Unregister the handler.
 
         Args:
-            callback (`Coroutine`): Callback function.
+            callback (`Callable`): Callback function.
             action (`str`): Action.
 
         Returns:

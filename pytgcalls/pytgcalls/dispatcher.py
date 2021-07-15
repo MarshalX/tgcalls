@@ -19,8 +19,7 @@
 
 import asyncio
 import logging
-from collections import Coroutine
-from typing import List
+from typing import Callable, List
 
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
@@ -39,7 +38,7 @@ class Dispatcher:
         logger.debug('Build storage of handlers for dispatcher.')
         return {action: [] for action in dir(self.actions) if not action.startswith('_')}
 
-    def add_handler(self, callback: Coroutine, action: str) -> Coroutine:
+    def add_handler(self, callback: Callable, action: str) -> Callable:
         logger.debug(f'Add handler to {action} action..')
         if not asyncio.iscoroutinefunction(callback):
             raise RuntimeError('Sync callback does not supported')
@@ -57,7 +56,7 @@ class Dispatcher:
         logger.debug('Handler added.')
         return callback
 
-    def remove_handler(self, callback: Coroutine, action: str) -> bool:
+    def remove_handler(self, callback: Callable, action: str) -> bool:
         logger.debug(f'Remove handler of {action} action..')
         try:
             handlers = self.__action_to_handlers[action]
@@ -73,7 +72,7 @@ class Dispatcher:
     def remove_all(self):
         self.__action_to_handlers = self.__build_handler_storage()
 
-    def get_handlers(self, action: str) -> List[Coroutine]:
+    def get_handlers(self, action: str) -> List[Callable]:
         try:
             logger.debug(f'Get handlers of {action}')
             return self.__action_to_handlers[action]
