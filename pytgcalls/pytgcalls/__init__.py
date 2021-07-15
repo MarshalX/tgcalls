@@ -38,7 +38,7 @@ __all__ = [
     'GroupCallAction',
     'GroupCallDispatcherMixin',
 ]
-__version__ = '0.0.23dev'
+__version__ = '0.0.24'
 __pdoc__ = {
     'Action': False,
     'Dispatcher': False,
