@@ -102,7 +102,7 @@ pip3 install pytgcalls -U
 #### Dev version
 
 ``` bash
-pip3 install -U git+https://github.com/MarshalX/tgcalls@dev
+pip3 install -U git+https://github.com/MarshalX/tgcalls@dev#subdirectory=pytgcalls
 ```
 
 <hr>
