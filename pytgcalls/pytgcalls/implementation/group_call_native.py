@@ -209,6 +209,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
                 await self.leave_current_group_call()
 
+                # mb need to set group_call to None
+
         self.add_handler(on_disconnect_handler, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
 
     async def start(self, group, join_as=None, invite_hash: Optional[str] = None, enable_action=True):

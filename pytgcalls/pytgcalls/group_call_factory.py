@@ -45,7 +45,7 @@ class GroupCallFactory:
             self.mtproto_bride = PyrogramBridge(client)
         elif mtproto_backend is MTProtoClientType.TELETHON:
             self.mtproto_bride = TelethonBridge(client)
-            raise NotImplementedError('Telethon bridge not ready yet. Soon.')
+            # raise NotImplementedError('Telethon bridge not ready yet. Soon.')
         else:
             raise RuntimeError('Unknown MTProto client type')
 
