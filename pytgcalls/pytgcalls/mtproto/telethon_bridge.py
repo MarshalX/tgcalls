@@ -16,10 +16,47 @@
 #
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
+from asyncio import BaseEventLoop
+from typing import List
 
 from pytgcalls.mtproto import MTProtoBridgeBase
+from pytgcalls.mtproto.data import GroupCallParticipantWrapper
 
 
 # TODO implement
 class TelethonBridge(MTProtoBridgeBase):
-    pass
+    async def check_group_call(self) -> bool:
+        pass
+
+    async def get_group_call_participants(self) -> List['GroupCallParticipantWrapper']:
+        pass
+
+    async def leave_current_group_call(self):
+        pass
+
+    async def edit_group_call_member(self, peer, volume: int = None, muted=False):
+        pass
+
+    async def get_and_set_self_peer(self):
+        pass
+
+    async def get_and_set_group_call(self, group):
+        pass
+
+    def unregister_update_handlers(self):
+        pass
+
+    def register_update_handlers(self):
+        pass
+
+    async def resolve_and_set_join_as(self, join_as):
+        pass
+
+    async def send_speaking_group_call_action(self):
+        pass
+
+    async def join_group_call(self, invite_hash: str, params: dict, muted: bool):
+        pass
+
+    def get_event_loop(self) -> BaseEventLoop:
+        pass
