@@ -22,7 +22,7 @@ from asyncio import BaseEventLoop
 from typing import Callable, List, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from pytgcalls.mtproto.data import ParticipantWrapper
+    from pytgcalls.mtproto.data import GroupCallParticipantWrapper
 
 
 class MTProtoBridgeBase(ABC):
@@ -68,7 +68,7 @@ class MTProtoBridgeBase(ABC):
 
         raise NotImplementedError
 
-    async def get_group_call_participants(self) -> List['ParticipantWrapper']:
+    async def get_group_call_participants(self) -> List['GroupCallParticipantWrapper']:
         """
         call phone.GetGroupCall method, return wrapped participants
         """

@@ -22,9 +22,9 @@ from typing import List, TYPE_CHECKING
 from pytgcalls.mtproto.data import WrapperBase
 
 if TYPE_CHECKING:
-    from pytgcalls.mtproto.data import ParticipantWrapper
+    from pytgcalls.mtproto.data import GroupCallParticipantWrapper
 
 
 class UpdateGroupCallParticipantsWrapper(WrapperBase):
-    def __init__(self, participants: List['ParticipantWrapper']):
+    def __init__(self, participants: List['GroupCallParticipantWrapper']):
         self.participants = participants

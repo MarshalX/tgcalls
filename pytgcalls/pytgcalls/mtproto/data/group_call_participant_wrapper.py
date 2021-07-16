@@ -20,7 +20,7 @@
 from pytgcalls.mtproto.data import WrapperBase
 
 
-class ParticipantWrapper(WrapperBase):
+class GroupCallParticipantWrapper(WrapperBase):
     def __init__(self, source: int, left: bool, peer):
         self.source = source
         self.left = left

@@ -28,7 +28,7 @@ from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
 from pyrogram.raw.types import GroupCallDiscarded as PyrogramGroupCallDiscarded, InputPeerChannel, InputPeerChat
 
-from pytgcalls.mtproto.data import GroupCallDiscardedWrapper, GroupCallWrapper, ParticipantWrapper
+from pytgcalls.mtproto.data import GroupCallDiscardedWrapper, GroupCallWrapper, GroupCallParticipantWrapper
 from pytgcalls.mtproto.data.update import UpdateGroupCallWrapper, UpdateGroupCallParticipantsWrapper
 from pytgcalls.mtproto.exceptions import BadRequest, GroupcallSsrcDuplicateMuch
 from pytgcalls.utils import int_ssrc
@@ -61,7 +61,7 @@ class PyrogramBridge(MTProtoBridgeBase):
         await self._update_to_handler[type(update)](update)
 
     async def _process_group_call_participants_update(self, update):
-        participants = [ParticipantWrapper(p.source, p.left, p.peer) for p in update.participants]
+        participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in update.participants]
         wrapped_update = UpdateGroupCallParticipantsWrapper(participants)
 
         await self.group_call_participants_update_callback(wrapped_update)
@@ -92,11 +92,11 @@ class PyrogramBridge(MTProtoBridgeBase):
 
         return in_group_call
 
-    async def get_group_call_participants(self) -> List['ParticipantWrapper']:
+    async def get_group_call_participants(self) -> List['GroupCallParticipantWrapper']:
         pyrogram_participants = (
             await (self.client.send(functions.phone.GetGroupCall(call=self.full_chat.call)))
         ).participants
-        wrapped_participants = [ParticipantWrapper(p.source, p.left, p.peer) for p in pyrogram_participants]
+        wrapped_participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in pyrogram_participants]
         return wrapped_participants
 
     async def leave_current_group_call(self):
