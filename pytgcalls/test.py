@@ -27,8 +27,9 @@ import pyrogram
 from pyrogram import errors
 from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
+from pyrogram.utils import MAX_CHANNEL_ID
 
-from pytgcalls import GroupCallFactory, GroupCallFileAction
+from pytgcalls import GroupCallDevice, GroupCallFactory, GroupCallFileAction, GroupCall
 import tgcalls
 from helpers import b2i, calc_fingerprint, check_g, generate_visualization, i2b
 
@@ -479,7 +480,12 @@ async def main(client1, client2, make_out, make_inc):
     # file_group_call = group_call_factory.get(GroupCallFactory.GROUP_CALL_TYPE.FILE, input_filename='input.raw')
     # the second way
     file_group_call = group_call_factory.get_file_group_call('input.raw')
-    await file_group_call.start('@ilya_marshal')
+    # await file_group_call.start('@ilya_marshal')
+
+    # backward compatibility test
+    group_call = GroupCall(client2, 'input.raw', enable_logs_to_console=False)
+    # group_call = GroupCallDevice(client2, audio_output_device='MacBook Air Speakers', enable_logs_to_console=False)
+    await group_call.start('@ilya_marshal')
 
     # device_group_call = group_call_factory.get_device_group_call(audio_output_device='External Headphones')
     # audio_output_device='MacBook Air Speakers'
@@ -488,6 +494,15 @@ async def main(client1, client2, make_out, make_inc):
     # await group_call.start('@MarshalR', '@MarshalR')
     # group_call.print_available_playout_devices()
     # group_call.print_available_recording_devices()
+
+    # backward compatibility test
+    @group_call.on_network_status_changed
+    async def on_network_changed(gc: GroupCall, is_connected: bool):
+        chat_id = MAX_CHANNEL_ID - gc.full_chat.id
+        if is_connected:
+            print('Successfully joined!', chat_id)
+        else:
+            print('Disconnected from voice chat..', chat_id)
 
     async def network_status_changed_handler(group_call, is_connected: bool):
         print(f'Is connected: {is_connected}')

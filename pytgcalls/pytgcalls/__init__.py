@@ -16,12 +16,54 @@
 #
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
+import logging
 
 from pytgcalls.group_call_factory import GroupCallFactory
 from pytgcalls.implementation.group_call_file import GroupCallFileAction
 from pytgcalls.implementation.group_call_native import GroupCallNativeAction
 
-__all__ = ['GroupCallFactory', 'GroupCallFileAction', 'GroupCallNativeAction']
+# backward compatibility below. Dont use it in new projects
+
+from pytgcalls.mtproto.pyrogram_bridge import PyrogramBridge
+
+
+logger = logging.getLogger(__name__)
+
+
+def backward_compatibility_helper(group_call_type, client, *args, **kwargs):
+    logger.warning(
+        'You use deprecated import from backward compatibility suite. '
+        'Please update you code. Backward compatibility will be deleted at any time! '
+        'For more info visit https://github.com/MarshalX/tgcalls/discussions/101'
+    )
+
+    clazz = GroupCallFactory.GROUP_CALL_CLASS_TO_TYPE.get(group_call_type)
+    wrapped_client = PyrogramBridge(client)
+
+    return clazz(wrapped_client, *args, **kwargs)
+
+
+def GroupCall(client, *args, **kwargs):
+    return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.FILE, client, *args, **kwargs)
+
+
+def GroupCallDevice(client, *args, **kwargs):
+    return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.DEVICE, client, *args, **kwargs)
+
+
+def GroupCallRaw(client, *args, **kwargs):
+    return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.RAW, client, *args, **kwargs)
+
+
+__all__ = [
+    'GroupCallFactory',
+    'GroupCallFileAction',
+    'GroupCallNativeAction',
+    # below backward compatibility
+    'GroupCall',
+    'GroupCallDevice',
+    'GroupCallRaw',
+]
 __version__ = '0.0.23dev'
 __pdoc__ = {
     'Action': False,

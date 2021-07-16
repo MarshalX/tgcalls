@@ -464,3 +464,33 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
                 await self.reconnect()
 
         asyncio.ensure_future(_(), loop=self.mtproto_bridge.get_event_loop())
+
+    # backward compatibility below
+
+    @property
+    def client(self):
+        return self.mtproto_bridge.client
+
+    @property
+    def full_chat(self):
+        return self.mtproto_bridge.full_chat
+
+    @property
+    def chat_peer(self):
+        return self.mtproto_bridge.chat_peer
+
+    @property
+    def group_call(self):
+        return self.mtproto_bridge.group_call
+
+    @property
+    def my_ssrc(self):
+        return self.mtproto_bridge.my_ssrc
+
+    @property
+    def my_peer(self):
+        return self.mtproto_bridge.my_peer
+
+    @property
+    def join_as(self):
+        return self.mtproto_bridge.join_as

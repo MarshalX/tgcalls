@@ -32,7 +32,7 @@ class GroupCallFactory:
     MTPROTO_CLIENT_TYPE = MTProtoClientType
     GROUP_CALL_TYPE = GroupCallType
 
-    _GROUP_CALL_CLASS_TO_TYPE = {
+    GROUP_CALL_CLASS_TO_TYPE = {
         GROUP_CALL_TYPE.FILE: GroupCallFile,
         GROUP_CALL_TYPE.DEVICE: GroupCallDevice,
         GROUP_CALL_TYPE.RAW: GroupCallRaw,
@@ -53,7 +53,7 @@ class GroupCallFactory:
         self.path_to_log_file = path_to_log_file
 
     def get(self, group_call_type: GroupCallType, **kwargs):
-        return GroupCallFactory._GROUP_CALL_CLASS_TO_TYPE[group_call_type](
+        return GroupCallFactory.GROUP_CALL_CLASS_TO_TYPE[group_call_type](
             mtproto_bridge=self.mtproto_bride,
             enable_logs_to_console=self.enable_logs_to_console,
             path_to_log_file=self.path_to_log_file,
