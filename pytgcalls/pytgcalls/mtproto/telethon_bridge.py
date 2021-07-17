@@ -25,14 +25,14 @@ from telethon.errors import (
     GroupcallSsrcDuplicateMuchError as TelethonGroupcallSsrcDuplicateMuchError,
 )
 from telethon.events import Raw, StopPropagation
-from telethon.tl import functions
+from telethon.tl import functions, TLObject
 from telethon.tl.types import (
     DataJSON,
     GroupCallDiscarded as TelethonGroupCallDiscarded,
     SpeakingInGroupCallAction,
     UpdateGroupCall,
     UpdateGroupCallConnection,
-    UpdateGroupCallParticipants,
+    UpdateGroupCallParticipants, InputPeerChat, InputPeerChannel,
 )
 
 from pytgcalls.mtproto import MTProtoBridgeBase
@@ -137,16 +137,21 @@ class TelethonBridge(MTProtoBridgeBase):
         self.client._handle_update(response)
 
     async def get_and_set_self_peer(self):
-        self.my_peer = await self.client.get_me()
+        self.my_peer = await self.client.get_me(input_peer=True)
 
         return self.my_peer
 
     async def get_and_set_group_call(self, group):
+
         self.chat_peer = group
-        # TODO add if cond
-        self.chat_peer = await self.client.get_input_entity(group)
-        # TODO add more if cond
-        self.full_chat = (await self.client(functions.channels.GetFullChannelRequest(group))).full_chat
+
+        if type(group) not in [InputPeerChannel, InputPeerChat]:
+            self.chat_peer = await self.client.get_input_entity(group)
+
+        if isinstance(self.chat_peer, InputPeerChannel):
+            self.full_chat = (await self.client(functions.channels.GetFullChannelRequest(group))).full_chat
+        elif isinstance(self.chat_peer, InputPeerChat):
+            self.full_chat = (await self.client(functions.messages.GetFullChatRequest(group))).full_chat
 
         if self.full_chat is None:
             raise RuntimeError(f'Can\'t get full chat by {group}')
@@ -162,10 +167,7 @@ class TelethonBridge(MTProtoBridgeBase):
         self.client.add_event_handler(self._process_update, Raw)
 
     async def resolve_and_set_join_as(self, join_as):
-        my_peer = await self.get_and_set_self_peer()
-
-        self.join_as = my_peer
-        # TODO implement more cases
+        self.join_as = join_as
 
     async def send_speaking_group_call_action(self):
         await self.client(functions.messages.SetTypingRequest(peer=self.chat_peer, action=SpeakingInGroupCallAction()))
