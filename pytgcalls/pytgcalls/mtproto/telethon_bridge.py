@@ -167,7 +167,10 @@ class TelethonBridge(MTProtoBridgeBase):
         self.client.add_event_handler(self._process_update, Raw)
 
     async def resolve_and_set_join_as(self, join_as):
-        self.join_as = join_as
+        if self.join_as is None:
+            self.join_as = await self.get_and_set_self_peer()
+        else:
+            self.join_as = join_as
 
     async def send_speaking_group_call_action(self):
         await self.client(functions.messages.SetTypingRequest(peer=self.chat_peer, action=SpeakingInGroupCallAction()))
