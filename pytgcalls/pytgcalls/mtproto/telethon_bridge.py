@@ -167,7 +167,7 @@ class TelethonBridge(MTProtoBridgeBase):
         self.client.add_event_handler(self._process_update, Raw)
 
     async def resolve_and_set_join_as(self, join_as):
-        if self.join_as is None:
+        if join_as is None:
             self.join_as = await self.get_and_set_self_peer()
         else:
             self.join_as = join_as
