@@ -169,7 +169,7 @@ class TelethonBridge(MTProtoBridgeBase):
 
     async def resolve_and_set_join_as(self, join_as):
         if join_as is None:
-            self.join_as = await self.get_and_set_self_peer()
+            self.join_as = self.full_chat.groupcall_default_join_as
         else:
             self.join_as = join_as
 
