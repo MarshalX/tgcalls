@@ -157,7 +157,7 @@ class TelethonBridge(MTProtoBridgeBase):
             raise RuntimeError(f'Can\'t get full chat by {group}')
 
         self.group_call = self.full_chat.call
-        self.join_as = self.full_chat.groupcall_default_join_as
+       
 
         return self.group_call
 
