@@ -25,7 +25,7 @@ from telethon.errors import (
     GroupcallSsrcDuplicateMuchError as TelethonGroupcallSsrcDuplicateMuchError,
 )
 from telethon.events import Raw, StopPropagation
-from telethon.tl import functions, TLObject
+from telethon.tl import functions
 from telethon.tl.types import (
     DataJSON,
     GroupCallDiscarded as TelethonGroupCallDiscarded,
