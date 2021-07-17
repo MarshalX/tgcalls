@@ -32,7 +32,9 @@ from telethon.tl.types import (
     SpeakingInGroupCallAction,
     UpdateGroupCall,
     UpdateGroupCallConnection,
-    UpdateGroupCallParticipants, InputPeerChat, InputPeerChannel,
+    UpdateGroupCallParticipants,
+    InputPeerChat,
+    InputPeerChannel,
 )
 
 from pytgcalls.mtproto import MTProtoBridgeBase
@@ -157,7 +159,6 @@ class TelethonBridge(MTProtoBridgeBase):
             raise RuntimeError(f'Can\'t get full chat by {group}')
 
         self.group_call = self.full_chat.call
-       
 
         return self.group_call
 
