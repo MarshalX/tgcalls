@@ -19,7 +19,7 @@
 
 import importlib
 from importlib.util import find_spec
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 from pytgcalls.group_call_type import GroupCallType
 from pytgcalls.mtproto_client_type import MTProtoClientType
@@ -67,7 +67,7 @@ class GroupCallFactory:
         self.enable_logs_to_console = enable_logs_to_console
         self.path_to_log_file = path_to_log_file
 
-    def get(self, group_call_type: GroupCallType, **kwargs):
+    def get(self, group_call_type: GroupCallType, **kwargs) -> Union[GroupCallFile, GroupCallDevice, GroupCallRaw]:
         return GroupCallFactory.GROUP_CALL_CLASS_TO_TYPE[group_call_type](
             mtproto_bridge=self.mtproto_bride,
             enable_logs_to_console=self.enable_logs_to_console,
@@ -77,7 +77,7 @@ class GroupCallFactory:
 
     def get_file_group_call(
         self, input_filename: Optional[str] = None, output_filename: Optional[str] = None, play_on_repeat=True
-    ):
+    ) -> GroupCallFile:
         return GroupCallFile(
             self.mtproto_bride,
             input_filename,
@@ -89,7 +89,7 @@ class GroupCallFactory:
 
     def get_device_group_call(
         self, audio_input_device: Optional[str] = None, audio_output_device: Optional[str] = None
-    ):
+    ) -> GroupCallDevice:
         return GroupCallDevice(
             self.mtproto_bride,
             audio_input_device,
@@ -102,7 +102,7 @@ class GroupCallFactory:
         self,
         on_played_data: Callable[['GroupCallRaw', int], bytes] = None,
         on_recorded_data: Callable[['GroupCallRaw', bytes, int], None] = None,
-    ):
+    ) -> GroupCallRaw:
         return GroupCallRaw(
             self.mtproto_bride, on_played_data, on_recorded_data, self.enable_logs_to_console, self.path_to_log_file
         )

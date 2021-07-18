@@ -55,16 +55,19 @@ def backward_compatibility_helper(group_call_type, client, *args, **kwargs):
 
 
 def GroupCall(client, *args, **kwargs):
+    """Deprecated method"""
     warnings.warn(_deprecation_warning_text, DeprecationWarning, 2)
     return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.FILE, client, *args, **kwargs)
 
 
 def GroupCallDevice(client, *args, **kwargs):
+    """Deprecated method"""
     warnings.warn(_deprecation_warning_text, DeprecationWarning, 2)
     return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.DEVICE, client, *args, **kwargs)
 
 
 def GroupCallRaw(client, *args, **kwargs):
+    """Deprecated method"""
     warnings.warn(_deprecation_warning_text, DeprecationWarning, 2)
     return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.RAW, client, *args, **kwargs)
 
@@ -80,11 +83,10 @@ __all__ = [
 ]
 __version__ = '1.0.0dev'
 __pdoc__ = {
-    'Action': False,
-    'Dispatcher': False,
-    'DispatcherMixin': False,
-    'GroupCallDispatcherMixin': False,
-    'GroupCallNativeAction': False,
-    'GroupCallNativeDispatcherMixin': False,
-    'GroupCallNative': False,
+    # files
+    'utils': False,
+    'dispatcher': False,
+    # packages
+    'mtproto.data': False,
+    'mtproto.exceptions': False,
 }
