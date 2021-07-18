@@ -65,7 +65,8 @@ from telethon import TelegramClient, events
 from pytgcalls import GroupCallFactory
 
 app = TelegramClient('pytgcalls', api_id, api_hash).start()
-group_call = GroupCallFactory(app, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON).get_file_group_call('input.raw')
+group_call_factory = GroupCallFactory(app, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON)
+group_call = group_call_factory.get_file_group_call('input.raw')
 
 
 @app.on(events.NewMessage(outgoing=True, pattern=r'^/join$'))
