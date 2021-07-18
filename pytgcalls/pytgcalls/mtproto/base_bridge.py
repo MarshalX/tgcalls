@@ -18,7 +18,7 @@
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
 from abc import ABC
-from asyncio import BaseEventLoop
+from asyncio import AbstractEventLoop
 from typing import Callable, List, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -50,6 +50,9 @@ class MTProtoBridgeBase(ABC):
 
         self.join_as = None
         '''How to present yourself in participants list'''
+
+    def reset(self):
+        self.group_call = self.full_chat = self.chat_peer = self.join_as = self.my_peer = self.my_ssrc = None
 
     def register_group_call_native_callback(
         self, group_call_participants_update_callback: Callable, group_call_update_callback: Callable
@@ -138,7 +141,7 @@ class MTProtoBridgeBase(ABC):
         """
         raise NotImplementedError
 
-    def get_event_loop(self) -> BaseEventLoop:
+    def get_event_loop(self) -> AbstractEventLoop:
         """
         return MTProto client loop
         """

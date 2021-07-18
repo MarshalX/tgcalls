@@ -16,7 +16,8 @@
 #
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
-from asyncio import BaseEventLoop
+
+from asyncio import AbstractEventLoop
 from typing import List
 
 from telethon.errors import (
@@ -74,18 +75,16 @@ class TelethonBridge(MTProtoBridgeBase):
         await self.group_call_participants_update_callback(wrapped_update)
 
     async def _process_group_call_update(self, update):
-        if isinstance(update.call, TelethonGroupCallDiscarded):
-            call = GroupCallDiscardedWrapper()  # no info needed
-        else:
-            # TODO need more investigate into new mtproto layer
+        if not isinstance(update.call, TelethonGroupCallDiscarded):
             return
 
+        call = GroupCallDiscardedWrapper()  # no info needed
         wrapped_update = UpdateGroupCallWrapper(update.chat_id, call)
 
         await self.group_call_update_callback(wrapped_update)
 
     async def _process_group_call_connection(self, update):
-        # TODO update to new layer when pyrogram will release new version
+        # TODO update to new layer when pyrogram will release new stable version on pypi
         call = GroupCallWrapper('placeholder', update.params)
         wrapped_update = UpdateGroupCallWrapper('placeholder', call)
 
@@ -117,7 +116,7 @@ class TelethonBridge(MTProtoBridgeBase):
         return wrapped_participants
 
     async def leave_current_group_call(self):
-        if not self.full_chat.call or not self.my_ssrc:
+        if not self.full_chat or not self.full_chat.call or not self.my_ssrc:
             return
 
         response = await self.client(
@@ -144,7 +143,6 @@ class TelethonBridge(MTProtoBridgeBase):
         return self.my_peer
 
     async def get_and_set_group_call(self, group):
-
         self.chat_peer = group
 
         if type(group) not in [InputPeerChannel, InputPeerChat]:
@@ -191,7 +189,7 @@ class TelethonBridge(MTProtoBridgeBase):
                 )
             )
 
-            # it is here cuz we need to associate params to connect with group call
+            # it is here cuz we need to associate params for connection with group call
             for update in response.updates:
                 if isinstance(update, UpdateGroupCallConnection):
                     await self._process_group_call_connection(update)
@@ -200,5 +198,5 @@ class TelethonBridge(MTProtoBridgeBase):
         except TelethonGroupcallSsrcDuplicateMuchError as e:
             raise GroupcallSsrcDuplicateMuch(e)
 
-    def get_event_loop(self) -> BaseEventLoop:
+    def get_event_loop(self) -> AbstractEventLoop:
         return self._loop

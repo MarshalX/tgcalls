@@ -80,6 +80,9 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.is_connected = False
         '''Is connected to voice chat via tgcalls'''
 
+        self.__is_stop_requested = False
+        self.__is_emit_join_payload_called = False
+
     def __create_and_setup_native_instance(self, enable_logs_to_console: bool, path_to_log_file='group_call.log'):
         """Create NativeInstance of tgcalls C++ part.
 
@@ -116,7 +119,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             if participant.left:
                 ssrcs_to_remove.append(ssrc)
             elif participant.peer == self.mtproto_bridge.join_as and ssrc != self.mtproto_bridge.my_ssrc:
-                logger.debug('Reconnect. Not equal ssrc.')
+                logger.debug(f'Not equal ssrc. Expected: {ssrc}. Actual: {self.mtproto_bridge.my_ssrc}')
                 await self.reconnect()
 
         if ssrcs_to_remove:
@@ -143,8 +146,15 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
     async def leave_current_group_call(self):
         """Leave group call from server side (MTProto part)."""
         logger.debug('Try to leave current group call.')
-        await self.mtproto_bridge.leave_current_group_call()
-        logger.debug('Completely leave current group call.')
+        try:
+            await self.mtproto_bridge.leave_current_group_call()
+        except Exception as e:
+            logger.warning(
+                'Can\'t leave from group call in server side. Don\'t worry, server kick your in a few seconds'
+            )
+            logger.debug(e)
+        else:
+            logger.debug('Completely leave current group call.')
 
     async def edit_group_call(self, volume: int = None, muted=False):
         """Edit own settings of group call.
@@ -192,26 +202,23 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     async def stop(self):
         """Properly stop tgcalls, remove MTProto handler, leave from server side."""
-        logger.debug('Stop requested.')
+        if not self.__native_instance.isGroupCallStarted():
+            logger.debug('Group call not started. Nothing to stop.')
+            return
 
-        if not self.is_connected:
-            logger.error('Cant stop during connection.')
+        self.__is_stop_requested = True
+        logger.debug('Stop requested.')
 
         self.unregister_update_handlers()
         self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
 
-        async def on_disconnect_handler(_, is_connected):
-            if not is_connected:
-                self.remove_handler(on_disconnect_handler, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
+        # cuz native instance doesnt block python
+        while self.is_connected:
+            await asyncio.sleep(1)
 
-                self.__native_instance.stopGroupCall()
-                logger.debug('GroupCall properly stop.')
-
-                await self.leave_current_group_call()
-
-                # mb need to set group_call to None
-
-        self.add_handler(on_disconnect_handler, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
+        await self.leave_current_group_call()
+        self.mtproto_bridge.reset()
+        logger.debug('GroupCall properly stop.')
 
     async def start(self, group, join_as=None, invite_hash: Optional[str] = None, enable_action=True):
         """Start voice chat (join and play/record from initial values).
@@ -227,7 +234,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             invite_hash (`str`, optional): Hash from speaker invite link.
             enable_action (`bool`, optional): Is enables sending of speaking action.
         """
-
+        self.__is_stop_requested = False
         self.enable_action = enable_action
 
         group_call = await self.get_group_call(group)
@@ -244,10 +251,10 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         self.re_register_update_handlers()
 
-        # when trying to connect to another chat or with another join_as without calling .stop() before
+        # when trying to connect to another chat or with another join_as
         if self.__native_instance.isGroupCallStarted():
             await self.reconnect()
-        # the first start or start after .stop() with the same NativeInstance
+        # the first start
         else:
             self._setup_and_start_group_call()
 
@@ -256,11 +263,15 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     async def reconnect(self):
         """Connect to voice chat using the same native instance."""
+        logger.debug('Reconnecting..')
 
         self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
         self.__native_instance.emitJoinPayload(self.__emit_join_payload_callback)
 
-        await self.leave_current_group_call()
+        # cuz native instance doesnt block python
+        self.__is_emit_join_payload_called = False
+        while not self.__is_emit_join_payload_called:
+            await asyncio.sleep(1)
 
     def _start_native_group_call(self, *args):
         logger.debug('Start native group call..')
@@ -409,6 +420,11 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     async def __set_join_response_payload(self, params):
         logger.debug('Set join response payload..')
+
+        if self.__is_stop_requested:
+            logger.debug('Setting payload rejected by stop request.')
+            return
+
         params = params['transport']
 
         candidates = []
@@ -435,7 +451,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         participants = [parse_call_participant(p) for p in await self.get_group_call_participants()]
 
-        # TODO video payload
+        # TODO video payload :)
 
         self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeRtc)
         self.__native_instance.setJoinResponsePayload(payload, participants)
@@ -443,10 +459,13 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     def __emit_join_payload_callback(self, payload):
         logger.debug('Emit join payload..')
-        if self.mtproto_bridge.group_call is None:
+
+        if self.__is_stop_requested:
+            logger.debug('Join group call rejected by stop request.')
             return
 
-        self.mtproto_bridge.set_my_ssrc(payload.ssrc)
+        if self.mtproto_bridge.group_call is None:
+            return
 
         fingerprints = [{'hash': f.hash, 'setup': f.setup, 'fingerprint': f.fingerprint} for f in payload.fingerprints]
 
@@ -456,13 +475,17 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         async def _():
             try:
                 await self.mtproto_bridge.join_group_call(self.invite_hash, params_json, muted=True)
+
+                self.mtproto_bridge.set_my_ssrc(payload.ssrc)
+                self.__is_emit_join_payload_called = True
+
                 logger.debug(
                     f'Successfully connected to VC with '
                     f'ssrc={self.mtproto_bridge.my_ssrc} '
                     f'as {type(self.mtproto_bridge.join_as).__name__}.'
                 )
             except GroupcallSsrcDuplicateMuch:
-                logger.debug('Reconnect. Duplicate SSRC')
+                logger.debug('Duplicate SSRC')
                 await self.reconnect()
 
         asyncio.ensure_future(_(), loop=self.mtproto_bridge.get_event_loop())

@@ -17,7 +17,7 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-from asyncio import BaseEventLoop
+from asyncio import AbstractEventLoop
 from typing import List
 
 from pyrogram.errors import (
@@ -51,7 +51,7 @@ class PyrogramBridge(MTProtoBridgeBase):
         self._update_handler = RawUpdateHandler(self._process_update)
 
     async def _process_update(self, _, update, users, chats):
-        if type(update) not in self._update_to_handler.keys():  # TODO or not self.__native_instance:
+        if type(update) not in self._update_to_handler.keys():
             raise ContinuePropagation
 
         if not self.group_call or not update.call or update.call.id != self.group_call.id:
@@ -100,7 +100,7 @@ class PyrogramBridge(MTProtoBridgeBase):
         return wrapped_participants
 
     async def leave_current_group_call(self):
-        if not self.full_chat.call or not self.my_ssrc:
+        if not self.full_chat or not self.full_chat.call or not self.my_ssrc:
             return
 
         response = await self.client.send(
@@ -197,5 +197,5 @@ class PyrogramBridge(MTProtoBridgeBase):
         except PyrogramGroupcallSsrcDuplicateMuch as e:
             raise GroupcallSsrcDuplicateMuch(e.x)
 
-    def get_event_loop(self) -> BaseEventLoop:
+    def get_event_loop(self) -> AbstractEventLoop:
         return self.client.loop
