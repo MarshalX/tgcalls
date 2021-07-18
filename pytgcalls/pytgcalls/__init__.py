@@ -64,7 +64,7 @@ __all__ = [
     'GroupCallDevice',
     'GroupCallRaw',
 ]
-__version__ = '0.0.24'
+__version__ = '1.0.0dev'
 __pdoc__ = {
     'Action': False,
     'Dispatcher': False,
