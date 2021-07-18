@@ -1,5 +1,5 @@
-#  tgcalls - Python binding for tgcalls (c++ lib by Telegram)
-#  pytgcalls - Library connecting python binding for tgcalls and Pyrogram
+#  tgcalls - a Python binding for C++ library by Telegram
+#  pytgcalls - a library connecting the Python binding with MTProto
 #  Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>
 #
 #  This file is part of tgcalls and pytgcalls.
@@ -16,27 +16,53 @@
 #
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
+import logging
 
-from pytgcalls.group_call_native import GroupCallNative, GroupCallNativeAction, GroupCallNativeDispatcherMixin
-from pytgcalls.action import Action
-from pytgcalls.group_call import GroupCall, GroupCallAction, GroupCallDispatcherMixin
-from pytgcalls.group_call_raw import GroupCallRaw
-from pytgcalls.group_call_device import GroupCallDevice
-from pytgcalls.dispatcher import Dispatcher
-from pytgcalls.dispatcher_mixin import DispatcherMixin
+from pytgcalls.group_call_factory import GroupCallFactory
+from pytgcalls.implementation.group_call_file import GroupCallFileAction
+from pytgcalls.implementation.group_call_native import GroupCallNativeAction
+
+# backward compatibility below. Dont use it in new projects
+
+from pytgcalls.mtproto.pyrogram_bridge import PyrogramBridge
+
+
+logger = logging.getLogger(__name__)
+
+
+def backward_compatibility_helper(group_call_type, client, *args, **kwargs):
+    logger.warning(
+        'You use deprecated import from backward compatibility suite. '
+        'Please update you code. Backward compatibility will be deleted at any time! '
+        'For more info visit https://github.com/MarshalX/tgcalls/discussions/101'
+    )
+
+    clazz = GroupCallFactory.GROUP_CALL_CLASS_TO_TYPE.get(group_call_type)
+    wrapped_client = PyrogramBridge(client)
+
+    return clazz(wrapped_client, *args, **kwargs)
+
+
+def GroupCall(client, *args, **kwargs):
+    return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.FILE, client, *args, **kwargs)
+
+
+def GroupCallDevice(client, *args, **kwargs):
+    return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.DEVICE, client, *args, **kwargs)
+
+
+def GroupCallRaw(client, *args, **kwargs):
+    return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.RAW, client, *args, **kwargs)
+
 
 __all__ = [
-    'GroupCallNative',
-    'GroupCall',
-    'GroupCallRaw',
-    'GroupCallDevice',
-    'Dispatcher',
-    'DispatcherMixin',
-    'Action',
+    'GroupCallFactory',
+    'GroupCallFileAction',
     'GroupCallNativeAction',
-    'GroupCallNativeDispatcherMixin',
-    'GroupCallAction',
-    'GroupCallDispatcherMixin',
+    # below backward compatibility
+    'GroupCall',
+    'GroupCallDevice',
+    'GroupCallRaw',
 ]
 __version__ = '0.0.24'
 __pdoc__ = {

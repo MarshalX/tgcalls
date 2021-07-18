@@ -1,5 +1,5 @@
-#  tgcalls - Python binding for tgcalls (c++ lib by Telegram)
-#  pytgcalls - Library connecting python binding for tgcalls and Pyrogram
+#  tgcalls - a Python binding for C++ library by Telegram
+#  pytgcalls - a library connecting the Python binding with MTProto
 #  Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>
 #
 #  This file is part of tgcalls and pytgcalls.
@@ -17,20 +17,19 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Callable, Union
-
-import pyrogram
+from typing import Callable
 
 import tgcalls
-from pytgcalls import GroupCallNative, GroupCallNativeAction, GroupCallNativeDispatcherMixin, Action
+from pytgcalls.implementation import GroupCallNative, GroupCallNativeAction, GroupCallNativeDispatcherMixin
+from pytgcalls.dispatcher import Action
 
 
-class GroupCallAction(GroupCallNativeAction):
+class GroupCallFileAction(GroupCallNativeAction):
     PLAYOUT_ENDED = Action()
     '''When a input file is ended.'''
 
 
-class GroupCallDispatcherMixin(GroupCallNativeDispatcherMixin):
+class GroupCallFileDispatcherMixin(GroupCallNativeDispatcherMixin):
     def on_playout_ended(self, func: Callable) -> Callable:
         """When a input file is ended.
 
@@ -41,21 +40,21 @@ class GroupCallDispatcherMixin(GroupCallNativeDispatcherMixin):
             `Callable`: passed to args callback function.
         """
 
-        return self.add_handler(func, GroupCallAction.PLAYOUT_ENDED)
+        return self.add_handler(func, GroupCallFileAction.PLAYOUT_ENDED)
 
 
-class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
+class GroupCallFile(GroupCallNative, GroupCallFileDispatcherMixin):
     def __init__(
         self,
-        client: Union[pyrogram.Client, None] = None,
+        mtproto_bridge,
         input_filename: str = None,
         output_filename: str = None,
         play_on_repeat=True,
         enable_logs_to_console=False,
         path_to_log_file=None,
     ):
-        super().__init__(client, enable_logs_to_console, path_to_log_file)
-        super(GroupCallDispatcherMixin, self).__init__(GroupCallAction)
+        super().__init__(mtproto_bridge, enable_logs_to_console, path_to_log_file)
+        super(GroupCallFileDispatcherMixin, self).__init__(GroupCallFileAction)
 
         self.play_on_repeat = play_on_repeat
         '''When the file ends, play it again'''
@@ -147,4 +146,4 @@ class GroupCall(GroupCallNative, GroupCallDispatcherMixin):
         return self.__is_recording_paused
 
     def __playout_ended_callback(self, input_filename: str):
-        self.trigger_handlers(GroupCallAction.PLAYOUT_ENDED, self, input_filename)
+        self.trigger_handlers(GroupCallFileAction.PLAYOUT_ENDED, self, input_filename)
