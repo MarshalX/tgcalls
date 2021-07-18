@@ -21,5 +21,5 @@ from enum import Enum
 
 
 class MTProtoClientType(Enum):
-    PYROGRAM = 'Pyrogram'
-    TELETHON = 'Telethon'
+    PYROGRAM = 'pyrogram'
+    TELETHON = 'telethon'

@@ -18,11 +18,7 @@
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
 from pytgcalls.mtproto.base_bridge import MTProtoBridgeBase
-from pytgcalls.mtproto.pyrogram_bridge import PyrogramBridge
-from pytgcalls.mtproto.telethon_bridge import TelethonBridge
 
 __all__ = [
     'MTProtoBridgeBase',
-    'PyrogramBridge',
-    'TelethonBridge',
 ]

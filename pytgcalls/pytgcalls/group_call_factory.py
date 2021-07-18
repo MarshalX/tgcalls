@@ -17,6 +17,8 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
+import importlib
+from importlib.util import find_spec
 from typing import Callable, Optional
 
 from pytgcalls.group_call_type import GroupCallType
@@ -25,7 +27,15 @@ from pytgcalls.implementation.group_call_file import GroupCallFile
 from pytgcalls.implementation.group_call_device import GroupCallDevice
 from pytgcalls.implementation.group_call_raw import GroupCallRaw
 
-from pytgcalls.mtproto import PyrogramBridge, TelethonBridge
+
+def hot_load_mtproto_lib_or_exception(module):
+    if find_spec(module):
+        importlib.import_module(module)
+    else:
+        raise RuntimeError(
+            f'To use this MTProto client type you need to install {module.capitalize()}. '
+            f'Run this command: pip3 install -U pytgcalls[{module}]'
+        )
 
 
 class GroupCallFactory:
@@ -42,10 +52,15 @@ class GroupCallFactory:
         self, client, mtproto_backend=MTProtoClientType.PYROGRAM, enable_logs_to_console=False, path_to_log_file=None
     ):
         if mtproto_backend is MTProtoClientType.PYROGRAM:
+            hot_load_mtproto_lib_or_exception(MTProtoClientType.PYROGRAM.value)
+            from pytgcalls.mtproto.pyrogram_bridge import PyrogramBridge
+
             self.mtproto_bride = PyrogramBridge(client)
         elif mtproto_backend is MTProtoClientType.TELETHON:
+            hot_load_mtproto_lib_or_exception(MTProtoClientType.TELETHON.value)
+            from pytgcalls.mtproto.telethon_bridge import TelethonBridge
+
             self.mtproto_bride = TelethonBridge(client)
-            # raise NotImplementedError('Telethon bridge not ready yet. Soon.')
         else:
             raise RuntimeError('Unknown MTProto client type')
 
