@@ -4,17 +4,20 @@ import ffmpeg   # pip install ffmpeg-python
 from pyrogram import Client, filters
 from pyrogram.types import Message
 
-from pytgcalls import GroupCall     # pip install pytgcalls
+from pytgcalls import GroupCallFactory     # pip install pytgcalls[pyrogram]
 
 main_filter = filters.text & filters.outgoing & ~filters.edited
 cmd_filter = lambda cmd: filters.command(cmd, prefixes='!')
 
-group_call = GroupCall(None, path_to_log_file='')
+group_call = None
 
 
 def init_client_and_delete_message(func):
     async def wrapper(client, message):
-        group_call.client = client
+        global group_call
+        if not group_call:
+            group_call = GroupCallFactory(client).get_file_group_call()
+
         await message.delete()
 
         return await func(client, message)
@@ -23,12 +26,12 @@ def init_client_and_delete_message(func):
 
 
 @Client.on_message(main_filter & cmd_filter('play'))
-async def start_playout(client, message: Message):
-    group_call.client = client
-
+async def start_playout(_, message: Message):
     if not message.reply_to_message or not message.reply_to_message.audio:
-        await message.delete()
-        return
+        return await message.delete()
+
+    if not group_call:
+        return await message.reply_text('Group Call not started')
 
     input_filename = 'input.raw'
 
@@ -58,7 +61,7 @@ async def start_playout(client, message: Message):
 @init_client_and_delete_message
 async def volume(_, message):
     if len(message.command) < 2:
-        await message.reply_text('You forgot to pass volume (1-200)')
+        return await message.reply_text('You forgot to pass volume (1-200)')
 
     await group_call.set_my_volume(message.command[1])
 

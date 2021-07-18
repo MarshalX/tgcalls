@@ -18,7 +18,7 @@ async def main(client):
         await asyncio.sleep(1)
 
     # you can pass init filenames in the constructor
-    group_call = pytgcalls.GroupCall(client, INPUT_FILENAME, OUTPUT_FILENAME)
+    group_call = pytgcalls.GroupCallFactory(client).get_file_group_call(INPUT_FILENAME, OUTPUT_FILENAME)
     await group_call.start(CHAT_ID)
 
     # to change audio file you can do this:
@@ -43,7 +43,7 @@ async def main(client):
     # group_call.stop()
 
     # to rejoin
-    # group_call.rejoin()
+    # group_call.reconnect()
 
     await pyrogram.idle()
 

@@ -17,7 +17,7 @@ async def main(client):
     while not client.is_connected:
         await asyncio.sleep(1)
 
-    group_call = pytgcalls.GroupCallDevice(client, INPUT_DEVICE_NAME, OUTPUT_DEVICE_NAME)
+    group_call = pytgcalls.GroupCallFactory(client).get_device_group_call(INPUT_DEVICE_NAME, OUTPUT_DEVICE_NAME)
     await group_call.start(CHAT_ID)
 
     # to get available device names

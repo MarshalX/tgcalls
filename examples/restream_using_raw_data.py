@@ -2,7 +2,7 @@ import asyncio
 import os
 from typing import Optional
 
-from pytgcalls import GroupCallRaw
+from pytgcalls import GroupCallFactory
 import pyrogram
 
 # EDIT VALUES!
@@ -16,11 +16,11 @@ PEER_ID2 = '@tgcallslib'    # chat or channel where you want to play audio
 LAST_RECORDED_DATA = None
 
 
-def on_played_data(gc: GroupCallRaw, length: int) -> Optional[bytes]:
+def on_played_data(_, length: int) -> Optional[bytes]:
     return LAST_RECORDED_DATA
 
 
-def on_recorded_data(gc: GroupCallRaw, data: bytes, length: int) -> None:
+def on_recorded_data(_, data: bytes, length: int) -> None:
     global LAST_RECORDED_DATA
     LAST_RECORDED_DATA = data
 
@@ -30,11 +30,13 @@ async def main(client):
     while not client.is_connected:
         await asyncio.sleep(1)
 
+    group_call_factory = GroupCallFactory(client)
+
     # handle input audio data from the first peer
-    group_call_from = GroupCallRaw(client, on_recorded_data=on_recorded_data)
+    group_call_from = group_call_factory.get_raw_group_call(on_recorded_data=on_recorded_data)
     await group_call_from.start(PEER_ID)
     # transfer input audio from the first peer to the second using handlers
-    group_call_to = GroupCallRaw(client, on_played_data=on_played_data)
+    group_call_to = group_call_factory.get_raw_group_call(on_played_data=on_played_data)
     await group_call_to.start(PEER_ID2)
 
     await pyrogram.idle()
