@@ -24,7 +24,13 @@
 
 ## Telegram WebRTC (VoIP)
 
-Pyrogram's snippet
+This project consists of two main parts: [tgcalls](#tgcalls), [pytgcalls](#pytgcalls).
+The first is a C++ Python extension.
+The second uses the extension along with MTProto and provides high level SDK.
+All together, it allows you to create userbots that can record and
+broadcast in voice chats, make and receive private calls.
+
+#### Pyrogram's snippet
 ```python
 from pyrogram import Client, filters
 from pyrogram.utils import MAX_CHANNEL_ID
@@ -45,14 +51,14 @@ async def on_network_changed(context, is_connected):
 
 
 @app.on_message(filters.outgoing & filters.command('join'))
-async def join(_, message):
+async def join_handler(_, message):
     await group_call.start(message.chat.id)
 
 
 app.run()
 ```
 
-Telethon's snippet
+#### Telethon's snippet
 ```python
 from telethon import TelegramClient, events
 
@@ -63,18 +69,12 @@ group_call = GroupCallFactory(app, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON
 
 
 @app.on(events.NewMessage(outgoing=True, pattern=r'^/join$'))
-async def join_group_chat_handler(event):
+async def join_handler(event):
     chat = await event.get_chat()
     await group_call.start(chat.id)
 
 app.run_until_disconnected()
 ```
-
-This project consists of two main parts: [tgcalls](#tgcalls), [pytgcalls](#pytgcalls).
-The first is a C++ Python extension. 
-The second uses the extension along with MTProto and provides high level SDK.
-All together, it allows you to create userbots that can record and 
-broadcast in voice chats, make and receive private calls.
 
 ### Features
 
