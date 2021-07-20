@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.2" />
-<title>pytgcalls.action API documentation</title>
+<title>pytgcalls.group_call_type API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -29,15 +29,15 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>pytgcalls.action</code></h1>
+<h1 class="title">Module <code>pytgcalls.group_call_type</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">#  tgcalls - Python binding for tgcalls (c++ lib by Telegram)
-#  pytgcalls - Library connecting python binding for tgcalls and Pyrogram
+<pre><code class="python">#  tgcalls - a Python binding for C++ library by Telegram
+#  pytgcalls - a library connecting the Python binding with MTProto
 #  Copyright (C) 2020-2021 Il`ya (Marshal) &lt;https://github.com/MarshalX&gt;
 #
 #  This file is part of tgcalls and pytgcalls.
@@ -55,13 +55,13 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see &lt;http://www.gnu.org/licenses/&gt;.
 
+from enum import Enum
 
-class Action:
-    def __set_name__(self, owner, name):
-        self.name = name
 
-    def __get__(self, instance, owner):
-        return self.name</code></pre>
+class GroupCallType(Enum):
+    FILE = &#39;File&#39;
+    DEVICE = &#39;Device&#39;
+    RAW = &#39;Raw&#39;</code></pre>
 </details>
 </section>
 <section>
@@ -73,32 +73,54 @@ class Action:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="pytgcalls.action.Action"><code class="flex name class">
-<span>class <span class="ident">Action</span></span>
+<dt id="pytgcalls.group_call_type.GroupCallType"><code class="flex name class">
+<span>class <span class="ident">GroupCallType</span></span>
+<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
 </code></dt>
 <dd>
-<div class="desc"></div>
+<div class="desc"><p>An enumeration.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class Action:
-    def __set_name__(self, owner, name):
-        self.name = name
-
-    def __get__(self, instance, owner):
-        return self.name</code></pre>
+<pre><code class="python">class GroupCallType(Enum):
+    FILE = &#39;File&#39;
+    DEVICE = &#39;Device&#39;
+    RAW = &#39;Raw&#39;</code></pre>
 </details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>enum.Enum</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="pytgcalls.group_call_type.GroupCallType.DEVICE"><code class="name">var <span class="ident">DEVICE</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="pytgcalls.group_call_type.GroupCallType.FILE"><code class="name">var <span class="ident">FILE</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+<dt id="pytgcalls.group_call_type.GroupCallType.RAW"><code class="name">var <span class="ident">RAW</span></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
+</dl>
 </dd>
 </dl>
 </section>
 </article>
 <nav id="sidebar">
 <p align="center">
-<a target="_blank" href="https://github.com/MarshalX/tgcalls">
+<a href="/">
 <img src="https://github.com/MarshalX/tgcalls/raw/main/.github/images/pytgcalls.png" alt="pytgcalls">
 </a>
 <br>
+<a target="_blank" href="https://github.com/MarshalX/tgcalls">
+GitHub
+</a>
+•
 <a target="_blank" href="https://github.com/MarshalX/tgcalls/tree/main/examples">
 Examples
 </a>
@@ -113,7 +135,7 @@ Sources
 </p>
 <div class="gcse-search" style="height: 70px"
 data-as_oq="site:tgcalls.org"
-data-gaCategoryParameter="pytgcalls.action">
+data-gaCategoryParameter="pytgcalls.group_call_type">
 </div>
 <h1>Index</h1>
 <div class="toc">
@@ -128,7 +150,12 @@ data-gaCategoryParameter="pytgcalls.action">
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="pytgcalls.action.Action" href="#pytgcalls.action.Action">Action</a></code></h4>
+<h4><code><a title="pytgcalls.group_call_type.GroupCallType" href="#pytgcalls.group_call_type.GroupCallType">GroupCallType</a></code></h4>
+<ul class="">
+<li><code><a title="pytgcalls.group_call_type.GroupCallType.DEVICE" href="#pytgcalls.group_call_type.GroupCallType.DEVICE">DEVICE</a></code></li>
+<li><code><a title="pytgcalls.group_call_type.GroupCallType.FILE" href="#pytgcalls.group_call_type.GroupCallType.FILE">FILE</a></code></li>
+<li><code><a title="pytgcalls.group_call_type.GroupCallType.RAW" href="#pytgcalls.group_call_type.GroupCallType.RAW">RAW</a></code></li>
+</ul>
 </li>
 </ul>
 </li>

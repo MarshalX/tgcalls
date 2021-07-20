@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.2" />
-<title>pytgcalls API documentation</title>
+<title>pytgcalls.group_call_factory API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -29,7 +29,7 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 <main>
 <article id="content">
 <header>
-<h1 class="title">Package <code>pytgcalls</code></h1>
+<h1 class="title">Module <code>pytgcalls.group_call_factory</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
@@ -55,154 +55,130 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see &lt;http://www.gnu.org/licenses/&gt;.
 
-import logging
-import warnings
+import importlib
+from importlib.util import find_spec
+from typing import Callable, Optional, Union
 
-from pytgcalls.group_call_factory import GroupCallFactory
-from pytgcalls.implementation.group_call_file import GroupCallFileAction
-from pytgcalls.implementation.group_call_native import GroupCallNativeAction
-
-# backward compatibility below. Dont use it in new projects
-
-logger = logging.getLogger(__name__)
-
-
-_deprecation_warning_text = (
-    &#39;You use deprecated import from backward compatibility suite. &#39;
-    &#39;Please update you code. Backward compatibility will be deleted at any time! &#39;
-    &#39;For more info visit https://github.com/MarshalX/tgcalls/discussions/101&#39;
-)
+from pytgcalls.group_call_type import GroupCallType
+from pytgcalls.mtproto_client_type import MTProtoClientType
+from pytgcalls.implementation.group_call_file import GroupCallFile
+from pytgcalls.implementation.group_call_device import GroupCallDevice
+from pytgcalls.implementation.group_call_raw import GroupCallRaw
 
 
-def backward_compatibility_helper(group_call_type, client, *args, **kwargs):
-    clazz = GroupCallFactory.GROUP_CALL_CLASS_TO_TYPE.get(group_call_type)
-
-    try:
-        import pyrogram
-    except ImportError:
+def hot_load_mtproto_lib_or_exception(module):
+    if find_spec(module):
+        importlib.import_module(module)
+    else:
         raise RuntimeError(
-            &#39;To use this backward compatibility you need to install Pyrogram. &#39;
-            &#39;Run this command: pip3 install -U pytgcalls[pyrogram]&#39;
+            f&#39;To use this MTProto client type you need to install {module.capitalize()}. &#39;
+            f&#39;Run this command: pip3 install -U pytgcalls[{module}]&#39;
         )
 
-    from pytgcalls.mtproto.pyrogram_bridge import PyrogramBridge
 
-    wrapped_client = PyrogramBridge(client)
+class GroupCallFactory:
+    MTPROTO_CLIENT_TYPE = MTProtoClientType
+    GROUP_CALL_TYPE = GroupCallType
 
-    return clazz(wrapped_client, *args, **kwargs)
+    GROUP_CALL_CLASS_TO_TYPE = {
+        GROUP_CALL_TYPE.FILE: GroupCallFile,
+        GROUP_CALL_TYPE.DEVICE: GroupCallDevice,
+        GROUP_CALL_TYPE.RAW: GroupCallRaw,
+    }
 
+    def __init__(
+        self, client, mtproto_backend=MTProtoClientType.PYROGRAM, enable_logs_to_console=False, path_to_log_file=None
+    ):
+        self.client = client
 
-def GroupCall(client, *args, **kwargs):
-    &#34;&#34;&#34;Deprecated method&#34;&#34;&#34;
-    warnings.warn(_deprecation_warning_text, DeprecationWarning, 2)
-    return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.FILE, client, *args, **kwargs)
+        if mtproto_backend is MTProtoClientType.PYROGRAM:
+            hot_load_mtproto_lib_or_exception(MTProtoClientType.PYROGRAM.value)
+            from pytgcalls.mtproto.pyrogram_bridge import PyrogramBridge
 
+            self.__mtproto_bride_class = PyrogramBridge
+        elif mtproto_backend is MTProtoClientType.TELETHON:
+            hot_load_mtproto_lib_or_exception(MTProtoClientType.TELETHON.value)
+            from pytgcalls.mtproto.telethon_bridge import TelethonBridge
 
-def GroupCallDevice(client, *args, **kwargs):
-    &#34;&#34;&#34;Deprecated method&#34;&#34;&#34;
-    warnings.warn(_deprecation_warning_text, DeprecationWarning, 2)
-    return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.DEVICE, client, *args, **kwargs)
+            self.__mtproto_bride_class = TelethonBridge
+        else:
+            raise RuntimeError(&#39;Unknown MTProto client type&#39;)
 
+        self.enable_logs_to_console = enable_logs_to_console
+        self.path_to_log_file = path_to_log_file
 
-def GroupCallRaw(client, *args, **kwargs):
-    &#34;&#34;&#34;Deprecated method&#34;&#34;&#34;
-    warnings.warn(_deprecation_warning_text, DeprecationWarning, 2)
-    return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.RAW, client, *args, **kwargs)
+    def get_mtproto_bridge(self):
+        return self.__mtproto_bride_class(self.client)
 
+    def get(self, group_call_type: GroupCallType, **kwargs) -&gt; Union[GroupCallFile, GroupCallDevice, GroupCallRaw]:
+        return GroupCallFactory.GROUP_CALL_CLASS_TO_TYPE[group_call_type](
+            mtproto_bridge=self.get_mtproto_bridge(),
+            enable_logs_to_console=self.enable_logs_to_console,
+            path_to_log_file=self.path_to_log_file,
+            **kwargs,
+        )
 
-__all__ = [
-    &#39;GroupCallFactory&#39;,
-    &#39;GroupCallFileAction&#39;,
-    &#39;GroupCallNativeAction&#39;,
-    # below backward compatibility
-    &#39;GroupCall&#39;,
-    &#39;GroupCallDevice&#39;,
-    &#39;GroupCallRaw&#39;,
-]
-__version__ = &#39;1.0.0&#39;
-__pdoc__ = {
-    # files
-    &#39;utils&#39;: False,
-    &#39;dispatcher&#39;: False,
-    # packages
-    &#39;mtproto.data&#39;: False,
-    &#39;mtproto.exceptions&#39;: False,
-}</code></pre>
+    def get_file_group_call(
+        self, input_filename: Optional[str] = None, output_filename: Optional[str] = None, play_on_repeat=True
+    ) -&gt; GroupCallFile:
+        return GroupCallFile(
+            self.get_mtproto_bridge(),
+            input_filename,
+            output_filename,
+            play_on_repeat,
+            self.enable_logs_to_console,
+            self.path_to_log_file,
+        )
+
+    def get_device_group_call(
+        self, audio_input_device: Optional[str] = None, audio_output_device: Optional[str] = None
+    ) -&gt; GroupCallDevice:
+        return GroupCallDevice(
+            self.get_mtproto_bridge(),
+            audio_input_device,
+            audio_output_device,
+            self.enable_logs_to_console,
+            self.path_to_log_file,
+        )
+
+    def get_raw_group_call(
+        self,
+        on_played_data: Callable[[&#39;GroupCallRaw&#39;, int], bytes] = None,
+        on_recorded_data: Callable[[&#39;GroupCallRaw&#39;, bytes, int], None] = None,
+    ) -&gt; GroupCallRaw:
+        return GroupCallRaw(
+            self.get_mtproto_bridge(),
+            on_played_data,
+            on_recorded_data,
+            self.enable_logs_to_console,
+            self.path_to_log_file,
+        )</code></pre>
 </details>
 </section>
 <section>
-<h2 class="section-title" id="header-submodules">Sub-modules</h2>
-<dl>
-<dt><code class="name"><a title="pytgcalls.group_call_factory" href="group_call_factory.html">pytgcalls.group_call_factory</a></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt><code class="name"><a title="pytgcalls.group_call_type" href="group_call_type.html">pytgcalls.group_call_type</a></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt><code class="name"><a title="pytgcalls.implementation" href="implementation/index.html">pytgcalls.implementation</a></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt><code class="name"><a title="pytgcalls.mtproto" href="mtproto/index.html">pytgcalls.mtproto</a></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-<dt><code class="name"><a title="pytgcalls.mtproto_client_type" href="mtproto_client_type.html">pytgcalls.mtproto_client_type</a></code></dt>
-<dd>
-<div class="desc"></div>
-</dd>
-</dl>
 </section>
 <section>
 </section>
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="pytgcalls.GroupCall"><code class="name flex">
-<span>def <span class="ident">GroupCall</span></span>(<span>client, *args, **kwargs)</span>
+<dt id="pytgcalls.group_call_factory.hot_load_mtproto_lib_or_exception"><code class="name flex">
+<span>def <span class="ident">hot_load_mtproto_lib_or_exception</span></span>(<span>module)</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Deprecated method</p></div>
+<div class="desc"></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def GroupCall(client, *args, **kwargs):
-    &#34;&#34;&#34;Deprecated method&#34;&#34;&#34;
-    warnings.warn(_deprecation_warning_text, DeprecationWarning, 2)
-    return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.FILE, client, *args, **kwargs)</code></pre>
-</details>
-</dd>
-<dt id="pytgcalls.GroupCallDevice"><code class="name flex">
-<span>def <span class="ident">GroupCallDevice</span></span>(<span>client, *args, **kwargs)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Deprecated method</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def GroupCallDevice(client, *args, **kwargs):
-    &#34;&#34;&#34;Deprecated method&#34;&#34;&#34;
-    warnings.warn(_deprecation_warning_text, DeprecationWarning, 2)
-    return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.DEVICE, client, *args, **kwargs)</code></pre>
-</details>
-</dd>
-<dt id="pytgcalls.GroupCallRaw"><code class="name flex">
-<span>def <span class="ident">GroupCallRaw</span></span>(<span>client, *args, **kwargs)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Deprecated method</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def GroupCallRaw(client, *args, **kwargs):
-    &#34;&#34;&#34;Deprecated method&#34;&#34;&#34;
-    warnings.warn(_deprecation_warning_text, DeprecationWarning, 2)
-    return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.RAW, client, *args, **kwargs)</code></pre>
+<pre><code class="python">def hot_load_mtproto_lib_or_exception(module):
+    if find_spec(module):
+        importlib.import_module(module)
+    else:
+        raise RuntimeError(
+            f&#39;To use this MTProto client type you need to install {module.capitalize()}. &#39;
+            f&#39;Run this command: pip3 install -U pytgcalls[{module}]&#39;
+        )</code></pre>
 </details>
 </dd>
 </dl>
@@ -210,7 +186,7 @@ __pdoc__ = {
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="pytgcalls.GroupCallFactory"><code class="flex name class">
+<dt id="pytgcalls.group_call_factory.GroupCallFactory"><code class="flex name class">
 <span>class <span class="ident">GroupCallFactory</span></span>
 <span>(</span><span>client, mtproto_backend=MTProtoClientType.PYROGRAM, enable_logs_to_console=False, path_to_log_file=None)</span>
 </code></dt>
@@ -300,22 +276,22 @@ __pdoc__ = {
 </details>
 <h3>Class variables</h3>
 <dl>
-<dt id="pytgcalls.GroupCallFactory.GROUP_CALL_CLASS_TO_TYPE"><code class="name">var <span class="ident">GROUP_CALL_CLASS_TO_TYPE</span></code></dt>
+<dt id="pytgcalls.group_call_factory.GroupCallFactory.GROUP_CALL_CLASS_TO_TYPE"><code class="name">var <span class="ident">GROUP_CALL_CLASS_TO_TYPE</span></code></dt>
 <dd>
 <div class="desc"></div>
 </dd>
-<dt id="pytgcalls.GroupCallFactory.GROUP_CALL_TYPE"><code class="name">var <span class="ident">GROUP_CALL_TYPE</span></code></dt>
+<dt id="pytgcalls.group_call_factory.GroupCallFactory.GROUP_CALL_TYPE"><code class="name">var <span class="ident">GROUP_CALL_TYPE</span></code></dt>
 <dd>
 <div class="desc"><p>An enumeration.</p></div>
 </dd>
-<dt id="pytgcalls.GroupCallFactory.MTPROTO_CLIENT_TYPE"><code class="name">var <span class="ident">MTPROTO_CLIENT_TYPE</span></code></dt>
+<dt id="pytgcalls.group_call_factory.GroupCallFactory.MTPROTO_CLIENT_TYPE"><code class="name">var <span class="ident">MTPROTO_CLIENT_TYPE</span></code></dt>
 <dd>
 <div class="desc"><p>An enumeration.</p></div>
 </dd>
 </dl>
 <h3>Methods</h3>
 <dl>
-<dt id="pytgcalls.GroupCallFactory.get"><code class="name flex">
+<dt id="pytgcalls.group_call_factory.GroupCallFactory.get"><code class="name flex">
 <span>def <span class="ident">get</span></span>(<span>self, group_call_type: <a title="pytgcalls.group_call_type.GroupCallType" href="group_call_type.html#pytgcalls.group_call_type.GroupCallType">GroupCallType</a>, **kwargs) ‑> Union[<a title="pytgcalls.implementation.group_call_file.GroupCallFile" href="implementation/group_call_file.html#pytgcalls.implementation.group_call_file.GroupCallFile">GroupCallFile</a>, <a title="pytgcalls.implementation.group_call_device.GroupCallDevice" href="implementation/group_call_device.html#pytgcalls.implementation.group_call_device.GroupCallDevice">GroupCallDevice</a>, <a title="pytgcalls.implementation.group_call_raw.GroupCallRaw" href="implementation/group_call_raw.html#pytgcalls.implementation.group_call_raw.GroupCallRaw">GroupCallRaw</a>]</span>
 </code></dt>
 <dd>
@@ -333,7 +309,7 @@ __pdoc__ = {
     )</code></pre>
 </details>
 </dd>
-<dt id="pytgcalls.GroupCallFactory.get_device_group_call"><code class="name flex">
+<dt id="pytgcalls.group_call_factory.GroupCallFactory.get_device_group_call"><code class="name flex">
 <span>def <span class="ident">get_device_group_call</span></span>(<span>self, audio_input_device: Union[str, NoneType] = None, audio_output_device: Union[str, NoneType] = None) ‑> <a title="pytgcalls.implementation.group_call_device.GroupCallDevice" href="implementation/group_call_device.html#pytgcalls.implementation.group_call_device.GroupCallDevice">GroupCallDevice</a></span>
 </code></dt>
 <dd>
@@ -354,7 +330,7 @@ __pdoc__ = {
     )</code></pre>
 </details>
 </dd>
-<dt id="pytgcalls.GroupCallFactory.get_file_group_call"><code class="name flex">
+<dt id="pytgcalls.group_call_factory.GroupCallFactory.get_file_group_call"><code class="name flex">
 <span>def <span class="ident">get_file_group_call</span></span>(<span>self, input_filename: Union[str, NoneType] = None, output_filename: Union[str, NoneType] = None, play_on_repeat=True) ‑> <a title="pytgcalls.implementation.group_call_file.GroupCallFile" href="implementation/group_call_file.html#pytgcalls.implementation.group_call_file.GroupCallFile">GroupCallFile</a></span>
 </code></dt>
 <dd>
@@ -376,7 +352,7 @@ __pdoc__ = {
     )</code></pre>
 </details>
 </dd>
-<dt id="pytgcalls.GroupCallFactory.get_mtproto_bridge"><code class="name flex">
+<dt id="pytgcalls.group_call_factory.GroupCallFactory.get_mtproto_bridge"><code class="name flex">
 <span>def <span class="ident">get_mtproto_bridge</span></span>(<span>self)</span>
 </code></dt>
 <dd>
@@ -389,8 +365,8 @@ __pdoc__ = {
     return self.__mtproto_bride_class(self.client)</code></pre>
 </details>
 </dd>
-<dt id="pytgcalls.GroupCallFactory.get_raw_group_call"><code class="name flex">
-<span>def <span class="ident">get_raw_group_call</span></span>(<span>self, on_played_data: Callable[[_ForwardRef('<a title="pytgcalls.GroupCallRaw" href="#pytgcalls.GroupCallRaw">GroupCallRaw()</a>'), int], bytes] = None, on_recorded_data: Callable[[_ForwardRef('<a title="pytgcalls.GroupCallRaw" href="#pytgcalls.GroupCallRaw">GroupCallRaw()</a>'), bytes, int], NoneType] = None) ‑> <a title="pytgcalls.implementation.group_call_raw.GroupCallRaw" href="implementation/group_call_raw.html#pytgcalls.implementation.group_call_raw.GroupCallRaw">GroupCallRaw</a></span>
+<dt id="pytgcalls.group_call_factory.GroupCallFactory.get_raw_group_call"><code class="name flex">
+<span>def <span class="ident">get_raw_group_call</span></span>(<span>self, on_played_data: Callable[[_ForwardRef('GroupCallRaw'), int], bytes] = None, on_recorded_data: Callable[[_ForwardRef('GroupCallRaw'), bytes, int], NoneType] = None) ‑> <a title="pytgcalls.implementation.group_call_raw.GroupCallRaw" href="implementation/group_call_raw.html#pytgcalls.implementation.group_call_raw.GroupCallRaw">GroupCallRaw</a></span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -411,64 +387,6 @@ __pdoc__ = {
         self.path_to_log_file,
     )</code></pre>
 </details>
-</dd>
-</dl>
-</dd>
-<dt id="pytgcalls.GroupCallFileAction"><code class="flex name class">
-<span>class <span class="ident">GroupCallFileAction</span></span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">class GroupCallFileAction(GroupCallNativeAction):
-    PLAYOUT_ENDED = Action()
-    &#39;&#39;&#39;When a input file is ended.&#39;&#39;&#39;</code></pre>
-</details>
-<h3>Ancestors</h3>
-<ul class="hlist">
-<li><a title="pytgcalls.implementation.group_call_native.GroupCallNativeAction" href="implementation/group_call_native.html#pytgcalls.implementation.group_call_native.GroupCallNativeAction">GroupCallNativeAction</a></li>
-</ul>
-<h3>Class variables</h3>
-<dl>
-<dt id="pytgcalls.GroupCallFileAction.NETWORK_STATUS_CHANGED"><code class="name">var <span class="ident">NETWORK_STATUS_CHANGED</span></code></dt>
-<dd>
-<p class="inheritance">
-<em>Inherited from:</em>
-<code><a title="pytgcalls.implementation.group_call_native.GroupCallNativeAction" href="implementation/group_call_native.html#pytgcalls.implementation.group_call_native.GroupCallNativeAction">GroupCallNativeAction</a></code>.<code><a title="pytgcalls.implementation.group_call_native.GroupCallNativeAction.NETWORK_STATUS_CHANGED" href="implementation/group_call_native.html#pytgcalls.implementation.group_call_native.GroupCallNativeAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code>
-</p>
-<div class="desc inherited"><p>When a status of network will be changed.</p></div>
-</dd>
-<dt id="pytgcalls.GroupCallFileAction.PLAYOUT_ENDED"><code class="name">var <span class="ident">PLAYOUT_ENDED</span></code></dt>
-<dd>
-<div class="desc"><p>When a input file is ended.</p></div>
-</dd>
-</dl>
-</dd>
-<dt id="pytgcalls.GroupCallNativeAction"><code class="flex name class">
-<span>class <span class="ident">GroupCallNativeAction</span></span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">class GroupCallNativeAction:
-    NETWORK_STATUS_CHANGED = Action()
-    &#39;&#39;&#39;When a status of network will be changed.&#39;&#39;&#39;</code></pre>
-</details>
-<h3>Subclasses</h3>
-<ul class="hlist">
-<li><a title="pytgcalls.implementation.group_call_file.GroupCallFileAction" href="implementation/group_call_file.html#pytgcalls.implementation.group_call_file.GroupCallFileAction">GroupCallFileAction</a></li>
-</ul>
-<h3>Class variables</h3>
-<dl>
-<dt id="pytgcalls.GroupCallNativeAction.NETWORK_STATUS_CHANGED"><code class="name">var <span class="ident">NETWORK_STATUS_CHANGED</span></code></dt>
-<dd>
-<div class="desc"><p>When a status of network will be changed.</p></div>
 </dd>
 </dl>
 </dd>
@@ -499,55 +417,36 @@ Sources
 </p>
 <div class="gcse-search" style="height: 70px"
 data-as_oq="site:tgcalls.org"
-data-gaCategoryParameter="pytgcalls">
+data-gaCategoryParameter="pytgcalls.group_call_factory">
 </div>
 <h1>Index</h1>
 <div class="toc">
 <ul></ul>
 </div>
 <ul id="index">
-<li><h3><a href="#header-submodules">Sub-modules</a></h3>
+<li><h3>Super-module</h3>
 <ul>
-<li><code><a title="pytgcalls.group_call_factory" href="group_call_factory.html">pytgcalls.group_call_factory</a></code></li>
-<li><code><a title="pytgcalls.group_call_type" href="group_call_type.html">pytgcalls.group_call_type</a></code></li>
-<li><code><a title="pytgcalls.implementation" href="implementation/index.html">pytgcalls.implementation</a></code></li>
-<li><code><a title="pytgcalls.mtproto" href="mtproto/index.html">pytgcalls.mtproto</a></code></li>
-<li><code><a title="pytgcalls.mtproto_client_type" href="mtproto_client_type.html">pytgcalls.mtproto_client_type</a></code></li>
+<li><code><a title="pytgcalls" href="index.html">pytgcalls</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="pytgcalls.GroupCall" href="#pytgcalls.GroupCall">GroupCall</a></code></li>
-<li><code><a title="pytgcalls.GroupCallDevice" href="#pytgcalls.GroupCallDevice">GroupCallDevice</a></code></li>
-<li><code><a title="pytgcalls.GroupCallRaw" href="#pytgcalls.GroupCallRaw">GroupCallRaw</a></code></li>
+<li><code><a title="pytgcalls.group_call_factory.hot_load_mtproto_lib_or_exception" href="#pytgcalls.group_call_factory.hot_load_mtproto_lib_or_exception">hot_load_mtproto_lib_or_exception</a></code></li>
 </ul>
 </li>
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="pytgcalls.GroupCallFactory" href="#pytgcalls.GroupCallFactory">GroupCallFactory</a></code></h4>
+<h4><code><a title="pytgcalls.group_call_factory.GroupCallFactory" href="#pytgcalls.group_call_factory.GroupCallFactory">GroupCallFactory</a></code></h4>
 <ul class="">
-<li><code><a title="pytgcalls.GroupCallFactory.GROUP_CALL_CLASS_TO_TYPE" href="#pytgcalls.GroupCallFactory.GROUP_CALL_CLASS_TO_TYPE">GROUP_CALL_CLASS_TO_TYPE</a></code></li>
-<li><code><a title="pytgcalls.GroupCallFactory.GROUP_CALL_TYPE" href="#pytgcalls.GroupCallFactory.GROUP_CALL_TYPE">GROUP_CALL_TYPE</a></code></li>
-<li><code><a title="pytgcalls.GroupCallFactory.MTPROTO_CLIENT_TYPE" href="#pytgcalls.GroupCallFactory.MTPROTO_CLIENT_TYPE">MTPROTO_CLIENT_TYPE</a></code></li>
-<li><code><a title="pytgcalls.GroupCallFactory.get" href="#pytgcalls.GroupCallFactory.get">get</a></code></li>
-<li><code><a title="pytgcalls.GroupCallFactory.get_device_group_call" href="#pytgcalls.GroupCallFactory.get_device_group_call">get_device_group_call</a></code></li>
-<li><code><a title="pytgcalls.GroupCallFactory.get_file_group_call" href="#pytgcalls.GroupCallFactory.get_file_group_call">get_file_group_call</a></code></li>
-<li><code><a title="pytgcalls.GroupCallFactory.get_mtproto_bridge" href="#pytgcalls.GroupCallFactory.get_mtproto_bridge">get_mtproto_bridge</a></code></li>
-<li><code><a title="pytgcalls.GroupCallFactory.get_raw_group_call" href="#pytgcalls.GroupCallFactory.get_raw_group_call">get_raw_group_call</a></code></li>
-</ul>
-</li>
-<li>
-<h4><code><a title="pytgcalls.GroupCallFileAction" href="#pytgcalls.GroupCallFileAction">GroupCallFileAction</a></code></h4>
-<ul class="">
-<li><code><a title="pytgcalls.GroupCallFileAction.NETWORK_STATUS_CHANGED" href="implementation/group_call_native.html#pytgcalls.GroupCallFileAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code></li>
-<li><code><a title="pytgcalls.GroupCallFileAction.PLAYOUT_ENDED" href="#pytgcalls.GroupCallFileAction.PLAYOUT_ENDED">PLAYOUT_ENDED</a></code></li>
-</ul>
-</li>
-<li>
-<h4><code><a title="pytgcalls.GroupCallNativeAction" href="#pytgcalls.GroupCallNativeAction">GroupCallNativeAction</a></code></h4>
-<ul class="">
-<li><code><a title="pytgcalls.GroupCallNativeAction.NETWORK_STATUS_CHANGED" href="#pytgcalls.GroupCallNativeAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code></li>
+<li><code><a title="pytgcalls.group_call_factory.GroupCallFactory.GROUP_CALL_CLASS_TO_TYPE" href="#pytgcalls.group_call_factory.GroupCallFactory.GROUP_CALL_CLASS_TO_TYPE">GROUP_CALL_CLASS_TO_TYPE</a></code></li>
+<li><code><a title="pytgcalls.group_call_factory.GroupCallFactory.GROUP_CALL_TYPE" href="#pytgcalls.group_call_factory.GroupCallFactory.GROUP_CALL_TYPE">GROUP_CALL_TYPE</a></code></li>
+<li><code><a title="pytgcalls.group_call_factory.GroupCallFactory.MTPROTO_CLIENT_TYPE" href="#pytgcalls.group_call_factory.GroupCallFactory.MTPROTO_CLIENT_TYPE">MTPROTO_CLIENT_TYPE</a></code></li>
+<li><code><a title="pytgcalls.group_call_factory.GroupCallFactory.get" href="#pytgcalls.group_call_factory.GroupCallFactory.get">get</a></code></li>
+<li><code><a title="pytgcalls.group_call_factory.GroupCallFactory.get_device_group_call" href="#pytgcalls.group_call_factory.GroupCallFactory.get_device_group_call">get_device_group_call</a></code></li>
+<li><code><a title="pytgcalls.group_call_factory.GroupCallFactory.get_file_group_call" href="#pytgcalls.group_call_factory.GroupCallFactory.get_file_group_call">get_file_group_call</a></code></li>
+<li><code><a title="pytgcalls.group_call_factory.GroupCallFactory.get_mtproto_bridge" href="#pytgcalls.group_call_factory.GroupCallFactory.get_mtproto_bridge">get_mtproto_bridge</a></code></li>
+<li><code><a title="pytgcalls.group_call_factory.GroupCallFactory.get_raw_group_call" href="#pytgcalls.group_call_factory.GroupCallFactory.get_raw_group_call">get_raw_group_call</a></code></li>
 </ul>
 </li>
 </ul>

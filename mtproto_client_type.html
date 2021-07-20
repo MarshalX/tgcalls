@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
 <meta name="generator" content="pdoc 0.9.2" />
-<title>pytgcalls.dispatcher_mixin API documentation</title>
+<title>pytgcalls.mtproto_client_type API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
@@ -29,15 +29,15 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 <main>
 <article id="content">
 <header>
-<h1 class="title">Module <code>pytgcalls.dispatcher_mixin</code></h1>
+<h1 class="title">Module <code>pytgcalls.mtproto_client_type</code></h1>
 </header>
 <section id="section-intro">
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">#  tgcalls - Python binding for tgcalls (c++ lib by Telegram)
-#  pytgcalls - Library connecting python binding for tgcalls and Pyrogram
+<pre><code class="python">#  tgcalls - a Python binding for C++ library by Telegram
+#  pytgcalls - a library connecting the Python binding with MTProto
 #  Copyright (C) 2020-2021 Il`ya (Marshal) &lt;https://github.com/MarshalX&gt;
 #
 #  This file is part of tgcalls and pytgcalls.
@@ -54,55 +54,13 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 #
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see &lt;http://www.gnu.org/licenses/&gt;.
-from typing import Callable, TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from . import GroupCallNative
-
-from .dispatcher import Dispatcher
+from enum import Enum
 
 
-class DispatcherMixin:
-    def __init__(self, actions):
-        self._dispatcher = Dispatcher(actions)
-
-    def add_handler(self, callback: Callable, action: str) -&gt; Callable:
-        &#34;&#34;&#34;Register new handler.
-
-        Args:
-            callback (`Callable`): Callback function.
-            action (`str`): Action.
-
-        Returns:
-            `Callable`: original callback.
-        &#34;&#34;&#34;
-
-        return self._dispatcher.add_handler(callback, action)
-
-    def remove_handler(self, callback: Callable, action: str) -&gt; bool:
-        &#34;&#34;&#34;Unregister the handler.
-
-        Args:
-            callback (`Callable`): Callback function.
-            action (`str`): Action.
-
-        Returns:
-            `bool`: Return `True` if success.
-        &#34;&#34;&#34;
-
-        return self._dispatcher.remove_handler(callback, action)
-
-    def trigger_handlers(self, action: str, instance: &#39;GroupCallNative&#39;, *args, **kwargs):
-        &#34;&#34;&#34;Unregister the handler.
-
-        Args:
-            action (`str`): Action.
-            instance (`GroupCallNative`): Instance of GroupCall.
-            *args (`list`, optional): Arbitrary callback arguments.
-            **kwargs (`dict`, optional): Arbitrary callback arguments.
-        &#34;&#34;&#34;
-
-        self._dispatcher.trigger_handlers(action, instance, *args, **kwargs)</code></pre>
+class MTProtoClientType(Enum):
+    PYROGRAM = &#39;pyrogram&#39;
+    TELETHON = &#39;telethon&#39;</code></pre>
 </details>
 </section>
 <section>
@@ -114,146 +72,33 @@ class DispatcherMixin:
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
-<dt id="pytgcalls.dispatcher_mixin.DispatcherMixin"><code class="flex name class">
-<span>class <span class="ident">DispatcherMixin</span></span>
-<span>(</span><span>actions)</span>
+<dt id="pytgcalls.mtproto_client_type.MTProtoClientType"><code class="flex name class">
+<span>class <span class="ident">MTProtoClientType</span></span>
+<span>(</span><span>value, names=None, *, module=None, qualname=None, type=None, start=1)</span>
 </code></dt>
+<dd>
+<div class="desc"><p>An enumeration.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class MTProtoClientType(Enum):
+    PYROGRAM = &#39;pyrogram&#39;
+    TELETHON = &#39;telethon&#39;</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>enum.Enum</li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="pytgcalls.mtproto_client_type.MTProtoClientType.PYROGRAM"><code class="name">var <span class="ident">PYROGRAM</span></code></dt>
 <dd>
 <div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">class DispatcherMixin:
-    def __init__(self, actions):
-        self._dispatcher = Dispatcher(actions)
-
-    def add_handler(self, callback: Callable, action: str) -&gt; Callable:
-        &#34;&#34;&#34;Register new handler.
-
-        Args:
-            callback (`Callable`): Callback function.
-            action (`str`): Action.
-
-        Returns:
-            `Callable`: original callback.
-        &#34;&#34;&#34;
-
-        return self._dispatcher.add_handler(callback, action)
-
-    def remove_handler(self, callback: Callable, action: str) -&gt; bool:
-        &#34;&#34;&#34;Unregister the handler.
-
-        Args:
-            callback (`Callable`): Callback function.
-            action (`str`): Action.
-
-        Returns:
-            `bool`: Return `True` if success.
-        &#34;&#34;&#34;
-
-        return self._dispatcher.remove_handler(callback, action)
-
-    def trigger_handlers(self, action: str, instance: &#39;GroupCallNative&#39;, *args, **kwargs):
-        &#34;&#34;&#34;Unregister the handler.
-
-        Args:
-            action (`str`): Action.
-            instance (`GroupCallNative`): Instance of GroupCall.
-            *args (`list`, optional): Arbitrary callback arguments.
-            **kwargs (`dict`, optional): Arbitrary callback arguments.
-        &#34;&#34;&#34;
-
-        self._dispatcher.trigger_handlers(action, instance, *args, **kwargs)</code></pre>
-</details>
-<h3>Subclasses</h3>
-<ul class="hlist">
-<li><a title="pytgcalls.group_call_native.GroupCallNativeDispatcherMixin" href="group_call_native.html#pytgcalls.group_call_native.GroupCallNativeDispatcherMixin">GroupCallNativeDispatcherMixin</a></li>
-</ul>
-<h3>Methods</h3>
-<dl>
-<dt id="pytgcalls.dispatcher_mixin.DispatcherMixin.add_handler"><code class="name flex">
-<span>def <span class="ident">add_handler</span></span>(<span>self, callback: Callable, action: str) ‑> Callable</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Register new handler.</p>
-<h2 id="args">Args</h2>
-<p>callback (<code>Callable</code>): Callback function.
-action (<code>str</code>): Action.</p>
-<h2 id="returns">Returns</h2>
-<p><code>Callable</code>: original callback.</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def add_handler(self, callback: Callable, action: str) -&gt; Callable:
-    &#34;&#34;&#34;Register new handler.
-
-    Args:
-        callback (`Callable`): Callback function.
-        action (`str`): Action.
-
-    Returns:
-        `Callable`: original callback.
-    &#34;&#34;&#34;
-
-    return self._dispatcher.add_handler(callback, action)</code></pre>
-</details>
 </dd>
-<dt id="pytgcalls.dispatcher_mixin.DispatcherMixin.remove_handler"><code class="name flex">
-<span>def <span class="ident">remove_handler</span></span>(<span>self, callback: Callable, action: str) ‑> bool</span>
-</code></dt>
+<dt id="pytgcalls.mtproto_client_type.MTProtoClientType.TELETHON"><code class="name">var <span class="ident">TELETHON</span></code></dt>
 <dd>
-<div class="desc"><p>Unregister the handler.</p>
-<h2 id="args">Args</h2>
-<p>callback (<code>Callable</code>): Callback function.
-action (<code>str</code>): Action.</p>
-<h2 id="returns">Returns</h2>
-<p><code>bool</code>: Return <code>True</code> if success.</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def remove_handler(self, callback: Callable, action: str) -&gt; bool:
-    &#34;&#34;&#34;Unregister the handler.
-
-    Args:
-        callback (`Callable`): Callback function.
-        action (`str`): Action.
-
-    Returns:
-        `bool`: Return `True` if success.
-    &#34;&#34;&#34;
-
-    return self._dispatcher.remove_handler(callback, action)</code></pre>
-</details>
-</dd>
-<dt id="pytgcalls.dispatcher_mixin.DispatcherMixin.trigger_handlers"><code class="name flex">
-<span>def <span class="ident">trigger_handlers</span></span>(<span>self, action: str, instance: GroupCallNative, *args, **kwargs)</span>
-</code></dt>
-<dd>
-<div class="desc"><p>Unregister the handler.</p>
-<h2 id="args">Args</h2>
-<p>action (<code>str</code>): Action.
-instance (<code>GroupCallNative</code>): Instance of GroupCall.
-<em>args (<code>list</code>, optional): Arbitrary callback arguments.
-</em>*kwargs (<code>dict</code>, optional): Arbitrary callback arguments.</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">def trigger_handlers(self, action: str, instance: &#39;GroupCallNative&#39;, *args, **kwargs):
-    &#34;&#34;&#34;Unregister the handler.
-
-    Args:
-        action (`str`): Action.
-        instance (`GroupCallNative`): Instance of GroupCall.
-        *args (`list`, optional): Arbitrary callback arguments.
-        **kwargs (`dict`, optional): Arbitrary callback arguments.
-    &#34;&#34;&#34;
-
-    self._dispatcher.trigger_handlers(action, instance, *args, **kwargs)</code></pre>
-</details>
+<div class="desc"></div>
 </dd>
 </dl>
 </dd>
@@ -262,10 +107,14 @@ instance (<code>GroupCallNative</code>): Instance of GroupCall.
 </article>
 <nav id="sidebar">
 <p align="center">
-<a target="_blank" href="https://github.com/MarshalX/tgcalls">
+<a href="/">
 <img src="https://github.com/MarshalX/tgcalls/raw/main/.github/images/pytgcalls.png" alt="pytgcalls">
 </a>
 <br>
+<a target="_blank" href="https://github.com/MarshalX/tgcalls">
+GitHub
+</a>
+•
 <a target="_blank" href="https://github.com/MarshalX/tgcalls/tree/main/examples">
 Examples
 </a>
@@ -280,7 +129,7 @@ Sources
 </p>
 <div class="gcse-search" style="height: 70px"
 data-as_oq="site:tgcalls.org"
-data-gaCategoryParameter="pytgcalls.dispatcher_mixin">
+data-gaCategoryParameter="pytgcalls.mtproto_client_type">
 </div>
 <h1>Index</h1>
 <div class="toc">
@@ -295,11 +144,10 @@ data-gaCategoryParameter="pytgcalls.dispatcher_mixin">
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
-<h4><code><a title="pytgcalls.dispatcher_mixin.DispatcherMixin" href="#pytgcalls.dispatcher_mixin.DispatcherMixin">DispatcherMixin</a></code></h4>
+<h4><code><a title="pytgcalls.mtproto_client_type.MTProtoClientType" href="#pytgcalls.mtproto_client_type.MTProtoClientType">MTProtoClientType</a></code></h4>
 <ul class="">
-<li><code><a title="pytgcalls.dispatcher_mixin.DispatcherMixin.add_handler" href="#pytgcalls.dispatcher_mixin.DispatcherMixin.add_handler">add_handler</a></code></li>
-<li><code><a title="pytgcalls.dispatcher_mixin.DispatcherMixin.remove_handler" href="#pytgcalls.dispatcher_mixin.DispatcherMixin.remove_handler">remove_handler</a></code></li>
-<li><code><a title="pytgcalls.dispatcher_mixin.DispatcherMixin.trigger_handlers" href="#pytgcalls.dispatcher_mixin.DispatcherMixin.trigger_handlers">trigger_handlers</a></code></li>
+<li><code><a title="pytgcalls.mtproto_client_type.MTProtoClientType.PYROGRAM" href="#pytgcalls.mtproto_client_type.MTProtoClientType.PYROGRAM">PYROGRAM</a></code></li>
+<li><code><a title="pytgcalls.mtproto_client_type.MTProtoClientType.TELETHON" href="#pytgcalls.mtproto_client_type.MTProtoClientType.TELETHON">TELETHON</a></code></li>
 </ul>
 </li>
 </ul>
