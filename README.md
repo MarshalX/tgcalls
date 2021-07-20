@@ -24,19 +24,26 @@
 
 ## Telegram WebRTC (VoIP)
 
+This project consists of two main parts: [tgcalls](#tgcalls), [pytgcalls](#pytgcalls).
+The first is a C++ Python extension.
+The second uses the extension along with MTProto and provides high level SDK.
+All together, it allows you to create userbots that can record and
+broadcast in voice chats, make and receive private calls.
+
+#### Pyrogram's snippet
 ```python
 from pyrogram import Client, filters
 from pyrogram.utils import MAX_CHANNEL_ID
 
-from pytgcalls import GroupCall
+from pytgcalls import GroupCallFactory
 
 app = Client('pytgcalls')
-group_call = GroupCall(app, 'input.raw')
+group_call = GroupCallFactory(app).get_file_group_call('input.raw')
 
 
 @group_call.on_network_status_changed
-async def on_network_changed(gc: GroupCall, is_connected: bool):
-    chat_id = MAX_CHANNEL_ID - gc.full_chat.id
+async def on_network_changed(context, is_connected):
+    chat_id = MAX_CHANNEL_ID - context.full_chat.id
     if is_connected:
         await app.send_message(chat_id, 'Successfully joined!')
     else:
@@ -44,22 +51,37 @@ async def on_network_changed(gc: GroupCall, is_connected: bool):
 
 
 @app.on_message(filters.outgoing & filters.command('join'))
-async def join(_, message):
+async def join_handler(_, message):
     await group_call.start(message.chat.id)
 
 
 app.run()
 ```
 
-This project consists of two main parts: [tgcalls](#tgcalls), [pytgcalls](#pytgcalls).
-The first is a C++ Python extension. 
-The second uses the extension along with Pyrogram.
-All together, it allows you to create userbots that can record and 
-broadcast in voice chats, make and receive private calls.
+#### Telethon's snippet
+```python
+from telethon import TelegramClient, events
+
+from pytgcalls import GroupCallFactory
+
+app = TelegramClient('pytgcalls', api_id, api_hash).start()
+group_call_factory = GroupCallFactory(app, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON)
+group_call = group_call_factory.get_file_group_call('input.raw')
+
+
+@app.on(events.NewMessage(outgoing=True, pattern=r'^/join$'))
+async def join_handler(event):
+    chat = await event.get_chat()
+    await group_call.start(chat.id)
+
+app.run_until_disconnected()
+```
 
 ### Features
 
 - Python solution.
+- Supporting popular MTProto libraries: Pyrogram, Telethon.
+- Abstract class to implement own MTProto bridge.
 - Work with voice chats in channels and chats.
 - Multiply voice chats ([example](https://github.com/MarshalX/tgcalls/blob/main/examples/radio_as_smart_plugin.py)).
 - System of custom handlers on events.
@@ -70,7 +92,7 @@ broadcast in voice chats, make and receive private calls.
 
 ### Available sources of input/output data transfers
 
-- File (`GroupCall`, [playout example](https://github.com/MarshalX/tgcalls/blob/main/examples/file_playout.py),
+- File (`GroupCallFile`, [playout example](https://github.com/MarshalX/tgcalls/blob/main/examples/file_playout.py),
   [recording example](https://github.com/MarshalX/tgcalls/blob/main/examples/recorder_as_smart_plugin.py))
   — to use any audio files including named pipe (FIFO).
 - Device (`GroupCallDevice`, [example](https://github.com/MarshalX/tgcalls/blob/main/examples/device_playout.py)) — to use microphone, headphones, etc.
@@ -95,14 +117,14 @@ Note: All audio data is transmitted in PCM 16 bit, 48k.
 
 ### Installing
 
+#### For Pyrogram
 ``` bash
-pip3 install pytgcalls -U
+pip3 install -U pytgcalls[pyrogram]
 ```
 
-#### Dev version
-
+#### For Telethon
 ``` bash
-pip3 install -U git+https://github.com/MarshalX/tgcalls@dev#subdirectory=pytgcalls
+pip3 install -U pytgcalls[telethon]
 ```
 
 <hr>
@@ -124,15 +146,15 @@ pip3 install -U git+https://github.com/MarshalX/tgcalls@dev#subdirectory=pytgcal
 
 The first part of the project is C++ extensions for Python. [Pybind11](https://github.com/pybind/pybind11)
 was used to write it. Binding occurs to the [tgcalls](https://github.com/TelegramMessenger/tgcalls)
-library by Telegram, which is used in all clients. 
-To implement the library, the code of official clients (tdesktop and android) was studied.
+library by Telegram, which is used in all official clients. 
+To implement the binding, the code of Telegram Desktop and Telegram Android was studied.
 Changes have been made to the Telegram library. 
 All modified code is [available as a subtree](https://github.com/MarshalX/tgcalls/tree/main/tgcalls/third_party/lib_tgcalls)
-in this repository. The main idea of the changes is to add the ability to play 
-from other sources (from a file, for example) and improve the sound quality by making the minimum number 
-of code edits for a simple update.
-In addition to changes in the Telegram library, a minimal change was made to the WebRTC,
-also [available as a subtree](https://github.com/MarshalX/tgcalls/tree/main/tgcalls/third_party/webrtc).
+in this repository. The main idea of the changes is to improve 
+the sound quality by making the minimum number of code edits for a simple update.
+In addition, audio modules for WebRTC were developed. Modules are allowing
+to transfer audio data directly from Python via bytes, transfer and control 
+the playback/recording of a file or a virtual system device.
 
 ### How to build
 
@@ -158,7 +180,7 @@ More info:
 - [macOS](build/macos).
 - [Windows](build/windows).
 
-Also you can investigate into [manylinux GitHub Actions builds](build/manylinux).
+Also, you can investigate into [manylinux GitHub Actions builds](build/manylinux).
 
 ### Documentation
 
@@ -188,8 +210,10 @@ along with MTProto.
 
 This project is implementation of using [tgcalls](#tgcalls) 
 Python binding together with [MTProto](https://core.telegram.org/mtproto).
-A Pyrogram was chosen as a library for working with Telegram Mobile Protocol. 
-You can write your own implementation to work with Telethon or other libraries.
+By default, this library are supports [Pyrogram](https://github.com/pyrogram/pyrogram)
+and [Telethon](https://github.com/LonamiWebs/Telethon) clients for working 
+with Telegram Mobile Protocol. 
+You can write your own implementation of abstract class to work with other libraries.
 
 ### Learning by example
 
@@ -247,6 +271,7 @@ Contributions of all sizes are welcome.
 - [@john-preston](https://github.com/john-preston) for [Telegram Desktop](https://github.com/telegramdesktop/tdesktop) and [tgcalls](https://github.com/TelegramMessenger/tgcalls).
 - [@bakatrouble](https://github.com/bakatrouble/) for help and inspiration by [pytgvoip](https://github.com/bakatrouble/pytgvoip).
 - [@delivrance](https://github.com/delivrance) for [Pyrogram](https://github.com/pyrogram/pyrogram).
+- [@Lonami](https://github.com/Lonami) for [Telethon](https://github.com/LonamiWebs/Telethon).
 
 ### License
 

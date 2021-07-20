@@ -6,16 +6,13 @@
 
 namespace py = pybind11;
 
-std::string license = "GNU Lesser General Public License v3 (LGPLv3)";
-std::string copyright =
-    "Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>";
 auto noticeDisplayed = false;
 
 NativeInstance::NativeInstance(bool logToStdErr, string logPath)
     : _logToStdErr(logToStdErr), _logPath(std::move(logPath)) {
   if (!noticeDisplayed) {
-    py::print("tgcalls BETA, " + copyright);
-    py::print("Licensed under the terms of the " + license + "\n\n");
+    py::print("tgcalls v" + std::string(PROJECT_VER) + ", Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>");
+    py::print("Licensed under the terms of the GNU Lesser General Public License v3 (LGPLv3) \n\n");
 
     noticeDisplayed = true;
   }

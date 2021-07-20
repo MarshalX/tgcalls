@@ -1,5 +1,5 @@
-#  tgcalls - Python binding for tgcalls (c++ lib by Telegram)
-#  pytgcalls - Library connecting python binding for tgcalls and Pyrogram
+#  tgcalls - a Python binding for C++ library by Telegram
+#  pytgcalls - a library connecting the Python binding with MTProto
 #  Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>
 #
 #  This file is part of tgcalls and pytgcalls.
@@ -17,34 +17,76 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-from pytgcalls.group_call_native import GroupCallNative, GroupCallNativeAction, GroupCallNativeDispatcherMixin
-from pytgcalls.action import Action
-from pytgcalls.group_call import GroupCall, GroupCallAction, GroupCallDispatcherMixin
-from pytgcalls.group_call_raw import GroupCallRaw
-from pytgcalls.group_call_device import GroupCallDevice
-from pytgcalls.dispatcher import Dispatcher
-from pytgcalls.dispatcher_mixin import DispatcherMixin
+import logging
+import warnings
+
+from pytgcalls.group_call_factory import GroupCallFactory
+from pytgcalls.implementation.group_call_file import GroupCallFileAction
+from pytgcalls.implementation.group_call_native import GroupCallNativeAction
+
+# backward compatibility below. Dont use it in new projects
+
+logger = logging.getLogger(__name__)
+
+
+_deprecation_warning_text = (
+    'You use deprecated import from backward compatibility suite. '
+    'Please update you code. Backward compatibility will be deleted at any time! '
+    'For more info visit https://github.com/MarshalX/tgcalls/discussions/101'
+)
+
+
+def backward_compatibility_helper(group_call_type, client, *args, **kwargs):
+    clazz = GroupCallFactory.GROUP_CALL_CLASS_TO_TYPE.get(group_call_type)
+
+    try:
+        import pyrogram
+    except ImportError:
+        raise RuntimeError(
+            'To use this backward compatibility you need to install Pyrogram. '
+            'Run this command: pip3 install -U pytgcalls[pyrogram]'
+        )
+
+    from pytgcalls.mtproto.pyrogram_bridge import PyrogramBridge
+
+    wrapped_client = PyrogramBridge(client)
+
+    return clazz(wrapped_client, *args, **kwargs)
+
+
+def GroupCall(client, *args, **kwargs):
+    """Deprecated method"""
+    warnings.warn(_deprecation_warning_text, DeprecationWarning, 2)
+    return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.FILE, client, *args, **kwargs)
+
+
+def GroupCallDevice(client, *args, **kwargs):
+    """Deprecated method"""
+    warnings.warn(_deprecation_warning_text, DeprecationWarning, 2)
+    return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.DEVICE, client, *args, **kwargs)
+
+
+def GroupCallRaw(client, *args, **kwargs):
+    """Deprecated method"""
+    warnings.warn(_deprecation_warning_text, DeprecationWarning, 2)
+    return backward_compatibility_helper(GroupCallFactory.GROUP_CALL_TYPE.RAW, client, *args, **kwargs)
+
 
 __all__ = [
-    'GroupCallNative',
-    'GroupCall',
-    'GroupCallRaw',
-    'GroupCallDevice',
-    'Dispatcher',
-    'DispatcherMixin',
-    'Action',
+    'GroupCallFactory',
+    'GroupCallFileAction',
     'GroupCallNativeAction',
-    'GroupCallNativeDispatcherMixin',
-    'GroupCallAction',
-    'GroupCallDispatcherMixin',
+    # below backward compatibility
+    'GroupCall',
+    'GroupCallDevice',
+    'GroupCallRaw',
 ]
-__version__ = '0.0.24'
+__version__ = '1.0.0'
 __pdoc__ = {
-    'Action': False,
-    'Dispatcher': False,
-    'DispatcherMixin': False,
-    'GroupCallDispatcherMixin': False,
-    'GroupCallNativeAction': False,
-    'GroupCallNativeDispatcherMixin': False,
-    'GroupCallNative': False,
+    # files
+    'utils': False,
+    'dispatcher': False,
+    # packages
+    'mtproto.data': False,
+    'mtproto.exceptions': False,
 }

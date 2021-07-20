@@ -1,5 +1,5 @@
-#  tgcalls - Python binding for tgcalls (c++ lib by Telegram)
-#  pytgcalls - Library connecting python binding for tgcalls and Pyrogram
+#  tgcalls - a Python binding for C++ library by Telegram
+#  pytgcalls - a library connecting the Python binding with MTProto
 #  Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>
 #
 #  This file is part of tgcalls and pytgcalls.
@@ -17,24 +17,22 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-from typing import Union, Callable
-
-import pyrogram
+from typing import Callable
 
 import tgcalls
-from pytgcalls import GroupCallNative
+from pytgcalls.implementation import GroupCallNative
 
 
 class GroupCallRaw(GroupCallNative):
     def __init__(
         self,
-        client: Union[pyrogram.Client, None] = None,
+        mtproto_bridge,
         on_played_data: Callable[['GroupCallRaw', int], bytes] = None,
         on_recorded_data: Callable[['GroupCallRaw', bytes, int], None] = None,
         enable_logs_to_console=False,
         path_to_log_file=None,
     ):
-        super().__init__(client, enable_logs_to_console, path_to_log_file)
+        super().__init__(mtproto_bridge, enable_logs_to_console, path_to_log_file)
 
         self.__is_playout_paused = False
         self.__is_recording_paused = False

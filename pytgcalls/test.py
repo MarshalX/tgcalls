@@ -1,5 +1,5 @@
-#  tgcalls - Python binding for tgcalls (c++ lib by Telegram)
-#  pytgcalls - Library connecting python binding for tgcalls and Pyrogram
+#  tgcalls - a Python binding for C++ library by Telegram
+#  pytgcalls - a library connecting the Python binding with MTProto
 #  Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>
 #
 #  This file is part of tgcalls and pytgcalls.
@@ -27,8 +27,10 @@ import pyrogram
 from pyrogram import errors
 from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
+from pyrogram.utils import MAX_CHANNEL_ID
+from telethon import TelegramClient
 
-from pytgcalls import GroupCall, GroupCallAction, GroupCallDevice
+from pytgcalls import GroupCallDevice, GroupCallFactory, GroupCallFileAction, GroupCall
 import tgcalls
 from helpers import b2i, calc_fingerprint, check_g, generate_visualization, i2b
 
@@ -461,49 +463,83 @@ for name, logger in logging.root.manager.loggerDict.items():
     if name.startswith('pyrogram'):
         logger.disabled = True
 
-
-async def network_status_changed_handler(group_call: GroupCall, is_connected: bool):
-    if is_connected:
-        print('Connected')
-
-        # group_call.audio_input_device = 'default'
+logging.getLogger('telethon').setLevel(logging.INFO)
 
 
-async def main(client1, client2, make_out, make_inc):
+async def main(client1, client2, telethon1, make_out, make_inc):
     # await client1.start()
     await client2.start()
 
     while not client2.is_connected:
         await asyncio.sleep(1)
 
-    # @client2.on_message(filters.text & filters.outgoing & ~filters.edited & filters.command('test', prefixes='!'))
-    # async def test(client, message):
-    group_call = GroupCall(client2, 'input.raw', enable_logs_to_console=False)
+    # example hot to use another mtproto backend
+    # group_call_factory = GroupCallFactory(telethon1, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON)
+    group_call_factory = GroupCallFactory(client2, GroupCallFactory.MTPROTO_CLIENT_TYPE.PYROGRAM)
+
+    gc = group_call_factory.get_file_group_call('input.raw')
+    await gc.start('@ilya_marshal')
+    await gc.stop()
+    await gc.stop()
+    print('case 1')
+    await gc.start('@ilya_marshal')
+    await asyncio.sleep(10)
+    await gc.stop()
+    await gc.stop()
+    print('case 2')
+    await gc.start('@ilya_marshal')
+    print('case 3')
+    await gc.start('@ilya_marshal')
+    print('case 4')
+    await asyncio.sleep(10)
+    await gc.reconnect()
+    print('case 5')
+
+    print('all cases has been passed')
+
+    # await tgc.reconnect()
+    # await tgc.stop()
+    # await tgc.start('@ilya_marshal')
+    # print(await tgc.check_group_call())
+    # await asyncio.sleep(10)
+
+    # group_call_factory = GroupCallFactory(client2, enable_logs_to_console=False)
+    # the first way
+    # file_group_call = group_call_factory.get(GroupCallFactory.GROUP_CALL_TYPE.FILE, input_filename='input.raw')
+    # the second way
+    # file_group_call = group_call_factory.get_file_group_call('input.raw')
+    # await file_group_call.start('@ilya_marshal')
+
+    # backward compatibility test
+    # group_call = GroupCall(client2, 'input.raw', enable_logs_to_console=False)
     # group_call = GroupCallDevice(client2, audio_output_device='MacBook Air Speakers', enable_logs_to_console=False)
-    # group_call = GroupCallDevice(client2, audio_output_device='External Headphones', enable_logs_to_console=False)
-    await group_call.start('@ilya_marshal')
+    # await group_call.start('@ilya_marshal')
+
+    # device_group_call = group_call_factory.get_device_group_call(audio_output_device='External Headphones')
+    # audio_output_device='MacBook Air Speakers'
+
+    # await device_group_call.start('@ilya_marshal')
     # await group_call.start('@MarshalR', '@MarshalR')
     # group_call.print_available_playout_devices()
     # group_call.print_available_recording_devices()
 
-    await asyncio.sleep(5)
+    # backward compatibility test
+    # @group_call.on_network_status_changed
+    async def on_network_changed(gc: GroupCall, is_connected: bool):
+        chat_id = MAX_CHANNEL_ID - gc.full_chat.id
+        if is_connected:
+            print('Successfully joined!', chat_id)
+        else:
+            print('Disconnected from voice chat..', chat_id)
 
-    # group_call.audio_input_device = 'default1'
-    # group_call.audio_output_device = 'External Headphones'
-    # group_call.audio_output_device = 'default'
-    # await group_call.start('@MarshalR', '@ilya_marshal')
-    # await group_call.start('@MarshalR')
+    async def network_status_changed_handler(group_call, is_connected: bool):
+        print(f'Is connected: {is_connected}')
 
-    group_call.add_handler(network_status_changed_handler, GroupCallAction.NETWORK_STATUS_CHANGED)
+    # file_group_call.add_handler(network_status_changed_handler, GroupCallFileAction.NETWORK_STATUS_CHANGED)
 
-    @group_call.on_playout_ended
+    # @file_group_call.on_playout_ended
     async def playout_ended_handler(group_call, filename):
         print(f'{filename} is ended')
-
-    # group_call.native_instance.setAudioInputDevice('VB-Cable')
-    # group_call.native_instance.setAudioOutputDevice('default (Built-in Output)')
-
-    # await start(client1, client2, make_out, make_inc)
 
     await pyrogram.idle()
 
@@ -522,10 +558,13 @@ if __name__ == '__main__':
         os.environ.get('SESSION_NAME2'), api_hash=os.environ.get('API_HASH'), api_id=os.environ.get('API_ID')
     )
 
+    tc1 = TelegramClient(os.environ.get('SESSION_NAME3'), int(os.environ['API_ID']), os.environ['API_HASH'])
+    tc1.start()
+
     make_out = False
     make_inc = True
 
     c1, c2 = c2, c1
 
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(main(c1, c2, make_out, make_inc))
+    loop.run_until_complete(main(c1, c2, tc1, make_out, make_inc))

@@ -1,5 +1,5 @@
-#  tgcalls - Python binding for tgcalls (c++ lib by Telegram)
-#  pytgcalls - Library connecting python binding for tgcalls and Pyrogram
+#  tgcalls - a Python binding for C++ library by Telegram
+#  pytgcalls - a library connecting the Python binding with MTProto
 #  Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>
 #
 #  This file is part of tgcalls and pytgcalls.
@@ -17,16 +17,18 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
+from os import path
 import re
 
 from setuptools import setup, find_packages
 
+base_path = path.abspath(path.dirname(__file__))
 packages = find_packages()
 
-with open('pytgcalls/__init__.py', encoding='utf-8') as f:
+with open(path.join(base_path, 'pytgcalls/__init__.py'), encoding='utf-8') as f:
     version = re.findall(r"__version__ = '(.+)'", f.read())[0]
 
-with open('../README.md', 'r', encoding='utf-8') as f:
+with open(path.join(base_path, '../README.md'), 'r', encoding='utf-8') as f:
     readme = f.read()
 
 setup(
@@ -37,20 +39,26 @@ setup(
     license='LGPLv3',
     url='https://github.com/MarshalX/tgcalls',
     keywords='python, library, telegram, async, asynchronous, webrtc, lib, voice-chat, '
-    'voip, group-chat, video-call, calls, pyrogram, pytgcalls, tgcalls',
-    description='Library connecting python binding for tgcalls and pyrogram',
+    'voip, group-chat, video-call, calls, pyrogram, telethon, pytgcalls, tgcalls',
+    description='a library connecting the tgcalls Python binding with MTProto',
     long_description=readme,
     long_description_content_type='text/markdown',
     packages=packages,
-    install_requires=['tgcalls == 0.0.16', 'pyrogram >= 1.2.0'],
+    install_requires=['tgcalls == 0.0.16'],
+    extras_require={
+        'pyrogram': ['pyrogram >= 1.2.0'],
+        'telethon': ['telethon >= 1.23.0'],
+    },
     python_requires="~=3.6",
     include_package_data=True,
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Natural Language :: English',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
         'Operating System :: OS Independent',
+        'Operating System :: MacOS',
+        'Operating System :: Unix',
         'Topic :: Internet',
         'Topic :: Multimedia',
         'Topic :: Multimedia :: Video',
@@ -73,8 +81,9 @@ setup(
         "Programming Language :: Python :: Implementation :: CPython",
     ],
     project_urls={
-        'Author': 'https://github.com/MarshalX',
+        'Documentation': 'https://tgcalls.org/',
         'Telegram Channel': 'https://t.me/tgcallslib',
         'Telegram Chat': 'https://t.me/tgcallschat',
+        'Author': 'https://github.com/MarshalX',
     },
 )
