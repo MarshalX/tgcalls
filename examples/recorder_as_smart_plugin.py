@@ -24,20 +24,15 @@ GROUP_CALL = None
 SECONDS_TO_RECORD = 30
 
 
-@Client.on_message(filters.group
-                   & filters.text
-                   & filters.outgoing
-                   & ~filters.edited
-                   & filters.command('record', prefixes='!'))
+@Client.on_message(
+    filters.group & filters.text & filters.outgoing & ~filters.edited & filters.command('record', prefixes='!')
+)
 async def record_from_voice_chat(client: Client, m: Message):
     global GROUP_CALL
     if not GROUP_CALL:
         GROUP_CALL = GroupCallFactory(client, path_to_log_file='').get_file_group_call()
 
-    GROUP_CALL.add_handler(
-        network_status_changed_handler,
-        GroupCallFileAction.NETWORK_STATUS_CHANGED
-    )
+    GROUP_CALL.add_handler(network_status_changed_handler, GroupCallFileAction.NETWORK_STATUS_CHANGED)
 
     await GROUP_CALL.start(m.chat.id)
     await m.delete()
@@ -65,14 +60,9 @@ async def record_and_send_opus_and_stop(context):
     context.stop_output()
 
     await status_msg.edit_text('2/3 Transcoding...')
-    ffmpeg.input(
-        record_raw_filename,
-        format='s16le',
-        acodec='pcm_s16le',
-        ac=2,
-        ar='48k',
-        loglevel='error'
-    ).output(record_opus_filename).overwrite_output().run()
+    ffmpeg.input(record_raw_filename, format='s16le', acodec='pcm_s16le', ac=2, ar='48k', loglevel='error').output(
+        record_opus_filename
+    ).overwrite_output().run()
 
     record_probe = ffmpeg.probe(record_opus_filename, pretty=None)
 
@@ -93,7 +83,9 @@ async def record_and_send_opus_and_stop(context):
         performer = f'@{chat_info.username}'
 
     title = f'[VCREC] {utcnow_readable}'
-    thumb_file = await context.client.download_media(chat_info.photo.big_file_id)
+    thumb_file = None
+    if chat_info.photo:
+        thumb_file = await context.client.download_media(chat_info.photo.big_file_id)
 
     await status_msg.edit_text('3/3 Uploading...')
     await context.client.send_audio(
@@ -103,11 +95,14 @@ async def record_and_send_opus_and_stop(context):
         duration=duration,
         performer=performer,
         title=title,
-        thumb=thumb_file
+        thumb=thumb_file,
     )
     await status_msg.delete()
 
     await context.stop()
+
+    if thumb_file:
+        os.remove(thumb_file)
     [os.remove(f) for f in (record_raw_filename, record_opus_filename, thumb_file)]
 
 

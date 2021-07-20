@@ -52,7 +52,7 @@ if __name__ == '__main__':
     pyro_client = pyrogram.Client(
         os.environ.get('SESSION_NAME', 'pytgcalls'),
         api_hash=os.environ.get('API_HASH', API_HASH),
-        api_id=os.environ.get('API_ID', API_ID)
+        api_id=os.environ.get('API_ID', API_ID),
     )
 
     loop = asyncio.get_event_loop()

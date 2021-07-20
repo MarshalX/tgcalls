@@ -8,8 +8,8 @@ import pyrogram
 # EDIT VALUES!
 API_HASH = None
 API_ID = None
-PEER_ID = '@tgcallschat'    # chat or channel where you want to get audio
-PEER_ID2 = '@tgcallslib'    # chat or channel where you want to play audio
+PEER_ID = '@tgcallschat'  # chat or channel where you want to get audio
+PEER_ID2 = '@tgcallslib'  # chat or channel where you want to play audio
 
 # global variable to transfer audio data between voice chats
 # it's not a good implementation, but its works and so easy to understand
@@ -46,7 +46,7 @@ if __name__ == '__main__':
     pyro_client = pyrogram.Client(
         os.environ.get('SESSION_NAME', 'pytgcalls'),
         api_hash=os.environ.get('API_HASH', API_HASH),
-        api_id=os.environ.get('API_ID', API_ID)
+        api_id=os.environ.get('API_ID', API_ID),
     )
 
     loop = asyncio.get_event_loop()

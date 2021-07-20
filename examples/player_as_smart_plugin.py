@@ -1,10 +1,10 @@
 import os
 
-import ffmpeg   # pip install ffmpeg-python
+import ffmpeg  # pip install ffmpeg-python
 from pyrogram import Client, filters
 from pyrogram.types import Message
 
-from pytgcalls import GroupCallFactory     # pip install pytgcalls[pyrogram]
+from pytgcalls import GroupCallFactory  # pip install pytgcalls[pyrogram]
 
 main_filter = filters.text & filters.outgoing & ~filters.edited
 cmd_filter = lambda cmd: filters.command(cmd, prefixes='!')
@@ -31,7 +31,7 @@ async def start_playout(_, message: Message):
         return await message.delete()
 
     if not group_call:
-        return await message.reply_text('Group Call not started')
+        return await message.reply_text('You are not joined (type /join)')
 
     input_filename = 'input.raw'
 
@@ -42,11 +42,7 @@ async def start_playout(_, message: Message):
     status += '- Converting... \n'
 
     ffmpeg.input(audio_original).output(
-        input_filename,
-        format='s16le',
-        acodec='pcm_s16le',
-        ac=2,
-        ar='48k'
+        input_filename, format='s16le', acodec='pcm_s16le', ac=2, ar='48k'
     ).overwrite_output().run()
 
     os.remove(audio_original)
