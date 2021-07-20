@@ -27,6 +27,7 @@ from pyrogram.errors import (
 from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
 from pyrogram.raw.types import GroupCallDiscarded as PyrogramGroupCallDiscarded, InputPeerChannel, InputPeerChat
+from pyrogram.utils import get_peer_id
 
 from pytgcalls.mtproto.data import GroupCallDiscardedWrapper, GroupCallWrapper, GroupCallParticipantWrapper
 from pytgcalls.mtproto.data.update import UpdateGroupCallWrapper, UpdateGroupCallParticipantsWrapper
@@ -170,7 +171,12 @@ class PyrogramBridge(MTProtoBridgeBase):
         my_peer = await self.get_and_set_self_peer()
 
         if join_as is None:
-            self.join_as = my_peer
+            self.join_as = self.full_chat.groupcall_default_join_as
+            if self.join_as:
+                # convert Peer to InputPeer
+                self.join_as = await self.client.resolve_peer(get_peer_id(self.join_as))
+            else:
+                self.join_as = my_peer
         elif isinstance(join_as, str) or isinstance(join_as, int):
             self.join_as = await self.client.resolve_peer(join_as)
         else:
