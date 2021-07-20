@@ -83,6 +83,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.__is_stop_requested = False
         self.__is_emit_join_payload_called = False
 
+        self.__cached_participants = dict()
+
     def __create_and_setup_native_instance(self, enable_logs_to_console: bool, path_to_log_file='group_call.log'):
         """Create NativeInstance of tgcalls C++ part.
 
@@ -115,8 +117,15 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         ssrcs_to_remove = []
         for participant in update.participants:
             ssrc = uint_ssrc(participant.source)
+            self.__cached_participants[ssrc] = parse_call_participant(participant)
 
             if participant.left:
+                # idk is it right way or not
+                # but otherwise cache list will growth until user will not found in cached list
+                # this is not a problem anyway cuz actual list can be requested in any time
+                if ssrc in self.__cached_participants:
+                    del self.__cached_participants[ssrc]
+
                 ssrcs_to_remove.append(ssrc)
             elif participant.peer == self.mtproto_bridge.join_as and ssrc != self.mtproto_bridge.my_ssrc:
                 logger.debug(f'Not equal ssrc. Expected: {ssrc}. Actual: {self.mtproto_bridge.my_ssrc}')
@@ -372,12 +381,32 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
     def __participant_descriptions_required_callback(self, ssrcs_list: List[int]):
         logger.debug('Participant descriptions required..')
 
-        def _(future):
-            filtered_participants = [p for p in future.result() if uint_ssrc(p.source) in ssrcs_list]
-            participants = [parse_call_participant(p) for p in filtered_participants]
-            self.__native_instance.addParticipants(participants)
+        using_cache = True
+        requested_participants = list()
 
-            logger.debug(f'Add description of {len(participants)} participant(s).')
+        for ssrc in ssrcs_list:
+            requested_participant = self.__cached_participants.get(ssrc)
+            if requested_participant is None:
+                logger.debug('Can\'t find participant in cached list')
+                using_cache = False
+                break
+
+            requested_participants.append(requested_participant)
+
+        if using_cache:
+            self.__native_instance.addParticipants(requested_participants)
+            logger.debug(f'Add description of {len(requested_participants)} participant(s).')
+            return
+
+        # updated cached list
+        logger.debug('Request actual participant list..')
+
+        def _(future):
+            participants = [parse_call_participant(p) for p in future.result()]
+            self.__cached_participants = {participant.audioSsrc: participant for participant in participants}
+
+            logger.debug('Call participant descriptions required callback again..')
+            self.__participant_descriptions_required_callback(ssrcs_list)
 
         call_participants = asyncio.ensure_future(
             self.get_group_call_participants(), loop=self.mtproto_bridge.get_event_loop()
