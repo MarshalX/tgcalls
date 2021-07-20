@@ -17,16 +17,18 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
+from os import path
 import re
 
 from setuptools import setup, find_packages
 
+base_path = path.abspath(path.dirname(__file__))
 packages = find_packages()
 
-with open('pytgcalls/__init__.py', encoding='utf-8') as f:
+with open(path.join(base_path, 'pytgcalls/__init__.py'), encoding='utf-8') as f:
     version = re.findall(r"__version__ = '(.+)'", f.read())[0]
 
-with open('../README.md', 'r', encoding='utf-8') as f:
+with open(path.join(base_path, '../README.md'), 'r', encoding='utf-8') as f:
     readme = f.read()
 
 setup(

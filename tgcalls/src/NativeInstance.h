@@ -5,6 +5,7 @@
 #include <modules/audio_device/include/audio_device.h>
 #include <tgcalls/ThreadLocalObject.h>
 
+#include "config.h"
 #include "InstanceHolder.h"
 #include "RtcServer.h"
 #include "WrappedAudioDeviceModuleImpl.h"
