@@ -3,7 +3,7 @@
 Otherwise, you will have to do it yourself.
 Links that will help you build on Windows
 - [Build instruction for macOS](../macos).
-- [Telegram Desktop build instructions for Visual Studio 2019 for 64 bit ](https://github.com/telegramdesktop/tdesktop/blob/dev/docs/building-msvc-x64.md).
+- [Telegram Desktop build instructions for Visual Studio 2019 for 64 bit](https://github.com/telegramdesktop/tdesktop/blob/dev/docs/building-win-x64.md).
 
 Your contribution as building instructions on Windows is appreciated!
 It's even better if you do a GitHub workflow.
