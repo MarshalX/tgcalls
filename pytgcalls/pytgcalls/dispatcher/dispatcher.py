@@ -35,11 +35,11 @@ class Dispatcher:
         self.__action_to_handlers = self.__build_handler_storage()
 
     def __build_handler_storage(self):
-        logger.debug('Building storage of handlers for dispatcher.')
+        logger.debug('Build storage of handlers for dispatcher.')
         return {action: [] for action in dir(self.actions) if not action.startswith('_')}
 
     def add_handler(self, callback: Callable, action: str) -> Callable:
-        logger.debug(f'Adding handler to {action} action..')
+        logger.debug(f'Add handler to {action} action...')
         if not asyncio.iscoroutinefunction(callback):
             raise RuntimeError('Sync callback does not supported')
 
@@ -57,7 +57,7 @@ class Dispatcher:
         return callback
 
     def remove_handler(self, callback: Callable, action: str) -> bool:
-        logger.debug(f'Removing handler of {action} action..')
+        logger.debug(f'Remove handler of {action} action...')
         try:
             handlers = self.__action_to_handlers[action]
             for i in range(len(handlers)):
@@ -74,14 +74,14 @@ class Dispatcher:
 
     def get_handlers(self, action: str) -> List[Callable]:
         try:
-            logger.debug(f'Getting handlers of {action}')
+            logger.debug(f'Get {action} handlers...')
             return self.__action_to_handlers[action]
         except KeyError:
             raise RuntimeError('Invalid action')
 
     def trigger_handlers(self, action: str, instance: 'GroupCallNative', *args, **kwargs):
-        logger.debug(f'Triggering handlers of {action}')
+        logger.debug(f'Trigger {action} handlers...')
 
         for handler in self.get_handlers(action):
-            logger.debug(f'Triggering {handler.__name__}')
+            logger.debug(f'Trigger {handler.__name__}...')
             asyncio.ensure_future(handler(instance, *args, **kwargs), loop=instance.mtproto_bridge.get_event_loop())
