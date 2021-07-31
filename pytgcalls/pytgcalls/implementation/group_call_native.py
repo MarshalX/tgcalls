@@ -159,7 +159,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             await self.mtproto_bridge.leave_current_group_call()
         except Exception as e:
             logger.warning(
-                'Can\'t leave from group call in server side. Don\'t worry, server kick your in a few seconds'
+                'Can\'t leave from group call in server side. Don\'t worry, the server will kick you in a few seconds...'
             )
             logger.debug(e)
         else:
