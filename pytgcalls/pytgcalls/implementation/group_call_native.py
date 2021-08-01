@@ -128,7 +128,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
                 ssrcs_to_remove.append(ssrc)
             elif participant.peer == self.mtproto_bridge.join_as and ssrc != self.mtproto_bridge.my_ssrc:
-                logger.debug(f'Not equal ssrc. Expected: {ssrc}. Actual: {self.mtproto_bridge.my_ssrc}')
+                logger.debug(f'Not equal ssrc. Expected: {ssrc}. Actual: {self.mtproto_bridge.my_ssrc}.')
                 await self.reconnect()
 
         if ssrcs_to_remove:
@@ -159,7 +159,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             await self.mtproto_bridge.leave_current_group_call()
         except Exception as e:
             logger.warning(
-                'Couldn\'t leave the group call. But no worries, you\'ll get removed from it in seconds'
+                'Couldn\'t leave the group call. But no worries, you\'ll get removed from it in seconds.'
             )
             logger.debug(e)
         else:
@@ -387,7 +387,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         for ssrc in ssrcs_list:
             requested_participant = self.__cached_participants.get(ssrc)
             if requested_participant is None:
-                logger.debug('Couldn\'t find participant in cached list')
+                logger.debug('Couldn\'t find participant in cached list.')
                 using_cache = False
                 break
 
@@ -399,13 +399,13 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             return
 
         # updated cached list
-        logger.debug('Requested actual participant list..')
+        logger.debug('Requested actual participant list...')
 
         def _(future):
             participants = [parse_call_participant(p) for p in future.result()]
             self.__cached_participants = {participant.audioSsrc: participant for participant in participants}
 
-            logger.debug('Call participant descriptions required callback again..')
+            logger.debug('Call participant descriptions required callback again...')
             self.__participant_descriptions_required_callback(ssrcs_list)
 
         call_participants = asyncio.ensure_future(
@@ -432,7 +432,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     def __start_status_worker(self):
         async def worker():
-            logger.debug('Start status (call action) worker..')
+            logger.debug('Start status (call action) worker...')
             while self.is_connected:
                 await self.send_speaking_group_call_action()
                 await asyncio.sleep(self.SEND_ACTION_UPDATE_EACH)
@@ -444,7 +444,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         await self.mtproto_bridge.send_speaking_group_call_action()
 
     def __set_connection_mode(self, mode: tgcalls.GroupConnectionMode, keep_broadcast_if_was_enabled=False):
-        logger.debug(f'Set connection mode {mode}')
+        logger.debug(f'Set connection mode {mode}.')
         self.__native_instance.setConnectionMode(mode, keep_broadcast_if_was_enabled)
 
     async def __set_join_response_payload(self, params):
@@ -514,7 +514,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
                     f'as {type(self.mtproto_bridge.join_as).__name__}.'
                 )
             except GroupcallSsrcDuplicateMuch:
-                logger.debug('Duplicate SSRC')
+                logger.debug('Duplicate SSRC.')
                 await self.reconnect()
 
         asyncio.ensure_future(_(), loop=self.mtproto_bridge.get_event_loop())
