@@ -97,7 +97,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         if not path_to_log_file:
             path_to_log_file = ''
 
-        logger.debug('Create a new native instance..')
+        logger.debug('Create a new native instance...')
         native_instance = tgcalls.NativeInstance(enable_logs_to_console, path_to_log_file)
 
         native_instance.setupGroupCall(
@@ -111,7 +111,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         return native_instance
 
     async def _group_call_participants_update_callback(self, update: UpdateGroupCallParticipantsWrapper):
-        logger.debug('Group call participants update..')
+        logger.debug('Group call participants update...')
         logger.debug(update)
 
         ssrcs_to_remove = []
@@ -128,7 +128,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
                 ssrcs_to_remove.append(ssrc)
             elif participant.peer == self.mtproto_bridge.join_as and ssrc != self.mtproto_bridge.my_ssrc:
-                logger.debug(f'Not equal ssrc. Expected: {ssrc}. Actual: {self.mtproto_bridge.my_ssrc}')
+                logger.debug(f'Not equal ssrc. Expected: {ssrc}. Actual: {self.mtproto_bridge.my_ssrc}.')
                 await self.reconnect()
 
         if ssrcs_to_remove:
@@ -136,7 +136,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self.__native_instance.removeSsrcs(ssrcs_to_remove)
 
     async def _group_call_update_callback(self, update: UpdateGroupCallWrapper):
-        logger.debug('Group call update..')
+        logger.debug('Group call update...')
         logger.debug(update)
 
         if isinstance(update.call, GroupCallDiscardedWrapper):
@@ -154,16 +154,16 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     async def leave_current_group_call(self):
         """Leave group call from server side (MTProto part)."""
-        logger.debug('Try to leave current group call.')
+        logger.debug('Try to leave the current group call...')
         try:
             await self.mtproto_bridge.leave_current_group_call()
         except Exception as e:
             logger.warning(
-                'Can\'t leave from group call in server side. Don\'t worry, server kick your in a few seconds'
+                'Couldn\'t leave the group call. But no worries, you\'ll get removed from it in seconds.'
             )
             logger.debug(e)
         else:
-            logger.debug('Completely leave current group call.')
+            logger.debug('Completely left the current group call.')
 
     async def edit_group_call(self, volume: int = None, muted=False):
         """Edit own settings of group call.
@@ -212,7 +212,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
     async def stop(self):
         """Properly stop tgcalls, remove MTProto handler, leave from server side."""
         if not self.__native_instance.isGroupCallStarted():
-            logger.debug('Group call not started. Nothing to stop.')
+            logger.debug('Group call is not started, so there\'s nothing to stop.')
             return
 
         self.__is_stop_requested = True
@@ -227,7 +227,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         await self.leave_current_group_call()
         self.mtproto_bridge.reset()
-        logger.debug('GroupCall properly stop.')
+        logger.debug('GroupCall stopped properly.')
 
     async def start(self, group, join_as=None, invite_hash: Optional[str] = None, enable_action=True):
         """Start voice chat (join and play/record from initial values).
@@ -272,7 +272,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     async def reconnect(self):
         """Connect to voice chat using the same native instance."""
-        logger.debug('Reconnecting..')
+        logger.debug('Reconnecting...')
 
         self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
         self.__native_instance.emitJoinPayload(self.__emit_join_payload_callback)
@@ -283,7 +283,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             await asyncio.sleep(1)
 
     def _start_native_group_call(self, *args):
-        logger.debug('Start native group call..')
+        logger.debug('Start native group call...')
         self.__native_instance.startGroupCall(*args)
 
     def set_is_mute(self, is_muted: bool):
@@ -311,7 +311,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         # Required "Manage Voice Chats" admin permission
 
         volume = max(1, min(int(volume), 200))
-        logger.debug(f'Set my value. New value: {volume}.')
+        logger.debug(f'Set volume to: {volume}.')
 
         await self.edit_group_call(volume)
         self.__set_volume(uint_ssrc(self.mtproto_bridge.my_ssrc), volume / 100)
@@ -379,7 +379,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.__native_instance.restartAudioOutputDevice()
 
     def __participant_descriptions_required_callback(self, ssrcs_list: List[int]):
-        logger.debug('Participant descriptions required..')
+        logger.debug('Participant descriptions required.')
 
         using_cache = True
         requested_participants = list()
@@ -387,7 +387,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         for ssrc in ssrcs_list:
             requested_participant = self.__cached_participants.get(ssrc)
             if requested_participant is None:
-                logger.debug('Can\'t find participant in cached list')
+                logger.debug('Couldn\'t find participant in cached list.')
                 using_cache = False
                 break
 
@@ -395,17 +395,17 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         if using_cache:
             self.__native_instance.addParticipants(requested_participants)
-            logger.debug(f'Add description of {len(requested_participants)} participant(s).')
+            logger.debug(f'Added description of {len(requested_participants)} participant(s).')
             return
 
         # updated cached list
-        logger.debug('Request actual participant list..')
+        logger.debug('Requested actual participant list...')
 
         def _(future):
             participants = [parse_call_participant(p) for p in future.result()]
             self.__cached_participants = {participant.audioSsrc: participant for participant in participants}
 
-            logger.debug('Call participant descriptions required callback again..')
+            logger.debug('Call participant descriptions required callback again...')
             self.__participant_descriptions_required_callback(ssrcs_list)
 
         call_participants = asyncio.ensure_future(
@@ -414,7 +414,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         call_participants.add_done_callback(_)
 
     def __network_state_updated_callback(self, state: bool):
-        logger.debug('Network state updated..')
+        logger.debug('Network state updated...')
 
         if self.is_connected == state:
             logger.debug('Network state is same. Do nothing.')
@@ -432,7 +432,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     def __start_status_worker(self):
         async def worker():
-            logger.debug('Start status (call action) worker..')
+            logger.debug('Start status (call action) worker...')
             while self.is_connected:
                 await self.send_speaking_group_call_action()
                 await asyncio.sleep(self.SEND_ACTION_UPDATE_EACH)
@@ -444,14 +444,14 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         await self.mtproto_bridge.send_speaking_group_call_action()
 
     def __set_connection_mode(self, mode: tgcalls.GroupConnectionMode, keep_broadcast_if_was_enabled=False):
-        logger.debug(f'Set connection mode {mode}')
+        logger.debug(f'Set connection mode {mode}.')
         self.__native_instance.setConnectionMode(mode, keep_broadcast_if_was_enabled)
 
     async def __set_join_response_payload(self, params):
-        logger.debug('Set join response payload..')
+        logger.debug('Set join response payload...')
 
         if self.__is_stop_requested:
-            logger.debug('Setting payload rejected by stop request.')
+            logger.debug('Set payload rejected by a stop request.')
             return
 
         params = params['transport']
@@ -487,10 +487,10 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         logger.debug('Join response payload was set.')
 
     def __emit_join_payload_callback(self, payload):
-        logger.debug('Emit join payload..')
+        logger.debug('Emit join payload...')
 
         if self.__is_stop_requested:
-            logger.debug('Join group call rejected by stop request.')
+            logger.debug('Join group call rejected by a stop request.')
             return
 
         if self.mtproto_bridge.group_call is None:
@@ -514,7 +514,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
                     f'as {type(self.mtproto_bridge.join_as).__name__}.'
                 )
             except GroupcallSsrcDuplicateMuch:
-                logger.debug('Duplicate SSRC')
+                logger.debug('Duplicate SSRC.')
                 await self.reconnect()
 
         asyncio.ensure_future(_(), loop=self.mtproto_bridge.get_event_loop())
