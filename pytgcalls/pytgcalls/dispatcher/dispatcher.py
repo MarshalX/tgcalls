@@ -46,7 +46,7 @@ class Dispatcher:
         try:
             handlers = self.__action_to_handlers[action]
             if callback in handlers:
-                logger.debug('Handler already existing.')
+                logger.debug('Handler is already set.')
                 return callback
 
             handlers.append(callback)
