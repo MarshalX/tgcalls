@@ -18,7 +18,6 @@
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
 from asyncio import AbstractEventLoop
-from typing import List
 
 from pyrogram.errors import (
     BadRequest as PyrogramBadRequest,
@@ -92,13 +91,6 @@ class PyrogramBridge(MTProtoBridgeBase):
             in_group_call = False
 
         return in_group_call
-
-    async def get_group_call_participants(self) -> List['GroupCallParticipantWrapper']:
-        pyrogram_participants = (
-            await (self.client.send(functions.phone.GetGroupCall(call=self.full_chat.call)))
-        ).participants
-        wrapped_participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in pyrogram_participants]
-        return wrapped_participants
 
     async def leave_current_group_call(self):
         if not self.full_chat or not self.full_chat.call or not self.my_ssrc:

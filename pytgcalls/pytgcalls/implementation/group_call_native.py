@@ -18,9 +18,8 @@
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
 import asyncio
-import json
 import logging
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
 import tgcalls
 
@@ -28,7 +27,7 @@ from pytgcalls.dispatcher import Action, DispatcherMixin
 from pytgcalls.mtproto.data import GroupCallDiscardedWrapper
 from pytgcalls.mtproto.data.update import UpdateGroupCallParticipantsWrapper, UpdateGroupCallWrapper
 from pytgcalls.mtproto.exceptions import GroupcallSsrcDuplicateMuch
-from pytgcalls.utils import uint_ssrc, parse_call_participant
+from pytgcalls.utils import uint_ssrc
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +102,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         native_instance.setupGroupCall(
             self.__emit_join_payload_callback,
             self.__network_state_updated_callback,
-            self.__participant_descriptions_required_callback,
         )
 
         logger.debug('Native instance created.')
@@ -114,26 +112,12 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         logger.debug('Group call participants update...')
         logger.debug(update)
 
-        ssrcs_to_remove = []
         for participant in update.participants:
             ssrc = uint_ssrc(participant.source)
-            self.__cached_participants[ssrc] = parse_call_participant(participant)
 
-            if participant.left:
-                # idk is it right way or not
-                # but otherwise cache list will growth until user will not found in cached list
-                # this is not a problem anyway cuz actual list can be requested in any time
-                if ssrc in self.__cached_participants:
-                    del self.__cached_participants[ssrc]
-
-                ssrcs_to_remove.append(ssrc)
-            elif participant.peer == self.mtproto_bridge.join_as and ssrc != self.mtproto_bridge.my_ssrc:
+            if participant.peer == self.mtproto_bridge.join_as and ssrc != self.mtproto_bridge.my_ssrc:
                 logger.debug(f'Not equal ssrc. Expected: {ssrc}. Actual: {self.mtproto_bridge.my_ssrc}.')
                 await self.reconnect()
-
-        if ssrcs_to_remove:
-            logger.debug(f'Remove ssrcs {ssrcs_to_remove}.')
-            self.__native_instance.removeSsrcs(ssrcs_to_remove)
 
     async def _group_call_update_callback(self, update: UpdateGroupCallWrapper):
         logger.debug('Group call update...')
@@ -143,14 +127,10 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             logger.debug('Group call discarded.')
             await self.stop()
         elif update.call.params:
-            await self.__set_join_response_payload(json.loads(update.call.params.data))
+            await self.__set_join_response_payload(update.call.params.data)
 
     async def check_group_call(self) -> bool:
         return await self.mtproto_bridge.check_group_call()
-
-    async def get_group_call_participants(self):
-        """Get group call participants of current chat."""
-        return await self.mtproto_bridge.get_group_call_participants()
 
     async def leave_current_group_call(self):
         """Leave group call from server side (MTProto part)."""
@@ -158,9 +138,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         try:
             await self.mtproto_bridge.leave_current_group_call()
         except Exception as e:
-            logger.warning(
-                'Couldn\'t leave the group call. But no worries, you\'ll get removed from it in seconds.'
-            )
+            logger.warning('Couldn\'t leave the group call. But no worries, you\'ll get removed from it in seconds.')
             logger.debug(e)
         else:
             logger.debug('Completely left the current group call.')
@@ -378,41 +356,6 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         self.__native_instance.restartAudioOutputDevice()
 
-    def __participant_descriptions_required_callback(self, ssrcs_list: List[int]):
-        logger.debug('Participant descriptions required.')
-
-        using_cache = True
-        requested_participants = list()
-
-        for ssrc in ssrcs_list:
-            requested_participant = self.__cached_participants.get(ssrc)
-            if requested_participant is None:
-                logger.debug('Couldn\'t find participant in cached list.')
-                using_cache = False
-                break
-
-            requested_participants.append(requested_participant)
-
-        if using_cache:
-            self.__native_instance.addParticipants(requested_participants)
-            logger.debug(f'Added description of {len(requested_participants)} participant(s).')
-            return
-
-        # updated cached list
-        logger.debug('Requested actual participant list...')
-
-        def _(future):
-            participants = [parse_call_participant(p) for p in future.result()]
-            self.__cached_participants = {participant.audioSsrc: participant for participant in participants}
-
-            logger.debug('Call participant descriptions required callback again...')
-            self.__participant_descriptions_required_callback(ssrcs_list)
-
-        call_participants = asyncio.ensure_future(
-            self.get_group_call_participants(), loop=self.mtproto_bridge.get_event_loop()
-        )
-        call_participants.add_done_callback(_)
-
     def __network_state_updated_callback(self, state: bool):
         logger.debug('Network state updated...')
 
@@ -447,43 +390,15 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         logger.debug(f'Set connection mode {mode}.')
         self.__native_instance.setConnectionMode(mode, keep_broadcast_if_was_enabled)
 
-    async def __set_join_response_payload(self, params):
+    async def __set_join_response_payload(self, payload):
         logger.debug('Set join response payload...')
 
         if self.__is_stop_requested:
             logger.debug('Set payload rejected by a stop request.')
             return
 
-        params = params['transport']
-
-        candidates = []
-        for row_candidates in params.get('candidates', []):
-            candidate = tgcalls.GroupJoinResponseCandidate()
-            for key, value in row_candidates.items():
-                setattr(candidate, key, value)
-
-            candidates.append(candidate)
-
-        fingerprints = []
-        for row_fingerprint in params.get('fingerprints', []):
-            fingerprint = tgcalls.GroupJoinPayloadFingerprint()
-            for key, value in row_fingerprint.items():
-                setattr(fingerprint, key, value)
-
-            fingerprints.append(fingerprint)
-
-        payload = tgcalls.GroupJoinResponsePayload()
-        payload.ufrag = params.get('ufrag')
-        payload.pwd = params.get('pwd')
-        payload.fingerprints = fingerprints
-        payload.candidates = candidates
-
-        participants = [parse_call_participant(p) for p in await self.get_group_call_participants()]
-
-        # TODO video payload :)
-
         self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeRtc)
-        self.__native_instance.setJoinResponsePayload(payload, participants)
+        self.__native_instance.setJoinResponsePayload(payload)
         logger.debug('Join response payload was set.')
 
     def __emit_join_payload_callback(self, payload):
@@ -496,16 +411,12 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         if self.mtproto_bridge.group_call is None:
             return
 
-        fingerprints = [{'hash': f.hash, 'setup': f.setup, 'fingerprint': f.fingerprint} for f in payload.fingerprints]
-
-        params = {'ufrag': payload.ufrag, 'pwd': payload.pwd, 'fingerprints': fingerprints, 'ssrc': payload.ssrc}
-        params_json = json.dumps(params)
-
         async def _():
             try:
-                await self.mtproto_bridge.join_group_call(self.invite_hash, params_json, muted=True)
+                await self.mtproto_bridge.join_group_call(self.invite_hash, payload.json, muted=True)
 
-                self.mtproto_bridge.set_my_ssrc(payload.ssrc)
+                # TODO move before handle updates from join GC
+                self.mtproto_bridge.set_my_ssrc(payload.audioSsrc)
                 self.__is_emit_join_payload_called = True
 
                 logger.debug(
