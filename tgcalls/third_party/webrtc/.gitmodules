@@ -4,3 +4,6 @@
 [submodule "src/third_party/libyuv"]
 	path = src/third_party/libyuv
 	url = https://chromium.googlesource.com/libyuv/libyuv
+[submodule "src/third_party/pipewire"]
+	path = src/third_party/pipewire
+	url = https://github.com/PipeWire/pipewire.git

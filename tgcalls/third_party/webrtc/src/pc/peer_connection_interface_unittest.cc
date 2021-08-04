@@ -683,7 +683,7 @@ class PeerConnectionInterfaceBaseTest : public ::testing::Test {
 #endif
   }
 
-  virtual void SetUp() {
+  void SetUp() override {
     // Use fake audio capture module since we're only testing the interface
     // level, and using a real one could make tests flaky when run in parallel.
     fake_audio_capture_module_ = FakeAudioCaptureModule::Create();
@@ -699,6 +699,11 @@ class PeerConnectionInterfaceBaseTest : public ::testing::Test {
     ASSERT_TRUE(pc_factory_);
     pc_factory_for_test_ =
         PeerConnectionFactoryForTest::CreatePeerConnectionFactoryForTest();
+  }
+
+  void TearDown() override {
+    if (pc_)
+      pc_->Close();
   }
 
   void CreatePeerConnection() {
@@ -734,6 +739,10 @@ class PeerConnectionInterfaceBaseTest : public ::testing::Test {
   }
 
   void CreatePeerConnection(const RTCConfiguration& config) {
+    if (pc_) {
+      pc_->Close();
+      pc_ = nullptr;
+    }
     std::unique_ptr<cricket::FakePortAllocator> port_allocator(
         new cricket::FakePortAllocator(rtc::Thread::Current(), nullptr));
     port_allocator_ = port_allocator.get();
@@ -2255,7 +2264,7 @@ TEST_P(PeerConnectionInterfaceTest, TestRejectRtpDataChannelInAnswer) {
   EXPECT_EQ(DataChannelInterface::kClosed, offer_channel->state());
 }
 
-#ifdef HAVE_SCTP
+#ifdef WEBRTC_HAVE_SCTP
 // This tests that SCTP data channels can be rejected in an answer.
 TEST_P(PeerConnectionInterfaceTest, TestRejectSctpDataChannelInAnswer)
 #else
@@ -2310,7 +2319,7 @@ TEST_P(PeerConnectionInterfaceTest, ReceiveFireFoxOffer) {
       cricket::GetFirstVideoContent(pc_->local_description()->description());
   ASSERT_TRUE(content != NULL);
   EXPECT_FALSE(content->rejected);
-#ifdef HAVE_SCTP
+#ifdef WEBRTC_HAVE_SCTP
   content =
       cricket::GetFirstDataContent(pc_->local_description()->description());
   ASSERT_TRUE(content != NULL);
@@ -3593,12 +3602,12 @@ TEST_F(PeerConnectionInterfaceTestPlanB,
 
 // Test that negotiation can succeed with a data channel only, and with the max
 // bundle policy. Previously there was a bug that prevented this.
-#ifdef HAVE_SCTP
+#ifdef WEBRTC_HAVE_SCTP
 TEST_P(PeerConnectionInterfaceTest, DataChannelOnlyOfferWithMaxBundlePolicy) {
 #else
 TEST_P(PeerConnectionInterfaceTest,
        DISABLED_DataChannelOnlyOfferWithMaxBundlePolicy) {
-#endif  // HAVE_SCTP
+#endif  // WEBRTC_HAVE_SCTP
   PeerConnectionInterface::RTCConfiguration config;
   config.bundle_policy = PeerConnectionInterface::kBundlePolicyMaxBundle;
   CreatePeerConnection(config);
@@ -3900,17 +3909,17 @@ TEST_P(PeerConnectionInterfaceTest,
 
 TEST_P(PeerConnectionInterfaceTest, ExtmapAllowMixedIsConfigurable) {
   RTCConfiguration config;
-  // Default behavior is false.
+  // Default behavior is true.
   CreatePeerConnection(config);
   std::unique_ptr<SessionDescriptionInterface> offer;
   ASSERT_TRUE(DoCreateOffer(&offer, nullptr));
-  EXPECT_FALSE(offer->description()->extmap_allow_mixed());
-  // Possible to set to true.
-  config.offer_extmap_allow_mixed = true;
-  CreatePeerConnection(config);
-  offer.release();
-  ASSERT_TRUE(DoCreateOffer(&offer, nullptr));
   EXPECT_TRUE(offer->description()->extmap_allow_mixed());
+  // Possible to set to false.
+  config.offer_extmap_allow_mixed = false;
+  CreatePeerConnection(config);
+  offer = nullptr;
+  ASSERT_TRUE(DoCreateOffer(&offer, nullptr));
+  EXPECT_FALSE(offer->description()->extmap_allow_mixed());
 }
 
 INSTANTIATE_TEST_SUITE_P(PeerConnectionInterfaceTest,

@@ -1,4 +1,4 @@
-add_library(librnnoise OBJECT)
+add_library(librnnoise OBJECT EXCLUDE_FROM_ALL)
 init_target(librnnoise)
 add_library(tg_owt::librnnoise ALIAS librnnoise)
 

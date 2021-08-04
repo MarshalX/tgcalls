@@ -15,8 +15,12 @@
 #include "api/jsep.h"
 #include "api/media_stream_interface.h"
 #include "api/peer_connection_interface.h"
+#include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
+#include "api/stats_types.h"
 #include "pc/stats_collector_interface.h"
-#include "rtc_base/synchronization/sequence_checker.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/location.h"
 
 namespace webrtc {
 
@@ -28,7 +32,6 @@ enum {
   MSG_CREATE_SESSIONDESCRIPTION_FAILED,
   MSG_GETSTATS,
   MSG_REPORT_USAGE_PATTERN,
-  MSG_ON_ERROR_DEMUXING_PACKET,
 };
 
 struct SetSessionDescriptionMsg : public rtc::MessageData {
@@ -57,13 +60,6 @@ struct GetStatsMsg : public rtc::MessageData {
   rtc::scoped_refptr<webrtc::StatsObserver> observer;
   StatsCollectorInterface* stats;
   rtc::scoped_refptr<webrtc::MediaStreamTrackInterface> track;
-};
-
-struct OnErrorDemuxingPacketMsg : public rtc::MessageData {
-  explicit OnErrorDemuxingPacketMsg(std::function<void()> func)
-    : function(func) {}
-
-  std::function<void()> function;
 };
 
 struct RequestUsagePatternMsg : public rtc::MessageData {
@@ -132,12 +128,6 @@ void PeerConnectionMessageHandler::OnMessage(rtc::Message* msg) {
       delete param;
       break;
     }
-    case MSG_ON_ERROR_DEMUXING_PACKET: {
-      OnErrorDemuxingPacketMsg* param = static_cast<OnErrorDemuxingPacketMsg*>(msg->pdata);
-      param->function();
-      delete param;
-      break;
-    }
     default:
       RTC_NOTREACHED() << "Not implemented";
       break;
@@ -185,10 +175,6 @@ void PeerConnectionMessageHandler::RequestUsagePatternReport(
   signaling_thread()->PostDelayed(RTC_FROM_HERE, delay_ms, this,
                                   MSG_REPORT_USAGE_PATTERN,
                                   new RequestUsagePatternMsg(func));
-}
-
-void PeerConnectionMessageHandler::PostErrorDemuxingPacket(std::function<void()> func) {
-  signaling_thread()->Post(RTC_FROM_HERE, this, MSG_ON_ERROR_DEMUXING_PACKET, new OnErrorDemuxingPacketMsg(func));
 }
 
 }  // namespace webrtc

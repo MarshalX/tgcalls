@@ -28,7 +28,9 @@ std::unique_ptr<DesktopCapturer> DesktopCapturer::CreateRawWindowCapturer(
     const DesktopCaptureOptions& options) {
 #if defined(WEBRTC_USE_PIPEWIRE)
   if (options.allow_pipewire() && DesktopCapturer::IsRunningUnderWayland()) {
-    return BaseCapturerPipeWire::CreateRawCapturer(options);
+    if (auto result = BaseCapturerPipeWire::CreateRawCapturer(options)) {
+      return result;
+    }
   }
 #endif  // defined(WEBRTC_USE_PIPEWIRE)
 

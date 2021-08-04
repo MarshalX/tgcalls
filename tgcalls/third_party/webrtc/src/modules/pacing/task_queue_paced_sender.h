@@ -20,6 +20,7 @@
 #include <vector>
 
 #include "absl/types/optional.h"
+#include "api/sequence_checker.h"
 #include "api/task_queue/task_queue_factory.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
@@ -30,7 +31,6 @@
 #include "modules/pacing/rtp_packet_pacer.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 #include "rtc_base/synchronization/mutex.h"
-#include "rtc_base/synchronization/sequence_checker.h"
 #include "rtc_base/task_queue.h"
 #include "rtc_base/thread_annotations.h"
 
@@ -54,6 +54,9 @@ class TaskQueuePacedSender : public RtpPacketPacer, public RtpPacketSender {
       TimeDelta hold_back_window = PacingController::kMinSleepTime);
 
   ~TaskQueuePacedSender() override;
+
+  // Ensure that necessary delayed tasks are scheduled.
+  void EnsureStarted();
 
   // Methods implementing RtpPacketSender.
 
@@ -149,6 +152,12 @@ class TaskQueuePacedSender : public RtpPacketPacer, public RtpPacketSender {
   bool stats_update_scheduled_ RTC_GUARDED_BY(task_queue_);
   // Last time stats were updated.
   Timestamp last_stats_time_ RTC_GUARDED_BY(task_queue_);
+
+  // Indicates if this task queue is started. If not, don't allow
+  // posting delayed tasks yet.
+  // TODO(crbug.com/1152887): Initialize to false once all users call
+  // EnsureStarted().
+  bool is_started_ RTC_GUARDED_BY(task_queue_) = true;
 
   // Indicates if this task queue is shutting down. If so, don't allow
   // posting any more delayed tasks as that can cause the task queue to

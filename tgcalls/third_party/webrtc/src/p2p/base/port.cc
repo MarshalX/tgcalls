@@ -493,7 +493,8 @@ bool Port::GetStunMessage(const char* data,
     }
 
     // If ICE, and the MESSAGE-INTEGRITY is bad, fail with a 401 Unauthorized
-    if (!stun_msg->ValidateMessageIntegrity(data, size, password_)) {
+    if (stun_msg->ValidateMessageIntegrity(password_) !=
+        StunMessage::IntegrityStatus::kIntegrityOk) {
       RTC_LOG(LS_ERROR) << ToString() << ": Received "
                         << StunMethodToString(stun_msg->type())
                         << " with bad M-I from " << addr.ToSensitiveString()
@@ -559,7 +560,8 @@ bool Port::GetStunMessage(const char* data,
     // No stun attributes will be verified, if it's stun indication message.
     // Returning from end of the this method.
   } else if (stun_msg->type() == GOOG_PING_REQUEST) {
-    if (!stun_msg->ValidateMessageIntegrity32(data, size, password_)) {
+    if (stun_msg->ValidateMessageIntegrity(password_) !=
+        StunMessage::IntegrityStatus::kIntegrityOk) {
       RTC_LOG(LS_ERROR) << ToString() << ": Received "
                         << StunMethodToString(stun_msg->type())
                         << " with bad M-I from " << addr.ToSensitiveString()
@@ -849,6 +851,14 @@ void Port::OnMessage(rtc::Message* pmsg) {
   }
 }
 
+void Port::SubscribePortDestroyed(
+    std::function<void(PortInterface*)> callback) {
+  port_destroyed_callback_list_.AddReceiver(callback);
+}
+
+void Port::SendPortDestroyed(Port* port) {
+  port_destroyed_callback_list_.Send(port);
+}
 void Port::OnNetworkTypeChanged(const rtc::Network* network) {
   RTC_DCHECK(network == network_);
 
@@ -913,7 +923,7 @@ void Port::OnConnectionDestroyed(Connection* conn) {
 void Port::Destroy() {
   RTC_DCHECK(connections_.empty());
   RTC_LOG(LS_INFO) << ToString() << ": Port deleted";
-  SignalDestroyed(this);
+  SendPortDestroyed(this);
   delete this;
 }
 

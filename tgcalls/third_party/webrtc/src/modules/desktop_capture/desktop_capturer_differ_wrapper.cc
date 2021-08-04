@@ -118,6 +118,9 @@ void CompareFrames(const DesktopFrame& old_frame,
   RTC_DCHECK(old_frame.size().equals(new_frame.size()));
   RTC_DCHECK_EQ(old_frame.stride(), new_frame.stride());
   rect.IntersectWith(DesktopRect::MakeSize(old_frame.size()));
+  if (rect.is_empty()) {
+    return;
+  }
 
   const int y_block_count = (rect.height() - 1) / kBlockSize;
   const int last_y_block_height = rect.height() - y_block_count * kBlockSize;

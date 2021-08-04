@@ -106,10 +106,6 @@ class ScreenCapturerX11 : public DesktopCapturer,
   // selected_monitor_rect_ should be updated as well.
   // Setting it to kFullDesktopScreenId here might be misleading.
   Atom selected_monitor_name_ = 0;
-  typedef XRRMonitorInfo* (*get_monitors_func)(Display*, Window, Bool, int*);
-  typedef void (*free_monitors_func)(XRRMonitorInfo*);
-  get_monitors_func get_monitors_ = nullptr;
-  free_monitors_func free_monitors_ = nullptr;
 
   // XFixes.
   bool has_xfixes_ = false;

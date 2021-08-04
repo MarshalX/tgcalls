@@ -1,4 +1,4 @@
-add_library(libopenh264 OBJECT)
+add_library(libopenh264 OBJECT EXCLUDE_FROM_ALL)
 init_target(libopenh264)
 add_library(tg_owt::libopenh264 ALIAS libopenh264)
 
@@ -206,6 +206,21 @@ set(include_directories
 )
 
 target_include_directories(libopenh264 PRIVATE ${include_directories})
+
+# Create include-able wels/ directory for public use of the library
+set(GEN_INC ${CMAKE_CURRENT_BINARY_DIR}/openh264_include)
+add_custom_command(OUTPUT ${GEN_INC}/wels
+COMMAND ${CMAKE_COMMAND} -E make_directory ${GEN_INC}/wels
+COMMAND ${CMAKE_COMMAND} -E copy
+    ${libopenh264_loc}/codec/api/svc/codec_api.h
+    ${libopenh264_loc}/codec/api/svc/codec_app_def.h
+    ${libopenh264_loc}/codec/api/svc/codec_def.h
+    ${libopenh264_loc}/codec/api/svc/codec_ver.h
+    ${GEN_INC}/wels
+VERBATIM
+)
+target_sources(libopenh264 PRIVATE ${GEN_INC}/wels)
+target_include_directories(libopenh264 PUBLIC $<BUILD_INTERFACE:${GEN_INC}>)
 
 if (is_x86)
     set(yasm_defines X86_32)

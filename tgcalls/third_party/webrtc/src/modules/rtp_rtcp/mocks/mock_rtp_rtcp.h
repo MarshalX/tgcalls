@@ -141,12 +141,12 @@ class MockRtpRtcpInterface : public RtpRtcpInterface {
               GetSendStreamDataCounters,
               (StreamDataCounters*, StreamDataCounters*),
               (const, override));
-  MOCK_METHOD(int32_t,
-              RemoteRTCPStat,
-              (std::vector<RTCPReportBlock> * receive_blocks),
-              (const, override));
   MOCK_METHOD(std::vector<ReportBlockData>,
               GetLatestReportBlockData,
+              (),
+              (const, override));
+  MOCK_METHOD(absl::optional<SenderReportStats>,
+              GetSenderReportStats,
               (),
               (const, override));
   MOCK_METHOD(void,

@@ -16,7 +16,6 @@
 #include "modules/video_coding/frame_object.h"
 
 namespace webrtc {
-namespace video_coding {
 namespace internal {
 class RtpFrameReferenceFinderImpl;
 }  // namespace internal
@@ -65,7 +64,6 @@ class RtpFrameReferenceFinder {
   std::unique_ptr<internal::RtpFrameReferenceFinderImpl> impl_;
 };
 
-}  // namespace video_coding
 }  // namespace webrtc
 
 #endif  // MODULES_VIDEO_CODING_RTP_FRAME_REFERENCE_FINDER_H_

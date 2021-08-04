@@ -19,9 +19,21 @@ rtc::scoped_refptr<PendingTaskSafetyFlag> PendingTaskSafetyFlag::Create() {
   return new rtc::RefCountedObject<PendingTaskSafetyFlag>();
 }
 
+rtc::scoped_refptr<PendingTaskSafetyFlag>
+PendingTaskSafetyFlag::CreateDetached() {
+  auto safety_flag = Create();
+  safety_flag->main_sequence_.Detach();
+  return safety_flag;
+}
+
 void PendingTaskSafetyFlag::SetNotAlive() {
   RTC_DCHECK_RUN_ON(&main_sequence_);
   alive_ = false;
+}
+
+void PendingTaskSafetyFlag::SetAlive() {
+  RTC_DCHECK_RUN_ON(&main_sequence_);
+  alive_ = true;
 }
 
 bool PendingTaskSafetyFlag::alive() const {

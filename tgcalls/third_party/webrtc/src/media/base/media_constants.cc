@@ -16,11 +16,14 @@ const int kVideoCodecClockrate = 90000;
 const int kDataCodecClockrate = 90000;
 const int kRtpDataMaxBandwidth = 30720;  // bps
 
+const int kVideoMtu = 1200;
+const int kVideoRtpSendBufferSize = 65536;
+const int kVideoRtpRecvBufferSize = 262144;
+
 const float kHighSystemCpuThreshold = 0.85f;
 const float kLowSystemCpuThreshold = 0.65f;
 const float kProcessCpuThreshold = 0.10f;
 
-const char kRtxCodecName[] = "rtx";
 const char kRedCodecName[] = "red";
 const char kUlpfecCodecName[] = "ulpfec";
 const char kMultiplexCodecName[] = "multiplex";
@@ -32,7 +35,11 @@ const char kFlexfecCodecName[] = "flexfec-03";
 // draft-ietf-payload-flexible-fec-scheme-02.txt
 const char kFlexfecFmtpRepairWindow[] = "repair-window";
 
+// RFC 4588 RTP Retransmission Payload Format
+const char kRtxCodecName[] = "rtx";
+const char kCodecParamRtxTime[] = "rtx-time";
 const char kCodecParamAssociatedPayloadType[] = "apt";
+
 const char kCodecParamAssociatedCodecName[] = "acn";
 
 const char kOpusCodecName[] = "opus";
