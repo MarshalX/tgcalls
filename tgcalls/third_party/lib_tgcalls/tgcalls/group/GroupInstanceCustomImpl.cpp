@@ -1351,8 +1351,6 @@ public:
 
     #if USE_RNNOISE
         std::unique_ptr<AudioCapturePostProcessor> audioProcessor = nullptr;
-    #else
-        std::unique_ptr<webrtc::CustomProcessing> audioProcessor = nullptr;
     #endif
         if (_videoContentType != VideoContentType::Screencast) {
             PlatformInterface::SharedInstance()->configurePlatformAudio();
@@ -1370,7 +1368,10 @@ public:
     #endif
         }
 
-        _threads->getWorkerThread()->Invoke<void>(RTC_FROM_HERE, [this, audioProcessor = std::move(audioProcessor)
+      _threads->getWorkerThread()->Invoke<void>(RTC_FROM_HERE, [this
+    #if USE_RNNOISE
+          , audioProcessor = std::move(audioProcessor)
+    #endif
           ]() mutable {
             cricket::MediaEngineDependencies mediaDeps;
             mediaDeps.task_queue_factory = _taskQueueFactory.get();
@@ -1380,12 +1381,14 @@ public:
             mediaDeps.video_encoder_factory = PlatformInterface::SharedInstance()->makeVideoEncoderFactory();
             mediaDeps.video_decoder_factory = PlatformInterface::SharedInstance()->makeVideoDecoderFactory();
 
+      #if USE_RNNOISE
             if (_audioLevelsUpdated && audioProcessor) {
                 webrtc::AudioProcessingBuilder builder;
                 builder.SetCapturePostProcessing(std::move(audioProcessor));
 
                 mediaDeps.audio_processing = builder.Create();
             }
+      #endif
 
             _audioDeviceModule = createAudioDeviceModule();
             if (!_audioDeviceModule) {
