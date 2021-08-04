@@ -14,11 +14,11 @@
 #import "sdk/objc/native/src/objc_video_track_source.h"
 #import "sdk/objc/native/src/objc_frame_buffer.h"
 #import "api/video_track_source_proxy.h"
-#import "platform/darwin/VideoCameraCapturerMac.h"
-
+#import "tgcalls/platform/darwin/VideoCameraCapturerMac.h"
+#import "tgcalls/desktop_capturer/DesktopCaptureSource.h"
 
 @interface DesktopSharingCapturer : NSObject<CapturerInterface>
-- (instancetype)initWithSource:(rtc::scoped_refptr<webrtc::VideoTrackSourceInterface>)source capturerKey:(NSString *)capturerKey;
+- (instancetype)initWithSource:(rtc::scoped_refptr<webrtc::VideoTrackSourceInterface>)trackSource captureSource:(tgcalls::DesktopCaptureSource)captureSource;
 
 @end
 

@@ -58,9 +58,9 @@ public:
     GroupNetworkManager(
         std::function<void(const State &)> stateUpdated,
         std::function<void(rtc::CopyOnWriteBuffer const &, bool)> transportMessageReceived,
-        std::function<void(rtc::CopyOnWriteBuffer const &, int64_t)> rtcpPacketReceived,
         std::function<void(bool)> dataChannelStateUpdated,
         std::function<void(std::string const &)> dataChannelMessageReceived,
+        std::function<void(uint32_t, uint8_t, bool)> audioActivityUpdated,
         std::shared_ptr<Threads> threads);
     ~GroupNetworkManager();
 
@@ -73,20 +73,21 @@ public:
 
     void sendDataChannelMessage(std::string const &message);
 
+    void setOutgoingVoiceActivity(bool isSpeech);
+
     webrtc::RtpTransport *getRtpTransport();
 
 private:
     void resetDtlsSrtpTransport();
+    void restartDataChannel();
     void checkConnectionTimeout();
     void candidateGathered(cricket::IceTransportInternal *transport, const cricket::Candidate &candidate);
     void candidateGatheringState(cricket::IceTransportInternal *transport);
     void OnTransportWritableState_n(rtc::PacketTransportInternal *transport);
     void OnTransportReceivingState_n(rtc::PacketTransportInternal *transport);
-    void OnDtlsHandshakeError(rtc::SSLHandshakeError error);
     void transportStateChanged(cricket::IceTransportInternal *transport);
     void transportReadyToSend(cricket::IceTransportInternal *transport);
     void transportPacketReceived(rtc::PacketTransportInternal *transport, const char *bytes, size_t size, const int64_t &timestamp, int unused);
-    void DtlsStateChanged();
     void DtlsReadyToSend(bool DtlsReadyToSend);
     void UpdateAggregateStates_n();
     void RtpPacketReceived_n(rtc::CopyOnWriteBuffer *packet, int64_t packet_time_us, bool isUnresolved);
@@ -98,10 +99,11 @@ private:
     std::shared_ptr<Threads> _threads;
     std::function<void(const GroupNetworkManager::State &)> _stateUpdated;
     std::function<void(rtc::CopyOnWriteBuffer const &, bool)> _transportMessageReceived;
-    std::function<void(rtc::CopyOnWriteBuffer const &, int64_t)> _rtcpPacketReceived;
     std::function<void(bool)> _dataChannelStateUpdated;
     std::function<void(std::string const &)> _dataChannelMessageReceived;
+    std::function<void(uint32_t, uint8_t, bool)> _audioActivityUpdated;
 
+    std::unique_ptr<rtc::NetworkMonitorFactory> _networkMonitorFactory;
     std::unique_ptr<rtc::BasicPacketSocketFactory> _socketFactory;
     std::unique_ptr<rtc::BasicNetworkManager> _networkManager;
     std::unique_ptr<webrtc::TurnCustomizer> _turnCustomizer;
