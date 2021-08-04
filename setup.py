@@ -81,7 +81,6 @@ class CMakeBuild(build_ext):
         cmake_args = [
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}'.format(extdir),
             '-DPYTHON_EXECUTABLE={}'.format(sys.executable),
-            '-DEXAMPLE_VERSION_INFO={}'.format(self.distribution.get_version()),
             '-DCMAKE_BUILD_TYPE={}'.format(cfg),  # not used on MSVC, but no harm
         ]
         build_args = []
@@ -139,6 +138,10 @@ class CMakeBuild(build_ext):
 with open(path.join(base_path, 'CMakeLists.txt'), 'r', encoding='utf-8') as f:
     regex = re.compile(r'VERSION "([A-Za-z0-9.]+)"$', re.MULTILINE)
     version = re.findall(regex, f.read())[0]
+
+    if version.count('.') == 3:
+        major, minor, path_, tweak = version.split('.')
+        version = f'{major}.{minor}.{path_}.dev{tweak}'
 
 with open(path.join(base_path, 'README.md'), 'r', encoding='utf-8') as f:
     readme = f.read()

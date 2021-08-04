@@ -13,15 +13,14 @@
 
 #include <vector>
 
-#include "sdk/objc/components/network/RTCNetworkMonitor+Private.h"
-#include "sdk/objc/native/src/network_monitor_observer.h"
-
-#include "rtc_base/async_invoker.h"
+#include "api/sequence_checker.h"
 #include "rtc_base/network_monitor.h"
 #include "rtc_base/network_monitor_factory.h"
-#include "rtc_base/synchronization/sequence_checker.h"
+#include "rtc_base/task_utils/pending_task_safety_flag.h"
 #include "rtc_base/thread.h"
 #include "rtc_base/thread_annotations.h"
+#include "sdk/objc/components/network/RTCNetworkMonitor+Private.h"
+#include "sdk/objc/native/src/network_monitor_observer.h"
 
 namespace webrtc {
 
@@ -36,7 +35,7 @@ class ObjCNetworkMonitorFactory : public rtc::NetworkMonitorFactory {
 class ObjCNetworkMonitor : public rtc::NetworkMonitorInterface,
                            public NetworkMonitorObserver {
  public:
-  ObjCNetworkMonitor() = default;
+  ObjCNetworkMonitor();
   ~ObjCNetworkMonitor() override;
 
   void Start() override;
@@ -59,7 +58,7 @@ class ObjCNetworkMonitor : public rtc::NetworkMonitorInterface,
   bool started_ = false;
   std::map<std::string, rtc::AdapterType> adapter_type_by_name_
       RTC_GUARDED_BY(thread_);
-  rtc::AsyncInvoker invoker_;
+  rtc::scoped_refptr<PendingTaskSafetyFlag> safety_flag_;
   RTCNetworkMonitor* network_monitor_ = nil;
 };
 

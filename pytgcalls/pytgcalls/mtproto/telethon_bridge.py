@@ -18,7 +18,6 @@
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
 from asyncio import AbstractEventLoop
-from typing import List
 
 from telethon.errors import (
     BadRequestError as TelethonBadRequestError,
@@ -40,7 +39,6 @@ from telethon.tl.types import (
 
 from pytgcalls.mtproto import MTProtoBridgeBase
 from pytgcalls.mtproto.data import GroupCallDiscardedWrapper, GroupCallParticipantWrapper, GroupCallWrapper
-
 from pytgcalls.mtproto.data.update import UpdateGroupCallParticipantsWrapper, UpdateGroupCallWrapper
 from pytgcalls.mtproto.exceptions import BadRequest, GroupcallSsrcDuplicateMuch
 from pytgcalls.utils import int_ssrc
@@ -107,13 +105,6 @@ class TelethonBridge(MTProtoBridgeBase):
                 raise BadRequest(e)
 
         return int_ssrc(self.my_ssrc) in ssrcs_in_group_call
-
-    async def get_group_call_participants(self) -> List['GroupCallParticipantWrapper']:
-        telethon_participants = (
-            await (self.client(functions.phone.GetGroupCallRequest(call=self.full_chat.call)))
-        ).participants
-        wrapped_participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in telethon_participants]
-        return wrapped_participants
 
     async def leave_current_group_call(self):
         if not self.full_chat or not self.full_chat.call or not self.my_ssrc:

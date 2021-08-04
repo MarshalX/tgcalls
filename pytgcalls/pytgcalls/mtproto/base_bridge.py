@@ -71,12 +71,6 @@ class MTProtoBridgeBase(ABC):
 
         raise NotImplementedError
 
-    async def get_group_call_participants(self) -> List['GroupCallParticipantWrapper']:
-        """
-        call phone.GetGroupCall method, return wrapped participants
-        """
-        raise NotImplementedError
-
     async def leave_current_group_call(self):
         """
         call phone.LeaveGroupCall and handle returned updates

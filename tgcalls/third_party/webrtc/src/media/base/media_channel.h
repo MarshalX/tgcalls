@@ -43,7 +43,6 @@
 #include "modules/rtp_rtcp/include/report_block_data.h"
 #include "rtc_base/async_packet_socket.h"
 #include "rtc_base/buffer.h"
-#include "rtc_base/callback.h"
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/dscp.h"
 #include "rtc_base/logging.h"
@@ -179,7 +178,7 @@ class MediaChannel : public sigslot::has_slots<> {
   // Sets the abstract interface class for sending RTP/RTCP data.
   virtual void SetInterface(NetworkInterface* iface)
       RTC_LOCKS_EXCLUDED(network_interface_mutex_);
-  // Called when a RTP packet is received.
+  // Called on the network when an RTP packet is received.
   virtual void OnPacketReceived(rtc::CopyOnWriteBuffer packet,
                                 int64_t packet_time_us) = 0;
   // Called when the socket's ability to send has changed.
@@ -207,6 +206,17 @@ class MediaChannel : public sigslot::has_slots<> {
   // Resets any cached StreamParams for an unsignaled RecvStream, and removes
   // any existing unsignaled streams.
   virtual void ResetUnsignaledRecvStream() = 0;
+  // Informs the media channel when the transport's demuxer criteria is updated.
+  // * OnDemuxerCriteriaUpdatePending() happens on the same thread that the
+  //   channel's streams are added and removed (worker thread).
+  // * OnDemuxerCriteriaUpdateComplete() happens on the thread where the demuxer
+  //   lives (network thread).
+  // Because the demuxer is updated asynchronously, there is a window of time
+  // where packets are arriving to the channel for streams that have already
+  // been removed on the worker thread. It is important NOT to treat these as
+  // new unsignalled ssrcs.
+  virtual void OnDemuxerCriteriaUpdatePending() = 0;
+  virtual void OnDemuxerCriteriaUpdateComplete() = 0;
   // Returns the absoulte sendtime extension id value from media channel.
   virtual int GetRtpSendTimeExtnId() const;
   // Set the frame encryptor to use on all outgoing frames. This is optional.
@@ -537,6 +547,13 @@ struct VoiceReceiverInfo : public MediaReceiverInfo {
   // longer than 150 ms).
   int32_t interruption_count = 0;
   int32_t total_interruption_duration_ms = 0;
+  // Remote outbound stats derived by the received RTCP sender reports.
+  // https://w3c.github.io/webrtc-stats/#remoteoutboundrtpstats-dict*
+  absl::optional<int64_t> last_sender_report_timestamp_ms;
+  absl::optional<int64_t> last_sender_report_remote_timestamp_ms;
+  uint32_t sender_reports_packets_sent = 0;
+  uint64_t sender_reports_bytes_sent = 0;
+  uint64_t sender_reports_reports_count = 0;
 };
 
 struct VideoSenderInfo : public MediaSenderInfo {
@@ -549,6 +566,7 @@ struct VideoSenderInfo : public MediaSenderInfo {
   int nacks_rcvd = 0;
   int send_frame_width = 0;
   int send_frame_height = 0;
+  int frames = 0;
   int framerate_input = 0;
   int framerate_sent = 0;
   int aggregated_framerate_sent = 0;
@@ -617,6 +635,7 @@ struct VideoReceiverInfo : public MediaReceiverInfo {
   uint32_t total_pauses_duration_ms = 0;
   uint32_t total_frames_duration_ms = 0;
   double sum_squared_frame_durations = 0.0;
+  uint32_t jitter_ms = 0;
 
   webrtc::VideoContentType content_type = webrtc::VideoContentType::UNSPECIFIED;
 

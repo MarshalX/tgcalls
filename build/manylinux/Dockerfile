@@ -18,7 +18,7 @@ ENV LibrariesPath /usr/src/Libraries
 WORKDIR $LibrariesPath
 
 FROM builder AS mozjpeg
-RUN git clone -b v4.0.2 --depth=1 https://github.com/mozilla/mozjpeg.git
+RUN git clone -b v4.0.1-rc2 --depth=1 https://github.com/mozilla/mozjpeg.git
 
 WORKDIR mozjpeg
 RUN cmake3 -B build . \
@@ -67,7 +67,7 @@ RUN rm -rf $opensslDir
 
 FROM builder AS ffmpeg
 COPY --from=opus ${LibrariesPath}/opus-cache /
-RUN git clone -b release/4.2 --depth=1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
+RUN git clone -b release/4.4 --depth=1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
 
 WORKDIR ffmpeg
 RUN ./configure \

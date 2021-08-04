@@ -294,20 +294,6 @@ TEST_F(RtcpSenderTest, SendSdes) {
   EXPECT_EQ("alice@host", parser()->sdes()->chunks()[0].cname);
 }
 
-TEST_F(RtcpSenderTest, SendSdesWithMaxChunks) {
-  auto rtcp_sender = CreateRtcpSender(GetDefaultConfig());
-  rtcp_sender->SetRTCPStatus(RtcpMode::kReducedSize);
-  EXPECT_EQ(0, rtcp_sender->SetCNAME("alice@host"));
-  const char cname[] = "smith@host";
-  for (size_t i = 0; i < 30; ++i) {
-    const uint32_t csrc = 0x1234 + i;
-    EXPECT_EQ(0, rtcp_sender->AddMixedCNAME(csrc, cname));
-  }
-  EXPECT_EQ(0, rtcp_sender->SendRTCP(feedback_state(), kRtcpSdes));
-  EXPECT_EQ(1, parser()->sdes()->num_packets());
-  EXPECT_EQ(31U, parser()->sdes()->chunks().size());
-}
-
 TEST_F(RtcpSenderTest, SdesIncludedInCompoundPacket) {
   auto rtcp_sender = CreateRtcpSender(GetDefaultConfig());
   rtcp_sender->SetRTCPStatus(RtcpMode::kCompound);
@@ -588,25 +574,6 @@ TEST_F(RtcpSenderTest, SendTmmbr) {
   // TODO(asapersson): tmmbr_item()->Overhead() looks broken, always zero.
 }
 
-TEST_F(RtcpSenderTest, TmmbrIncludedInCompoundPacketIfEnabled) {
-  const unsigned int kBitrateBps = 312000;
-  auto rtcp_sender = CreateRtcpSender(GetDefaultConfig());
-  rtcp_sender->SetRTCPStatus(RtcpMode::kCompound);
-  EXPECT_FALSE(rtcp_sender->TMMBR());
-  rtcp_sender->SetTMMBRStatus(true);
-  EXPECT_TRUE(rtcp_sender->TMMBR());
-  rtcp_sender->SetTargetBitrate(kBitrateBps);
-  EXPECT_EQ(0, rtcp_sender->SendRTCP(feedback_state(), kRtcpReport));
-  EXPECT_EQ(1, parser()->tmmbr()->num_packets());
-  EXPECT_EQ(1U, parser()->tmmbr()->requests().size());
-  // TMMBR should be included in each compound packet.
-  EXPECT_EQ(0, rtcp_sender->SendRTCP(feedback_state(), kRtcpReport));
-  EXPECT_EQ(2, parser()->tmmbr()->num_packets());
-
-  rtcp_sender->SetTMMBRStatus(false);
-  EXPECT_FALSE(rtcp_sender->TMMBR());
-}
-
 TEST_F(RtcpSenderTest, SendTmmbn) {
   auto rtcp_sender = CreateRtcpSender(GetDefaultConfig());
   rtcp_sender->SetRTCPStatus(RtcpMode::kCompound);
@@ -646,21 +613,6 @@ TEST_F(RtcpSenderTest, SendsTmmbnIfSetAndEmpty) {
   EXPECT_EQ(1, parser()->tmmbn()->num_packets());
   EXPECT_EQ(kSenderSsrc, parser()->tmmbn()->sender_ssrc());
   EXPECT_EQ(0U, parser()->tmmbn()->items().size());
-}
-
-TEST_F(RtcpSenderTest, SendCompoundPliRemb) {
-  const int kBitrate = 261011;
-  auto rtcp_sender = CreateRtcpSender(GetDefaultConfig());
-  std::vector<uint32_t> ssrcs;
-  ssrcs.push_back(kRemoteSsrc);
-  rtcp_sender->SetRTCPStatus(RtcpMode::kCompound);
-  rtcp_sender->SetRemb(kBitrate, ssrcs);
-  std::set<RTCPPacketType> packet_types;
-  packet_types.insert(kRtcpRemb);
-  packet_types.insert(kRtcpPli);
-  EXPECT_EQ(0, rtcp_sender->SendCompoundRTCP(feedback_state(), packet_types));
-  EXPECT_EQ(1, parser()->remb()->num_packets());
-  EXPECT_EQ(1, parser()->pli()->num_packets());
 }
 
 // This test is written to verify that BYE is always the last packet

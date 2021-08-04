@@ -10,6 +10,10 @@
 #include "rtc_base/task_utils/to_queued_task.h"
 #include "p2p/base/ice_credentials_iterator.h"
 #include "api/jsep_ice_candidate.h"
+#include "rtc_base/network_monitor_factory.h"
+
+#include "TurnCustomizerImpl.h"
+#include "platform/PlatformInterface.h"
 
 extern "C" {
 #include <openssl/sha.h>
@@ -58,24 +62,6 @@ private:
     std::string _value;
 };
 
-class TurnCustomizerImpl : public webrtc::TurnCustomizer {
-public:
-    TurnCustomizerImpl() {
-    }
-    
-    virtual ~TurnCustomizerImpl() {
-    }
-    
-    void MaybeModifyOutgoingStunMessage(cricket::PortInterface* port,
-                                        cricket::StunMessage* message) override {
-        message->AddAttribute(std::make_unique<cricket::StunByteStringAttribute>(cricket::STUN_ATTR_SOFTWARE, "Telegram "));
-    }
-    
-    bool AllowChannelData(cricket::PortInterface* port, const void *data, size_t size, bool payload) override {
-        return true;
-    }
-};
-
 NetworkManager::NetworkManager(
 	rtc::Thread *thread,
 	EncryptionKey encryptionKey,
@@ -104,6 +90,8 @@ _transportMessageReceived(std::move(transportMessageReceived)),
 _sendSignalingMessage(std::move(sendSignalingMessage)),
 _localIceParameters(rtc::CreateRandomString(cricket::ICE_UFRAG_LENGTH), rtc::CreateRandomString(cricket::ICE_PWD_LENGTH)) {
 	assert(_thread->IsCurrent());
+
+    _networkMonitorFactory = PlatformInterface::SharedInstance()->createNetworkMonitorFactory();
 }
 
 NetworkManager::~NetworkManager() {
@@ -121,7 +109,7 @@ NetworkManager::~NetworkManager() {
 void NetworkManager::start() {
     _socketFactory.reset(new rtc::BasicPacketSocketFactory(_thread));
 
-    _networkManager = std::make_unique<rtc::BasicNetworkManager>();
+    _networkManager = std::make_unique<rtc::BasicNetworkManager>(_networkMonitorFactory.get());
     
     if (_enableStunMarking) {
         _turnCustomizer.reset(new TurnCustomizerImpl());

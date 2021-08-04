@@ -14,7 +14,6 @@
 #include <X11/extensions/Xdamage.h>
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/damagewire.h>
-#include <dlfcn.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -155,26 +154,16 @@ void ScreenCapturerX11::InitXrandr() {
   if (XRRQueryExtension(display(), &randr_event_base_, &error_base_ignored) &&
       XRRQueryVersion(display(), &major_version, &minor_version)) {
     if (major_version > 1 || (major_version == 1 && minor_version >= 5)) {
-      // Dynamically link XRRGetMonitors and XRRFreeMonitors as a workaround
-      // to avoid a dependency issue with Debian 8.
-      get_monitors_ = reinterpret_cast<get_monitors_func>(
-          dlsym(RTLD_DEFAULT, "XRRGetMonitors"));
-      free_monitors_ = reinterpret_cast<free_monitors_func>(
-          dlsym(RTLD_DEFAULT, "XRRFreeMonitors"));
-      if (get_monitors_ && free_monitors_) {
-        use_randr_ = true;
-        RTC_LOG(LS_INFO) << "Using XRandR extension v" << major_version << '.'
-                         << minor_version << '.';
-        monitors_ =
-            get_monitors_(display(), root_window_, true, &num_monitors_);
+      use_randr_ = true;
+      RTC_LOG(LS_INFO) << "Using XRandR extension v" << major_version << '.'
+                        << minor_version << '.';
+      monitors_ =
+          XRRGetMonitors(display(), root_window_, true, &num_monitors_);
 
-        // Register for screen change notifications
-        XRRSelectInput(display(), root_window_, RRScreenChangeNotifyMask);
-        options_.x_display()->AddEventHandler(
-            randr_event_base_ + RRScreenChangeNotify, this);
-      } else {
-        RTC_LOG(LS_ERROR) << "Unable to link XRandR monitor functions.";
-      }
+      // Register for screen change notifications
+      XRRSelectInput(display(), root_window_, RRScreenChangeNotifyMask);
+      options_.x_display()->AddEventHandler(
+          randr_event_base_ + RRScreenChangeNotify, this);
     } else {
       RTC_LOG(LS_ERROR) << "XRandR entension is older than v1.5.";
     }
@@ -186,11 +175,11 @@ void ScreenCapturerX11::InitXrandr() {
 RTC_NO_SANITIZE("cfi-icall")
 void ScreenCapturerX11::UpdateMonitors() {
   if (monitors_) {
-    free_monitors_(monitors_);
+    XRRFreeMonitors(monitors_);
     monitors_ = nullptr;
   }
 
-  monitors_ = get_monitors_(display(), root_window_, true, &num_monitors_);
+  monitors_ = XRRGetMonitors(display(), root_window_, true, &num_monitors_);
 
   if (selected_monitor_name_) {
     if (selected_monitor_name_ == static_cast<Atom>(kFullDesktopScreenId)) {
@@ -439,7 +428,7 @@ void ScreenCapturerX11::SynchronizeFrame() {
 RTC_NO_SANITIZE("cfi-icall")
 void ScreenCapturerX11::DeinitXlib() {
   if (monitors_) {
-    free_monitors_(monitors_);
+    XRRFreeMonitors(monitors_);
     monitors_ = nullptr;
   }
 

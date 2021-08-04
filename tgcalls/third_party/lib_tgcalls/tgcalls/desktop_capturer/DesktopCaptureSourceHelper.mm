@@ -54,7 +54,6 @@ static CGSize aspectFitted(CGSize from, CGSize to) {
     return NSMakeSize(ceil(to.width * scale), ceil(to.height * scale));
 }
 
-static SQueue *queue = [[SQueue alloc] init];
 
 class SourceFrameCallbackImpl : public webrtc::DesktopCapturer::Callback {
 private:

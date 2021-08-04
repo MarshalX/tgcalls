@@ -174,6 +174,9 @@ RTCPReceiver::RTCPReceiver(const RtpRtcpInterface::Configuration& config,
       // TODO(bugs.webrtc.org/10774): Remove fallback.
       remote_ssrc_(0),
       remote_sender_rtp_time_(0),
+      remote_sender_packet_count_(0),
+      remote_sender_octet_count_(0),
+      remote_sender_reports_count_(0),
       xr_rrtr_status_(config.non_sender_rtt_measurement),
       xr_rr_rtt_ms_(0),
       oldest_tmmbr_info_ms_(0),
@@ -325,7 +328,10 @@ bool RTCPReceiver::NTP(uint32_t* received_ntp_secs,
                        uint32_t* received_ntp_frac,
                        uint32_t* rtcp_arrival_time_secs,
                        uint32_t* rtcp_arrival_time_frac,
-                       uint32_t* rtcp_timestamp) const {
+                       uint32_t* rtcp_timestamp,
+                       uint32_t* remote_sender_packet_count,
+                       uint64_t* remote_sender_octet_count,
+                       uint64_t* remote_sender_reports_count) const {
   MutexLock lock(&rtcp_receiver_lock_);
   if (!last_received_sr_ntp_.Valid())
     return false;
@@ -335,7 +341,6 @@ bool RTCPReceiver::NTP(uint32_t* received_ntp_secs,
     *received_ntp_secs = remote_sender_ntp_time_.seconds();
   if (received_ntp_frac)
     *received_ntp_frac = remote_sender_ntp_time_.fractions();
-
   // Rtp time from incoming SenderReport.
   if (rtcp_timestamp)
     *rtcp_timestamp = remote_sender_rtp_time_;
@@ -345,6 +350,14 @@ bool RTCPReceiver::NTP(uint32_t* received_ntp_secs,
     *rtcp_arrival_time_secs = last_received_sr_ntp_.seconds();
   if (rtcp_arrival_time_frac)
     *rtcp_arrival_time_frac = last_received_sr_ntp_.fractions();
+
+  // Counters.
+  if (remote_sender_packet_count)
+    *remote_sender_packet_count = remote_sender_packet_count_;
+  if (remote_sender_octet_count)
+    *remote_sender_octet_count = remote_sender_octet_count_;
+  if (remote_sender_reports_count)
+    *remote_sender_reports_count = remote_sender_reports_count_;
 
   return true;
 }
@@ -370,17 +383,6 @@ RTCPReceiver::ConsumeReceivedXrReferenceTimeInfo() {
   }
 
   return last_xr_rtis;
-}
-
-// We can get multiple receive reports when we receive the report from a CE.
-int32_t RTCPReceiver::StatisticsReceived(
-    std::vector<RTCPReportBlock>* receive_blocks) const {
-  RTC_DCHECK(receive_blocks);
-  MutexLock lock(&rtcp_receiver_lock_);
-  for (const auto& reports_per_receiver : received_report_blocks_)
-    for (const auto& report : reports_per_receiver.second)
-      receive_blocks->push_back(report.second.report_block());
-  return 0;
 }
 
 std::vector<ReportBlockData> RTCPReceiver::GetLatestReportBlockData() const {
@@ -519,6 +521,9 @@ void RTCPReceiver::HandleSenderReport(const CommonHeader& rtcp_block,
     remote_sender_ntp_time_ = sender_report.ntp();
     remote_sender_rtp_time_ = sender_report.rtp_timestamp();
     last_received_sr_ntp_ = TimeMicrosToNtp(clock_->TimeInMicroseconds());
+    remote_sender_packet_count_ = sender_report.sender_packet_count();
+    remote_sender_octet_count_ = sender_report.sender_octet_count();
+    remote_sender_reports_count_++;
   } else {
     // We will only store the send report from one source, but
     // we will store all the receive blocks.
@@ -714,7 +719,6 @@ void RTCPReceiver::HandleSdes(const CommonHeader& rtcp_block,
   }
 
   for (const rtcp::Sdes::Chunk& chunk : sdes.chunks()) {
-    received_cnames_[chunk.ssrc] = chunk.cname;
     if (cname_callback_)
       cname_callback_->OnCname(chunk.ssrc, chunk.cname);
   }
@@ -778,7 +782,6 @@ void RTCPReceiver::HandleBye(const CommonHeader& rtcp_block) {
     tmmbr_info->ready_for_delete = true;
 
   last_fir_.erase(bye.sender_ssrc());
-  received_cnames_.erase(bye.sender_ssrc());
   auto it = received_rrtrs_ssrc_it_.find(bye.sender_ssrc());
   if (it != received_rrtrs_ssrc_it_.end()) {
     received_rrtrs_.erase(it->second);
@@ -1167,20 +1170,6 @@ void RTCPReceiver::TriggerCallbacksFromRtcpPacket(
       }
     }
   }
-}
-
-int32_t RTCPReceiver::CNAME(uint32_t remoteSSRC,
-                            char cName[RTCP_CNAME_SIZE]) const {
-  RTC_DCHECK(cName);
-
-  MutexLock lock(&rtcp_receiver_lock_);
-  auto received_cname_it = received_cnames_.find(remoteSSRC);
-  if (received_cname_it == received_cnames_.end())
-    return -1;
-
-  size_t length = received_cname_it->second.copy(cName, RTCP_CNAME_SIZE - 1);
-  cName[length] = 0;
-  return 0;
 }
 
 std::vector<rtcp::TmmbItem> RTCPReceiver::TmmbrReceived() {

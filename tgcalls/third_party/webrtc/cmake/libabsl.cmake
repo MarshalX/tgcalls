@@ -1,4 +1,4 @@
-add_library(libabsl OBJECT)
+add_library(libabsl OBJECT EXCLUDE_FROM_ALL)
 init_target(libabsl)
 add_library(tg_owt::libabsl ALIAS libabsl)
 

@@ -21,7 +21,7 @@ project(tgcalls
     LANGUAGES C CXX
     DESCRIPTION "Python binding for tgcalls"
     HOMEPAGE_URL "https://github.com/MarshalX/tgcalls"
-    VERSION "1.0.0"
+    VERSION "2.0.0.0"
 )
 
 get_filename_component(third_party_loc "tgcalls/third_party" REALPATH)

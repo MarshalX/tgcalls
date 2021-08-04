@@ -10,9 +10,7 @@
 
 #include "pc/peer_connection_factory.h"
 
-#include <cstdio>
 #include <memory>
-#include <type_traits>
 #include <utility>
 
 #include "absl/strings/match.h"
@@ -27,6 +25,7 @@
 #include "api/peer_connection_factory_proxy.h"
 #include "api/peer_connection_proxy.h"
 #include "api/rtc_event_log/rtc_event_log.h"
+#include "api/sequence_checker.h"
 #include "api/transport/bitrate_settings.h"
 #include "api/units/data_rate.h"
 #include "call/audio_state.h"
@@ -42,7 +41,6 @@
 #include "pc/rtp_parameters_conversion.h"
 #include "pc/session_description.h"
 #include "pc/video_track.h"
-#include "rtc_base/bind.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/experiments/field_trial_units.h"
@@ -50,7 +48,6 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/safe_conversions.h"
 #include "rtc_base/ref_counted_object.h"
-#include "rtc_base/synchronization/sequence_checker.h"
 #include "rtc_base/system/file_wrapper.h"
 
 namespace webrtc {
@@ -76,8 +73,8 @@ CreateModularPeerConnectionFactory(
   // Verify that the invocation and the initialization ended up agreeing on the
   // thread.
   RTC_DCHECK_RUN_ON(pc_factory->signaling_thread());
-  return PeerConnectionFactoryProxy::Create(pc_factory->signaling_thread(),
-                                            pc_factory);
+  return PeerConnectionFactoryProxy::Create(
+      pc_factory->signaling_thread(), pc_factory->worker_thread(), pc_factory);
 }
 
 // Static
@@ -179,12 +176,12 @@ PeerConnectionFactory::CreateAudioSource(const cricket::AudioOptions& options) {
 }
 
 bool PeerConnectionFactory::StartAecDump(FILE* file, int64_t max_size_bytes) {
-  RTC_DCHECK(signaling_thread()->IsCurrent());
+  RTC_DCHECK_RUN_ON(worker_thread());
   return channel_manager()->StartAecDump(FileWrapper(file), max_size_bytes);
 }
 
 void PeerConnectionFactory::StopAecDump() {
-  RTC_DCHECK(signaling_thread()->IsCurrent());
+  RTC_DCHECK_RUN_ON(worker_thread());
   channel_manager()->StopAecDump();
 }
 
@@ -256,12 +253,11 @@ PeerConnectionFactory::CreatePeerConnectionOrError(
 
   std::unique_ptr<RtcEventLog> event_log =
       worker_thread()->Invoke<std::unique_ptr<RtcEventLog>>(
-          RTC_FROM_HERE,
-          rtc::Bind(&PeerConnectionFactory::CreateRtcEventLog_w, this));
+          RTC_FROM_HERE, [this] { return CreateRtcEventLog_w(); });
 
   std::unique_ptr<Call> call = worker_thread()->Invoke<std::unique_ptr<Call>>(
       RTC_FROM_HERE,
-      rtc::Bind(&PeerConnectionFactory::CreateCall_w, this, event_log.get()));
+      [this, &event_log] { return CreateCall_w(event_log.get()); });
 
   auto result = PeerConnection::Create(context_, options_, std::move(event_log),
                                        std::move(call), configuration,
@@ -269,8 +265,15 @@ PeerConnectionFactory::CreatePeerConnectionOrError(
   if (!result.ok()) {
     return result.MoveError();
   }
+  // We configure the proxy with a pointer to the network thread for methods
+  // that need to be invoked there rather than on the signaling thread.
+  // Internally, the proxy object has a member variable named |worker_thread_|
+  // which will point to the network thread (and not the factory's
+  // worker_thread()).  All such methods have thread checks though, so the code
+  // should still be clear (outside of macro expansion).
   rtc::scoped_refptr<PeerConnectionInterface> result_proxy =
-      PeerConnectionProxy::Create(signaling_thread(), result.MoveValue());
+      PeerConnectionProxy::Create(signaling_thread(), network_thread(),
+                                  result.MoveValue());
   return result_proxy;
 }
 
@@ -317,7 +320,7 @@ std::unique_ptr<Call> PeerConnectionFactory::CreateCall_w(
     RtcEventLog* event_log) {
   RTC_DCHECK_RUN_ON(worker_thread());
 
-  webrtc::Call::Config call_config(event_log);
+  webrtc::Call::Config call_config(event_log, network_thread());
   if (!channel_manager()->media_engine() || !context_->call_factory()) {
     return nullptr;
   }

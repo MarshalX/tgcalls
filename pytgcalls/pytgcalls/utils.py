@@ -17,17 +17,5 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-import tgcalls
-
-
 uint_ssrc = lambda ssrc: ssrc if ssrc >= 0 else ssrc + 2 ** 32
 int_ssrc = lambda ssrc: ssrc if ssrc < 2 ** 31 else ssrc - 2 ** 32
-
-
-def parse_call_participant(participant_data):
-    native_participant = tgcalls.GroupParticipantDescription()
-
-    native_participant.audioSsrc = uint_ssrc(participant_data.source)
-    native_participant.isRemoved = participant_data.left
-
-    return native_participant

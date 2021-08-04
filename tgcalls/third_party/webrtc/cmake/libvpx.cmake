@@ -1,4 +1,4 @@
-add_library(libvpx OBJECT)
+add_library(libvpx OBJECT EXCLUDE_FROM_ALL)
 init_target(libvpx)
 add_library(tg_owt::libvpx ALIAS libvpx)
 
@@ -703,6 +703,9 @@ elseif (is_arm OR is_aarch64)
             source/libvpx/vp9/encoder/arm/neon/vp9_quantize_neon.c
             source/libvpx/vpx_dsp/arm/deblock_neon.c
             source/libvpx/vpx_dsp/arm/intrapred_neon.c
+            source/libvpx/vpx_dsp/arm/vpx_convolve8_neon.h
+            source/libvpx/vpx_dsp/arm/vpx_convolve8_neon.c
+            source/libvpx/vpx_dsp/arm/vpx_convolve_neon.c
             source/libvpx/vpx_dsp/arm/vpx_scaled_convolve8_neon.c
             source/libvpx/vpx_dsp/arm/fdct_neon.c
             source/libvpx/vpx_dsp/arm/fdct16x16_neon.c
@@ -731,7 +734,6 @@ elseif (is_arm OR is_aarch64)
             source/libvpx/vpx_dsp/arm/mem_neon.h
             source/libvpx/vpx_dsp/arm/sum_neon.h
             source/libvpx/vpx_dsp/arm/transpose_neon.h
-            source/libvpx/vpx_dsp/arm/vpx_convolve8_neon.h
         )
     endif()
 
@@ -766,9 +768,7 @@ elseif (is_arm OR is_aarch64)
         PRIVATE
 
             source/libvpx/vpx_dsp/arm/vpx_convolve_copy_neon.c
-            source/libvpx/vpx_dsp/arm/vpx_convolve8_neon.c
             source/libvpx/vpx_dsp/arm/vpx_convolve_avg_neon.c
-            source/libvpx/vpx_dsp/arm/vpx_convolve_neon.c
             source/libvpx/vpx_dsp/arm/loopfilter_neon.c
             source/libvpx/vpx_dsp/arm/idct4x4_1_add_neon.c
             source/libvpx/vpx_dsp/arm/idct4x4_add_neon.c

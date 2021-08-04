@@ -12,7 +12,13 @@
 
 #include <utility>
 
+#include "absl/types/optional.h"
+#include "api/sequence_checker.h"
 #include "pc/ice_transport.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/logging.h"
+#include "rtc_base/ref_counted_object.h"
+#include "rtc_base/ssl_certificate.h"
 
 namespace webrtc {
 
@@ -45,8 +51,11 @@ DtlsTransport::DtlsTransport(
       ice_transport_(new rtc::RefCountedObject<IceTransportWithPointer>(
           internal_dtls_transport_->ice_transport())) {
   RTC_DCHECK(internal_dtls_transport_.get());
-  internal_dtls_transport_->SignalDtlsState.connect(
-      this, &DtlsTransport::OnInternalDtlsState);
+  internal_dtls_transport_->SubscribeDtlsState(
+      [this](cricket::DtlsTransportInternal* transport,
+             cricket::DtlsTransportState state) {
+        OnInternalDtlsState(transport, state);
+      });
   UpdateInformation();
 }
 

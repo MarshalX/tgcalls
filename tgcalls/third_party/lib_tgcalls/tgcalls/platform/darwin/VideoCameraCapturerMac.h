@@ -15,6 +15,8 @@
 - (void)setIsEnabled:(bool)isEnabled;
 - (void)setUncroppedSink:(std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>>)sink;
 - (void)setPreferredCaptureAspectRatio:(float)aspectRatio;
+- (void)setOnFatalError:(std::function<void()>)error;
+- (void)setOnPause:(std::function<void(bool)>)pause;
 @end
 
 @interface VideoCameraCapturer : NSObject<CapturerInterface>

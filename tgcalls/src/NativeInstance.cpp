@@ -11,7 +11,9 @@ auto noticeDisplayed = false;
 NativeInstance::NativeInstance(bool logToStdErr, string logPath)
     : _logToStdErr(logToStdErr), _logPath(std::move(logPath)) {
   if (!noticeDisplayed) {
-    py::print("tgcalls v" + std::string(PROJECT_VER) + ", Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>");
+    auto ver = std::string(PROJECT_VER);
+    auto dev = std::count(ver.begin(), ver.end(), '.') == 3 ? " DEV" : "";
+    py::print("tgcalls v" + ver + dev + ", Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>");
     py::print("Licensed under the terms of the GNU Lesser General Public License v3 (LGPLv3) \n\n");
 
     noticeDisplayed = true;
@@ -26,12 +28,9 @@ NativeInstance::~NativeInstance() {
 
 void NativeInstance::setupGroupCall(
     std::function<void(tgcalls::GroupJoinPayload)> &emitJoinPayloadCallback,
-    std::function<void(bool)> &networkStateUpdated,
-    std::function<void(std::vector<uint32_t> const &)>
-    &participantDescriptionsRequired) {
+    std::function<void(bool)> &networkStateUpdated) {
   _emitJoinPayloadCallback = emitJoinPayloadCallback;
   _networkStateUpdated = networkStateUpdated;
-  _participantDescriptionsRequired = participantDescriptionsRequired;
 }
 
 void NativeInstance::createInstanceHolder(
@@ -48,15 +47,16 @@ void NativeInstance::createInstanceHolder(
       [=](tgcalls::GroupNetworkState groupNetworkState) {
         _networkStateUpdated(groupNetworkState.isConnected);
       },
-      .audioLevelsUpdated =
-      [=](tgcalls::GroupLevelsUpdate const &update) {}, // TODO may be
       .initialInputDeviceId = std::move(initialInputDeviceId),
       .initialOutputDeviceId = std::move(initialOutputDeviceId),
       .createAudioDeviceModule = std::move(createAudioDeviceModule),
-      .participantDescriptionsRequired =
-      [=](std::vector<uint32_t> const &ssrcs) {
-        _participantDescriptionsRequired(ssrcs);
-      },
+      .outgoingAudioBitrateKbit=128,  // TODO move to arg
+      .disableOutgoingAudioProcessing=true, // TODO move to arg
+      // deprecated
+//      .participantDescriptionsRequired =
+//      [=](std::vector<uint32_t> const &ssrcs) {
+//        _participantDescriptionsRequired(ssrcs);
+//      },
       //        .requestBroadcastPart = [=](int64_t time, int64_t period,
       //        std::function<void(tgcalls::BroadcastPart &&)> done) {},
   };
@@ -112,15 +112,12 @@ bool NativeInstance::isGroupCallStarted() const {
   return instanceHolder != nullptr && instanceHolder->groupNativeInstance != nullptr;
 }
 
-void NativeInstance::emitJoinPayload(std::function<void(tgcalls::GroupJoinPayload)> &f) const {
+void NativeInstance::emitJoinPayload(std::function<void(tgcalls::GroupJoinPayload)> const &f) const {
   instanceHolder->groupNativeInstance->emitJoinPayload(f);
 }
 
-void NativeInstance::setJoinResponsePayload(
-    tgcalls::GroupJoinResponsePayload payload,
-    std::vector<tgcalls::GroupParticipantDescription> &&participants) const {
-  instanceHolder->groupNativeInstance->setJoinResponsePayload(
-      std::move(payload), std::move(participants));
+void NativeInstance::setJoinResponsePayload(std::string const &payload) const {
+  instanceHolder->groupNativeInstance->setJoinResponsePayload(payload);
 }
 
 void NativeInstance::setIsMuted(bool isMuted) const {
@@ -225,15 +222,6 @@ void NativeInstance::setAudioOutputDevice(std::string id) const {
 
 void NativeInstance::setAudioInputDevice(std::string id) const {
   instanceHolder->groupNativeInstance->setAudioInputDevice(std::move(id));
-}
-
-void NativeInstance::removeSsrcs(std::vector<uint32_t> ssrcs) const {
-  instanceHolder->groupNativeInstance->removeSsrcs(std::move(ssrcs));
-}
-
-void NativeInstance::addParticipants(
-    std::vector<tgcalls::GroupParticipantDescription> &&participants) const {
-  instanceHolder->groupNativeInstance->addParticipants(std::move(participants));
 }
 
 void NativeInstance::startCall(vector<RtcServer> servers,
