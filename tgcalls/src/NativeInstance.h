@@ -23,7 +23,6 @@ public:
 
     std::function<void(tgcalls::GroupJoinPayload payload)> _emitJoinPayloadCallback = nullptr;
     std::function<void(bool)> _networkStateUpdated = nullptr;
-    std::function<void(std::vector<uint32_t> const &)> _participantDescriptionsRequired = nullptr;
 
     rtc::scoped_refptr<webrtc::AudioDeviceModule> _audioDeviceModule;
 
@@ -34,8 +33,7 @@ public:
 
     void setupGroupCall(
             std::function<void(tgcalls::GroupJoinPayload)> &,
-            std::function<void(bool)> &,
-            std::function<void(std::vector<uint32_t> const &)> &
+            std::function<void(bool)> &
     );
 
     void startGroupCall(FileAudioDeviceDescriptor &);
@@ -56,8 +54,6 @@ public:
     void printAvailableRecordingDevices() const;
     void setAudioOutputDevice(std::string id) const;
     void setAudioInputDevice(std::string id) const;
-
-    void removeSsrcs(std::vector<uint32_t> ssrcs) const;
 
     void receiveSignalingData(std::vector<uint8_t> &data) const;
     void setJoinResponsePayload(std::string const &) const;
