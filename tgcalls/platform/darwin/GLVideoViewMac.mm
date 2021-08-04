@@ -139,8 +139,6 @@ static CVReturn OnDisplayLinkFired(CVDisplayLinkRef displayLink,
     id<RTCVideoViewShading> _shader;
     
     int64_t _lastDrawnFrameTimeStampNs;
-    void (^_onFirstFrameReceived)(float);
-    bool _firstFrameReceivedReported;
 }
 
 @synthesize videoFrame = _videoFrame;
@@ -235,13 +233,6 @@ static CVReturn OnDisplayLinkFired(CVDisplayLinkRef displayLink,
     }
     CGLUnlockContext([context CGLContextObj]);
     
-    if (!_firstFrameReceivedReported && _onFirstFrameReceived) {
-        _firstFrameReceivedReported = true;
-        float aspectRatio = (float)frame.width / (float)frame.height;
-        dispatch_async(dispatch_get_main_queue(), ^{
-            self->_onFirstFrameReceived(aspectRatio);
-        });
-    }
     
 }
 
@@ -291,10 +282,6 @@ static CVReturn OnDisplayLinkFired(CVDisplayLinkRef displayLink,
     [self teardownDisplayLink];
 }
 
-- (void)setOnFirstFrameReceived:(void (^ _Nullable)(float))onFirstFrameReceived {
-    _onFirstFrameReceived = [onFirstFrameReceived copy];
-    _firstFrameReceivedReported = false;
-}
 
 
 @end
@@ -318,6 +305,9 @@ static CVReturn OnDisplayLinkFired(CVDisplayLinkRef displayLink,
     bool _didSetShouldBeMirrored;
     bool _shouldBeMirrored;
     bool _forceMirrored;
+    
+    void (^_onFirstFrameReceived)(float);
+    bool _firstFrameReceivedReported;
 
 }
 
@@ -385,6 +375,11 @@ static CVReturn OnDisplayLinkFired(CVDisplayLinkRef displayLink,
                 [strongSelf setInternalOrientation:mappedValue];
                 
                 [strongSelf renderFrame:videoFrame];
+                
+                if (!strongSelf->_firstFrameReceivedReported && strongSelf->_onFirstFrameReceived) {
+                    strongSelf->_firstFrameReceivedReported = true;
+                    strongSelf->_onFirstFrameReceived((float)videoFrame.width / (float)videoFrame.height);
+                }
             });
         }));
     }
@@ -475,7 +470,8 @@ static CVReturn OnDisplayLinkFired(CVDisplayLinkRef displayLink,
 }
 
 - (void)setOnFirstFrameReceived:(void (^ _Nullable)(float))onFirstFrameReceived {
-    [self.glView setOnFirstFrameReceived:onFirstFrameReceived];
+    _onFirstFrameReceived = [onFirstFrameReceived copy];
+    _firstFrameReceivedReported = false;
 }
 
 - (void)setInternalOrientationAndSize:(int)internalOrientation size:(CGSize)size {

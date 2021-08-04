@@ -9,8 +9,8 @@
 #import "sdk/objc/native/src/objc_video_track_source.h"
 #import "sdk/objc/native/src/objc_frame_buffer.h"
 #import "api/video_track_source_proxy.h"
-
-
+#import <CoreMediaIO/CMIOHardware.h>
+#import "TGCMIODevice.h"
 #import "helpers/AVCaptureSession+DevicePosition.h"
 #import "helpers/RTCDispatcher+Private.h"
 #import "base/RTCVideoFrame.h"
@@ -19,13 +19,13 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "third_party/libyuv/include/libyuv.h"
-
+#include "DarwinVideoSource.h"
 static const int64_t kNanosecondsPerSecond = 1000000000;
 
-static webrtc::ObjCVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> nativeSource) {
+static tgcalls::DarwinVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> nativeSource) {
     webrtc::VideoTrackSourceProxy *proxy_source =
     static_cast<webrtc::VideoTrackSourceProxy *>(nativeSource.get());
-    return static_cast<webrtc::ObjCVideoTrackSource *>(proxy_source->internal());
+    return static_cast<tgcalls::DarwinVideoTrackSource *>(proxy_source->internal());
 }
 
 
@@ -161,7 +161,10 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr
 
     // Live on RTCDispatcherTypeCaptureSession.
     BOOL _hasRetriedOnFatalError;
+    BOOL _hadFatalError;
     BOOL _isRunning;
+    
+    BOOL _shouldBeMirrored;
 
     // Live on RTCDispatcherTypeCaptureSession and main thread.
     std::atomic<bool> _willBeRunning;
@@ -189,9 +192,8 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr
     float _aspectRatio;
     std::vector<uint8_t> _croppingBuffer;
     std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> _uncroppedSink;
-
+    std::function<void ()> _onFatalError;
     int _warmupFrameCount;
-
 }
 
 @end
@@ -208,7 +210,7 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr
         _isPaused = false;
         _skippedFrame = 0;
         _rotation = RTCVideoRotation_0;
-        
+
         _warmupFrameCount = 100;
 
         if (![self setupCaptureSession:[[AVCaptureSession alloc] init]]) {
@@ -229,10 +231,12 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr
     AVCaptureDevice * defaultDevice = [AVCaptureDevice defaultDeviceWithMediaType:AVMediaTypeVideo];
     NSMutableArray<AVCaptureDevice *> * devices = [[AVCaptureDevice devicesWithMediaType:AVMediaTypeVideo] mutableCopy];
     
+    [devices addObjectsFromArray:[AVCaptureDevice devicesWithMediaType:AVMediaTypeMuxed]];
+
     if ([devices count] > 0) {
         [devices insertObject:defaultDevice atIndex:0];
     }
-
+        
     return devices;
 }
 
@@ -259,6 +263,18 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr
                         format:(AVCaptureDeviceFormat *)format
                            fps:(NSInteger)fps {
   [self setupCaptureWithDevice:device format:format fps:fps completionHandler:nil];
+}
+
+-(void)setOnFatalError:(std::function<void ()>)error {
+    if (!self->_hadFatalError) {
+      _onFatalError = std::move(error);
+    } else if (error) {
+      error();
+    }
+}
+
+-(void)setOnPause:(std::function<void (bool)>)pause {
+   
 }
 
 - (void)stop {
@@ -321,14 +337,37 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr
                            fps:(NSInteger)fps
              completionHandler:(nullable void (^)(NSError *))completionHandler {
 
+    
+    CMIOObjectPropertyAddress latency_pa = {
+        kCMIODevicePropertyLatency,
+        kCMIOObjectPropertyScopeWildcard,
+        kCMIOObjectPropertyElementWildcard
+    };
+    UInt32 dataSize = 0;
+    
+    NSNumber *_connectionID = ((NSNumber *)[device valueForKey:@"_connectionID"]);
+    
+    CMIODeviceID deviceId = (CMIODeviceID)[_connectionID intValue];
+    
+    if (device) {
+        if (CMIOObjectGetPropertyDataSize(deviceId, &latency_pa, 0, nil, &dataSize) == noErr) {
+            _shouldBeMirrored = NO;
+        } else {
+            _shouldBeMirrored = YES;
+        }
+    } else {
+        _shouldBeMirrored = [device hasMediaType:AVMediaTypeVideo];
+    }
 //  [RTCDispatcher
 //      dispatchAsyncOnType:RTCDispatcherTypeCaptureSession
 //   block:^{
       RTCLogInfo("startCaptureWithDevice %@ @ %ld fps", format, (long)fps);
+    NSError *error = nil;
 
       self->_currentDevice = device;
-      self->_currentInput = [[AVCaptureDeviceInput alloc] initWithDevice:device error:nil];
-      NSError *error = nil;
+    
+    
+      self->_currentInput = [[AVCaptureDeviceInput alloc] initWithDevice:device error:&error];
       if (![self->_currentDevice lockForConfiguration:&error]) {
           RTCLogError(@"Failed to lock device %@. Error: %@",
                       self->_currentDevice,
@@ -405,7 +444,7 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr
     }
 
     TGRTCCVPixelBuffer *rtcPixelBuffer = [[TGRTCCVPixelBuffer alloc] initWithPixelBuffer:pixelBuffer];
-    rtcPixelBuffer.shouldBeMirrored = true;
+    rtcPixelBuffer.shouldBeMirrored = _shouldBeMirrored;
     if (_aspectRatio > 0.001) {
 		const auto originalWidth = rtcPixelBuffer.width;
 		const auto originalHeight = rtcPixelBuffer.height;
@@ -512,6 +551,7 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr
         // If we successfully restarted after an unknown error,
         // allow future retries on fatal errors.
         self->_hasRetriedOnFatalError = NO;
+        self->_hadFatalError = NO;
 //    }];
 
 
@@ -537,6 +577,11 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr
             self->_hasRetriedOnFatalError = YES;
         } else {
             RTCLogError(@"Previous fatal error recovery failed.");
+            if (_onFatalError) {
+                _onFatalError();
+            } else {
+                self->_hadFatalError = YES;
+            }
         }
 //    }];
 }
@@ -611,7 +656,7 @@ static webrtc::ObjCVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr
     _preferredOutputPixelFormat = [pixelFormat unsignedIntValue];
     _outputPixelFormat = _preferredOutputPixelFormat;
     videoDataOutput.videoSettings = @{(NSString *)kCVPixelBufferPixelFormatTypeKey : pixelFormat};
-    videoDataOutput.alwaysDiscardsLateVideoFrames = NO;
+    videoDataOutput.alwaysDiscardsLateVideoFrames = YES;
     [videoDataOutput setSampleBufferDelegate:self queue:self.frameQueue];
     _videoDataOutput = videoDataOutput;
 }

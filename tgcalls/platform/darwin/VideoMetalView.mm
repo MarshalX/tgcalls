@@ -86,6 +86,9 @@ private:
     
     bool _didSetShouldBeMirrored;
     bool _shouldBeMirrored;
+    bool _shouldBeMirroredVertically;
+
+    __weak VideoMetalView *_cloneView;
 }
 
 @end
@@ -140,10 +143,25 @@ private:
                 [strongSelf setInternalOrientationAndSize:mappedValue size:size];
                 
                 [strongSelf renderFrame:videoFrame];
+
+                VideoMetalView *cloneView = strongSelf->_cloneView;
+                if (cloneView) {
+                    if (!CGSizeEqualToSize(size, cloneView->_currentSize)) {
+                        cloneView->_currentSize = size;
+                        [cloneView setSize:size];
+                    }
+
+                    [cloneView setInternalOrientationAndSize:mappedValue size:size];
+                    [cloneView renderFrame:videoFrame];
+                }
             });
         }));
     }
     return self;
+}
+
+- (void)dealloc {
+    _sink.reset();
 }
 
 - (BOOL)isEnabled {
@@ -190,6 +208,7 @@ private:
     _metalView = [VideoMetalView createMetalView:self.bounds];
     _metalView.delegate = self;
     _metalView.contentMode = UIViewContentModeScaleToFill;
+    _metalView.preferredFramesPerSecond = 30;
     [self addSubview:_metalView];
     _videoFrameSize = CGSizeZero;
 }
@@ -240,10 +259,16 @@ private:
         
         if ([buffer isKindOfClass:[TGRTCCVPixelBuffer class]]) {
             bool shouldBeMirrored = ((TGRTCCVPixelBuffer *)buffer).shouldBeMirrored;
-            if (shouldBeMirrored != _shouldBeMirrored) {
+            bool shouldBeMirroredVertically = _internalOrientation == 1 || _internalOrientation == 3;
+            if (shouldBeMirrored != _shouldBeMirrored || shouldBeMirroredVertically != _shouldBeMirroredVertically) {
                 _shouldBeMirrored = shouldBeMirrored;
+                _shouldBeMirroredVertically = shouldBeMirroredVertically;
                 if (_shouldBeMirrored) {
-                    _metalView.transform = CGAffineTransformMakeScale(1.0f, -1.0f);
+                    if (_shouldBeMirroredVertically) {
+                        _metalView.transform = CGAffineTransformMakeScale(1.0f, -1.0f);
+                    } else {
+                        _metalView.transform = CGAffineTransformMakeScale(-1.0f, 1.0f);
+                    }
                 } else {
                     _metalView.transform = CGAffineTransformIdentity;
                 }
@@ -425,6 +450,10 @@ private:
 
 - (void)internalSetOnIsMirroredUpdated:(void (^ _Nullable)(bool))onIsMirroredUpdated {
     _onIsMirroredUpdated = [onIsMirroredUpdated copy];
+}
+
+- (void)setClone:(VideoMetalView * _Nullable)clone {
+    _cloneView = clone;
 }
 
 @end

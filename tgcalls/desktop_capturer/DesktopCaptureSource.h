@@ -5,41 +5,81 @@
 //  Created by Mikhail Filimonov on 29.12.2020.
 //  Copyright © 2020 Mikhail Filimonov. All rights reserved.
 //
+#ifndef TGCALLS_DESKTOP_CAPTURE_SOURCE_H__
+#define TGCALLS_DESKTOP_CAPTURE_SOURCE_H__
 
-#import <Foundation/Foundation.h>
+#include <string>
 
-NS_ASSUME_NONNULL_BEGIN
+#ifdef WEBRTC_WIN
+// Compiler errors in conflicting Windows headers if not included here.
+#include <winsock2.h>
+#endif // WEBRTC_WIN
 
+namespace tgcalls {
 
-@protocol VideoSource
--(NSString *)deviceIdKey;
--(NSString *)title;
--(NSString *)uniqueKey;
--(BOOL)isEqual:(id)another;
-@end
+class VideoSource {
+public:
+	virtual ~VideoSource() = default;
 
-@interface DesktopCaptureSourceData : NSObject
-@property CGSize aspectSize;
-@property double fps;
-@property bool captureMouse;
--(id)initWithSize:(CGSize)size fps:(double)fps captureMouse:(bool)captureMouse;
+	virtual std::string deviceIdKey() = 0;
+	virtual std::string title() = 0;
+	virtual std::string uniqueKey() = 0;
+};
 
--(NSString *)cachedKey;
-@end
+struct DesktopSize {
+	int width = 0;
+	int height = 0;
+};
 
-@interface DesktopCaptureSource : NSObject<VideoSource>
--(long)uniqueId;
--(BOOL)isWindow;
-@end
+struct DesktopCaptureSourceData {
+	DesktopSize aspectSize;
+	double fps = 24.;
+	bool captureMouse = true;
 
+	std::string cachedKey() const;
+};
 
-@interface DesktopCaptureSourceScope : NSObject
-@property(nonatomic, strong, readonly) DesktopCaptureSourceData *data;
-@property(nonatomic, strong, readonly) DesktopCaptureSource *source;
--(id)initWithSource:(DesktopCaptureSource *)source data:(DesktopCaptureSourceData *)data;
+class DesktopCaptureSource : public VideoSource {
+public:
+	DesktopCaptureSource(
+		long long uniqueId,
+		std::string title,
+		bool isWindow);
 
--(NSString *)cachedKey;
+	static DesktopCaptureSource Invalid() {
+		return InvalidTag{};
+	}
 
-@end
+	long long uniqueId() const;
+	bool isWindow() const;
 
-NS_ASSUME_NONNULL_END
+	std::string deviceIdKey() const;
+	std::string title() const;
+	std::string uniqueKey() const;
+
+	bool valid() const {
+		return _valid;
+	}
+	explicit operator bool() const {
+		return _valid;
+	}
+
+private:
+	struct InvalidTag {};
+	DesktopCaptureSource(InvalidTag) : _valid(false) {
+	}
+
+	std::string deviceIdKey() override;
+	std::string title() override;
+	std::string uniqueKey() override;
+
+	long long _uniqueId = 0;
+	std::string _title;
+	bool _isWindow = false;
+	bool _valid = true;
+
+};
+
+} // namespace tgcalls
+
+#endif // TGCALLS_DESKTOP_CAPTURE_SOURCE_H__

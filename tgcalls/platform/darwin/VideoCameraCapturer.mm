@@ -15,141 +15,26 @@
 #import "helpers/AVCaptureSession+DevicePosition.h"
 #import "helpers/RTCDispatcher+Private.h"
 #import "base/RTCVideoFrame.h"
+#include "DarwinVideoSource.h"
 
 #include "common_video/libyuv/include/webrtc_libyuv.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "third_party/libyuv/include/libyuv.h"
+#include "api/video/i420_buffer.h"
+#include "api/video/nv12_buffer.h"
+
+#include "VideoCaptureView.h"
+
+namespace {
 
 static const int64_t kNanosecondsPerSecond = 1000000000;
 
-static webrtc::ObjCVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> nativeSource) {
+static tgcalls::DarwinVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> nativeSource) {
     webrtc::VideoTrackSourceProxy *proxy_source =
     static_cast<webrtc::VideoTrackSourceProxy *>(nativeSource.get());
-    return static_cast<webrtc::ObjCVideoTrackSource *>(proxy_source->internal());
+    return static_cast<tgcalls::DarwinVideoTrackSource *>(proxy_source->internal());
 }
-
-//TODO: investigate the green edge after scaling, likely related to padding
-/*@interface RTCCVPixelBuffer (CustomCropping)
-
-@end
-
-@implementation RTCCVPixelBuffer (CustomCropping)
-
-- (BOOL)custom_cropAndScaleTo:(CVPixelBufferRef)outputPixelBuffer
-               withTempBuffer:(nullable uint8_t*)tmpBuffer {
-    const OSType srcPixelFormat = CVPixelBufferGetPixelFormatType(self.pixelBuffer);
-    const OSType dstPixelFormat = CVPixelBufferGetPixelFormatType(outputPixelBuffer);
-    
-    switch (srcPixelFormat) {
-        case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange:
-        case kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange: {
-            size_t dstWidth = CVPixelBufferGetWidth(outputPixelBuffer);
-            size_t dstHeight = CVPixelBufferGetHeight(outputPixelBuffer);
-            if (dstWidth > 0 && dstHeight > 0) {
-                RTC_DCHECK(dstPixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarFullRange ||
-                           dstPixelFormat == kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange);
-                if ([self requiresScalingToWidth:(int)dstWidth height:(int)dstHeight]) {
-                    RTC_DCHECK(tmpBuffer);
-                }
-                [self custom_cropAndScaleNV12To:outputPixelBuffer withTempBuffer:tmpBuffer];
-            }
-            break;
-        }
-        case kCVPixelFormatType_32BGRA:
-        case kCVPixelFormatType_32ARGB: {
-            RTC_DCHECK(srcPixelFormat == dstPixelFormat);
-            [self custom_cropAndScaleARGBTo:outputPixelBuffer];
-            break;
-        }
-        default: { RTC_NOTREACHED() << "Unsupported pixel format."; }
-    }
-    
-    return YES;
-}
-
-- (void)custom_cropAndScaleNV12To:(CVPixelBufferRef)outputPixelBuffer withTempBuffer:(uint8_t*)tmpBuffer {
-    // Prepare output pointers.
-    CVReturn cvRet = CVPixelBufferLockBaseAddress(outputPixelBuffer, 0);
-    if (cvRet != kCVReturnSuccess) {
-        RTC_LOG(LS_ERROR) << "Failed to lock base address: " << cvRet;
-    }
-    const int dstWidth = (int)CVPixelBufferGetWidth(outputPixelBuffer);
-    const int dstHeight = (int)CVPixelBufferGetHeight(outputPixelBuffer);
-    uint8_t* dstY =
-    reinterpret_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(outputPixelBuffer, 0));
-    const int dstYStride = (int)CVPixelBufferGetBytesPerRowOfPlane(outputPixelBuffer, 0);
-    uint8_t* dstUV =
-    reinterpret_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(outputPixelBuffer, 1));
-    const int dstUVStride = (int)CVPixelBufferGetBytesPerRowOfPlane(outputPixelBuffer, 1);
-    
-    // Prepare source pointers.
-    CVPixelBufferLockBaseAddress(self.pixelBuffer, kCVPixelBufferLock_ReadOnly);
-    const uint8_t* srcY = static_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(self.pixelBuffer, 0));
-    const int srcYStride = (int)CVPixelBufferGetBytesPerRowOfPlane(self.pixelBuffer, 0);
-    const uint8_t* srcUV = static_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(self.pixelBuffer, 1));
-    const int srcUVStride = (int)CVPixelBufferGetBytesPerRowOfPlane(self.pixelBuffer, 1);
-    
-    // Crop just by modifying pointers.
-    srcY += srcYStride * self.cropY + self.cropX;
-    srcUV += srcUVStride * (self.cropY / 2) + self.cropX;
-    
-    webrtc::NV12Scale(tmpBuffer,
-                      srcY,
-                      srcYStride,
-                      srcUV,
-                      srcUVStride,
-                      self.cropWidth,
-                      self.cropHeight,
-                      dstY,
-                      dstYStride,
-                      dstUV,
-                      dstUVStride,
-                      dstWidth,
-                      dstHeight);
-    
-    CVPixelBufferUnlockBaseAddress(self.pixelBuffer, kCVPixelBufferLock_ReadOnly);
-    CVPixelBufferUnlockBaseAddress(outputPixelBuffer, 0);
-}
-
-- (void)custom_cropAndScaleARGBTo:(CVPixelBufferRef)outputPixelBuffer {
-    // Prepare output pointers.
-    CVReturn cvRet = CVPixelBufferLockBaseAddress(outputPixelBuffer, 0);
-    if (cvRet != kCVReturnSuccess) {
-        RTC_LOG(LS_ERROR) << "Failed to lock base address: " << cvRet;
-    }
-    const int dstWidth = (int)CVPixelBufferGetWidth(outputPixelBuffer);
-    const int dstHeight = (int)CVPixelBufferGetHeight(outputPixelBuffer);
-    
-    uint8_t* dst = reinterpret_cast<uint8_t*>(CVPixelBufferGetBaseAddress(outputPixelBuffer));
-    const int dstStride = (int)CVPixelBufferGetBytesPerRow(outputPixelBuffer);
-    
-    // Prepare source pointers.
-    CVPixelBufferLockBaseAddress(self.pixelBuffer, kCVPixelBufferLock_ReadOnly);
-    const uint8_t* src = static_cast<uint8_t*>(CVPixelBufferGetBaseAddress(self.pixelBuffer));
-    const int srcStride = (int)CVPixelBufferGetBytesPerRow(self.pixelBuffer);
-    
-    // Crop just by modifying pointers. Need to ensure that src pointer points to a byte corresponding
-    // to the start of a new pixel (byte with B for BGRA) so that libyuv scales correctly.
-    const int bytesPerPixel = 4;
-    src += srcStride * self.cropY + (self.cropX * bytesPerPixel);
-    
-    // kCVPixelFormatType_32BGRA corresponds to libyuv::FOURCC_ARGB
-    libyuv::ARGBScale(src,
-                      srcStride,
-                      self.cropWidth,
-                      self.cropHeight,
-                      dst,
-                      dstStride,
-                      dstWidth,
-                      dstHeight,
-                      libyuv::kFilterBox);
-    
-    CVPixelBufferUnlockBaseAddress(self.pixelBuffer, kCVPixelBufferLock_ReadOnly);
-    CVPixelBufferUnlockBaseAddress(outputPixelBuffer, 0);
-}
-
-@end*/
 
 static UIDeviceOrientation deviceOrientation(UIInterfaceOrientation orientation) {
     switch (orientation) {
@@ -158,13 +43,33 @@ static UIDeviceOrientation deviceOrientation(UIInterfaceOrientation orientation)
         case UIInterfaceOrientationPortraitUpsideDown:
             return UIDeviceOrientationPortraitUpsideDown;
         case UIInterfaceOrientationLandscapeLeft:
-            return UIDeviceOrientationLandscapeLeft;
-        case UIInterfaceOrientationLandscapeRight:
             return UIDeviceOrientationLandscapeRight;
+        case UIInterfaceOrientationLandscapeRight:
+            return UIDeviceOrientationLandscapeLeft;
         default:
             return UIDeviceOrientationPortrait;
     }
 }
+
+}
+
+@interface VideoCameraCapturerPreviewRecord : NSObject
+
+@property (nonatomic, weak) VideoCaptureView *view;
+
+@end
+
+@implementation VideoCameraCapturerPreviewRecord
+
+- (instancetype)initWithCaptureView:(VideoCaptureView *)view {
+    self = [super init];
+    if (self != nil) {
+        self.view = view;
+    }
+    return self;
+}
+
+@end
 
 @interface VideoCameraCapturer () <AVCaptureVideoDataOutputSampleBufferDelegate> {
     rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> _source;
@@ -197,7 +102,7 @@ static UIDeviceOrientation deviceOrientation(UIInterfaceOrientation orientation)
     bool _isActiveValue;
     bool _inForegroundValue;
     
-    void (^_orientationUpdated)(bool);
+    void (^_rotationUpdated)(int);
     
     // Live on frameQueue and main thread.
     std::atomic<bool> _isPaused;
@@ -205,17 +110,22 @@ static UIDeviceOrientation deviceOrientation(UIInterfaceOrientation orientation)
     // Live on frameQueue.
     float _aspectRatio;
     std::vector<uint8_t> _croppingBuffer;
-    std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> _uncroppedSink;
+    std::weak_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> _uncroppedSink;
     
     // Live on frameQueue and RTCDispatcherTypeCaptureSession.
     std::atomic<int> _warmupFrameCount;
+
+    webrtc::NV12ToI420Scaler _nv12ToI420Scaler;
+
+    NSMutableArray<VideoCameraCapturerPreviewRecord *> *_previews;
+    std::vector<std::weak_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>>> _directSinks;
 }
 
 @end
 
 @implementation VideoCameraCapturer
 
-- (instancetype)initWithSource:(rtc::scoped_refptr<webrtc::VideoTrackSourceInterface>)source useFrontCamera:(bool)useFrontCamera keepLandscape:(bool)keepLandscape isActiveUpdated:(void (^)(bool))isActiveUpdated orientationUpdated:(void (^)(bool))orientationUpdated {
+- (instancetype)initWithSource:(rtc::scoped_refptr<webrtc::VideoTrackSourceInterface>)source useFrontCamera:(bool)useFrontCamera keepLandscape:(bool)keepLandscape isActiveUpdated:(void (^)(bool))isActiveUpdated rotationUpdated:(void (^)(int))rotationUpdated {
     self = [super init];
     if (self != nil) {
         _source = source;
@@ -225,9 +135,11 @@ static UIDeviceOrientation deviceOrientation(UIInterfaceOrientation orientation)
         _inForegroundValue = true;
         _isPaused = false;
         _isActiveUpdated = [isActiveUpdated copy];
-        _orientationUpdated = [orientationUpdated copy];
+        _rotationUpdated = [rotationUpdated copy];
         
         _warmupFrameCount = 100;
+
+        _previews = [[NSMutableArray alloc] init];
         
         if (![self setupCaptureSession:[[AVCaptureSession alloc] init]]) {
             return nil;
@@ -257,17 +169,30 @@ static UIDeviceOrientation deviceOrientation(UIInterfaceOrientation orientation)
                 break;
         }
         
-        if (_orientationUpdated) {
-            bool isLandscape = false;
+        if (_rotationUpdated) {
+            int angle = 0;
             switch (_rotation) {
-                case RTCVideoRotation_0:
-                case RTCVideoRotation_180:
-                    isLandscape = true;
+                case RTCVideoRotation_0: {
+                    angle = 0;
                     break;
-                default:
+                }
+                case RTCVideoRotation_90: {
+                    angle = 90;
                     break;
+                }
+                case RTCVideoRotation_180: {
+                    angle = 180;
+                    break;
+                }
+                case RTCVideoRotation_270: {
+                    angle = 270;
+                    break;
+                }
+                default: {
+                    break;
+                }
             }
-            _orientationUpdated(isLandscape);
+            _rotationUpdated(angle);
         }
         [center addObserver:self
                    selector:@selector(deviceOrientationDidChange:)
@@ -357,6 +282,30 @@ static UIDeviceOrientation deviceOrientation(UIInterfaceOrientation orientation)
 	});
 }
 
+- (int)getRotation {
+    switch (_rotation) {
+        case RTCVideoRotation_0:
+            return 0;
+        case RTCVideoRotation_90:
+            return 90;
+        case RTCVideoRotation_180:
+            return 180;
+        case RTCVideoRotation_270:
+            return 270;
+        default:
+            return 0;
+    }
+}
+
+- (void)addPreviewView:(VideoCaptureView *)previewView {
+    [_previews addObject:[[VideoCameraCapturerPreviewRecord alloc] initWithCaptureView:previewView]];
+    [previewView previewLayer].session = _captureSession;
+}
+
+- (void)addDirectSink:(std::weak_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>>)directSink {
+    _directSinks.push_back(directSink);
+}
+
 - (void)setPreferredCaptureAspectRatio:(float)aspectRatio {
 	dispatch_async(self.frameQueue, ^{
 		_aspectRatio = aspectRatio;
@@ -437,6 +386,105 @@ static UIDeviceOrientation deviceOrientation(UIInterfaceOrientation orientation)
 
 #pragma mark AVCaptureVideoDataOutputSampleBufferDelegate
 
+- (rtc::scoped_refptr<webrtc::VideoFrameBuffer>)prepareI420Buffer:(CVPixelBufferRef)pixelBuffer {
+    if (!pixelBuffer) {
+        return nullptr;
+    }
+
+    const OSType pixelFormat = CVPixelBufferGetPixelFormatType(pixelBuffer);
+
+    CVPixelBufferLockBaseAddress(pixelBuffer, kCVPixelBufferLock_ReadOnly);
+
+    auto resultBuffer = new rtc::RefCountedObject<webrtc::I420Buffer>(CVPixelBufferGetWidth(pixelBuffer), CVPixelBufferGetHeight(pixelBuffer));
+
+    switch (pixelFormat) {
+        case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange:
+        case kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange: {
+            const uint8_t* srcY =
+            static_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0));
+            const int srcYStride = (int)CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0);
+            const uint8_t* srcUV =
+            static_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 1));
+            const int srcUVStride = (int)CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 1);
+
+            // TODO(magjed): Use a frame buffer pool.
+            _nv12ToI420Scaler.NV12ToI420Scale(srcY,
+                                             srcYStride,
+                                             srcUV,
+                                             srcUVStride,
+                                             resultBuffer->width(),
+                                             resultBuffer->height(),
+                                             resultBuffer->MutableDataY(),
+                                             resultBuffer->StrideY(),
+                                             resultBuffer->MutableDataU(),
+                                             resultBuffer->StrideU(),
+                                             resultBuffer->MutableDataV(),
+                                             resultBuffer->StrideV(),
+                                             resultBuffer->width(),
+                                             resultBuffer->height());
+            break;
+        }
+        case kCVPixelFormatType_32BGRA:
+        case kCVPixelFormatType_32ARGB: {
+            return nullptr;
+        }
+        default: { RTC_NOTREACHED() << "Unsupported pixel format."; }
+    }
+
+    CVPixelBufferUnlockBaseAddress(pixelBuffer, kCVPixelBufferLock_ReadOnly);
+
+    return resultBuffer;
+}
+
+- (rtc::scoped_refptr<webrtc::VideoFrameBuffer>)prepareNV12Buffer:(CVPixelBufferRef)pixelBuffer {
+    if (!pixelBuffer) {
+        return nullptr;
+    }
+
+    const OSType pixelFormat = CVPixelBufferGetPixelFormatType(pixelBuffer);
+
+    CVPixelBufferLockBaseAddress(pixelBuffer, kCVPixelBufferLock_ReadOnly);
+
+    switch (pixelFormat) {
+        case kCVPixelFormatType_420YpCbCr8BiPlanarFullRange:
+        case kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange: {
+            const uint8_t* srcY =
+            static_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 0));
+            const int srcYStride = (int)CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 0);
+            const uint8_t* srcUV =
+            static_cast<uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(pixelBuffer, 1));
+            const int srcUVStride = (int)CVPixelBufferGetBytesPerRowOfPlane(pixelBuffer, 1);
+
+            const int srcWidth = (int)CVPixelBufferGetWidth(pixelBuffer);
+            const int srcHeight = (int)CVPixelBufferGetHeight(pixelBuffer);
+
+            int resultWidth = (int)(srcWidth * 0.8f);
+            resultWidth &= ~1;
+            int resultHeight = (int)(srcHeight * 0.8f);
+            resultHeight &= ~1;
+
+            rtc::scoped_refptr<webrtc::NV12Buffer> resultBuffer = new rtc::RefCountedObject<webrtc::NV12Buffer>(resultWidth, resultHeight, srcYStride, srcUVStride);
+
+            libyuv::NV12Scale(srcY, srcYStride, srcUV, srcUVStride,
+                                        resultWidth, resultHeight, resultBuffer->MutableDataY(),
+                                        resultBuffer->StrideY(), resultBuffer->MutableDataUV(), resultBuffer->StrideUV(), resultBuffer->width(),
+                                        resultBuffer->height(), libyuv::kFilterBilinear);
+
+            CVPixelBufferUnlockBaseAddress(pixelBuffer, kCVPixelBufferLock_ReadOnly);
+
+            return resultBuffer;
+        }
+        case kCVPixelFormatType_32BGRA:
+        case kCVPixelFormatType_32ARGB: {
+            CVPixelBufferUnlockBaseAddress(pixelBuffer, kCVPixelBufferLock_ReadOnly);
+            return nullptr;
+        }
+        default: { RTC_NOTREACHED() << "Unsupported pixel format."; }
+    }
+
+    return nullptr;
+}
+
 - (void)captureOutput:(AVCaptureOutput *)captureOutput
     didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer
            fromConnection:(AVCaptureConnection *)connection {
@@ -494,17 +542,30 @@ static UIDeviceOrientation deviceOrientation(UIInterfaceOrientation orientation)
         }
         if (_rotation != updatedRotation) {
             _rotation = updatedRotation;
-            if (_orientationUpdated) {
-                bool isLandscape = false;
+            if (_rotationUpdated) {
+                int angle = 0;
                 switch (_rotation) {
-                    case RTCVideoRotation_0:
-                    case RTCVideoRotation_180:
-                        isLandscape = true;
+                    case RTCVideoRotation_0: {
+                        angle = 0;
                         break;
-                    default:
+                    }
+                    case RTCVideoRotation_90: {
+                        angle = 90;
                         break;
+                    }
+                    case RTCVideoRotation_180: {
+                        angle = 180;
+                        break;
+                    }
+                    case RTCVideoRotation_270: {
+                        angle = 270;
+                        break;
+                    }
+                    default: {
+                        break;
+                    }
                 }
-                _orientationUpdated(isLandscape);
+                _rotationUpdated(angle);
             }
         }
     }
@@ -513,18 +574,8 @@ static UIDeviceOrientation deviceOrientation(UIInterfaceOrientation orientation)
     rtcPixelBuffer.shouldBeMirrored = usingFrontCamera;
     
     TGRTCCVPixelBuffer *uncroppedRtcPixelBuffer = rtcPixelBuffer;
-    
-    if (_keepLandscape) {
-        switch (_rotation) {
-            case RTCVideoRotation_0:
-            case RTCVideoRotation_180:
-                _aspectRatio = 0.0f;
-                break;
-            default:
-                _aspectRatio = 1280.0f / 720.0f;
-                break;
-        }
-    }
+
+    CGSize initialSize = CGSizeMake(uncroppedRtcPixelBuffer.width, uncroppedRtcPixelBuffer.height);
     
     if (_aspectRatio > FLT_EPSILON) {
         float aspect = 1.0f / _aspectRatio;
@@ -563,7 +614,7 @@ static UIDeviceOrientation deviceOrientation(UIInterfaceOrientation orientation)
             OSType pixelFormat = CVPixelBufferGetPixelFormatType(rtcPixelBuffer.pixelBuffer);
             CVPixelBufferCreate(NULL, width, height, pixelFormat, NULL, &outputPixelBufferRef);
             if (outputPixelBufferRef) {
-                int bufferSize = [rtcPixelBuffer bufferSizeForCroppingAndScalingToWidth:width height:width];
+                int bufferSize = [rtcPixelBuffer bufferSizeForCroppingAndScalingToWidth:width height:height];
                 if (_croppingBuffer.size() < bufferSize) {
                     _croppingBuffer.resize(bufferSize);
                 }
@@ -576,30 +627,66 @@ static UIDeviceOrientation deviceOrientation(UIInterfaceOrientation orientation)
         }
     }
     
-    int64_t timeStampNs = CMTimeGetSeconds(CMSampleBufferGetPresentationTimeStamp(sampleBuffer)) *
-    kNanosecondsPerSecond;
-    RTCVideoFrame *videoFrame = [[RTCVideoFrame alloc] initWithBuffer:rtcPixelBuffer rotation:_rotation timeStampNs:timeStampNs];
-    
-    if (!_isPaused) {
-        getObjCVideoSource(_source)->OnCapturedFrame(videoFrame);
-        
-        if (_uncroppedSink && uncroppedRtcPixelBuffer) {
-            int64_t timeStampNs = CMTimeGetSeconds(CMSampleBufferGetPresentationTimeStamp(sampleBuffer)) *
-            kNanosecondsPerSecond;
-            RTCVideoFrame *frame = [[RTCVideoFrame alloc] initWithBuffer:uncroppedRtcPixelBuffer rotation:_rotation timeStampNs:timeStampNs];
-            
-            const int64_t timestamp_us = frame.timeStampNs / rtc::kNumNanosecsPerMicrosec;
+    int64_t timeStampNs = CMTimeGetSeconds(CMSampleBufferGetPresentationTimeStamp(sampleBuffer)) * kNanosecondsPerSecond;
 
-            rtc::scoped_refptr<webrtc::VideoFrameBuffer> buffer;
-            buffer = new rtc::RefCountedObject<webrtc::ObjCFrameBuffer>(frame.buffer);
-            
-            webrtc::VideoRotation rotation = static_cast<webrtc::VideoRotation>(frame.rotation);
-            
-            _uncroppedSink->OnFrame(webrtc::VideoFrame::Builder()
-                    .set_video_frame_buffer(buffer)
-                    .set_rotation(rotation)
-                    .set_timestamp_us(timestamp_us)
-                    .build());
+    //RTCVideoFrame *videoFrame = [[RTCVideoFrame alloc] initWithBuffer:rtcPixelBuffer rotation:_rotation timeStampNs:timeStampNs];
+
+    //RTCVideoFrame *videoFrame = [[RTCVideoFrame alloc] initWithBuffer:(id<RTCVideoFrameBuffer>)[rtcPixelBuffer toI420] rotation:_rotation timeStampNs:timeStampNs];
+
+    webrtc::VideoRotation rotation = static_cast<webrtc::VideoRotation>(_rotation);
+
+    int previewRotation = 0;
+    CGSize previewSize = initialSize;
+    if (rotation == 90 || rotation == 270) {
+        previewSize = CGSizeMake(previewSize.height, previewSize.width);
+    }
+
+    for (VideoCameraCapturerPreviewRecord *record in _previews) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            VideoCaptureView *captureView = record.view;
+            [captureView onFrameGenerated:previewSize isMirrored:true rotation:previewRotation];
+        });
+    }
+
+    auto i420Buffer = [self prepareI420Buffer:[rtcPixelBuffer pixelBuffer]];
+    
+    if (!_isPaused && i420Buffer) {
+        auto videoFrame = webrtc::VideoFrame::Builder()
+            .set_video_frame_buffer(i420Buffer)
+            .set_rotation(rotation)
+            .set_timestamp_us(timeStampNs)
+            .build();
+
+        if (getObjCVideoSource(_source)->OnCapturedFrame(videoFrame)) {
+            if (!_directSinks.empty()) {
+                for (const auto &it : _directSinks) {
+                    if (const auto value = it.lock()) {
+                        value->OnFrame(videoFrame);
+                    }
+                }
+            }
+        }
+        
+        if (uncroppedRtcPixelBuffer) {
+            const auto uncroppedSink = _uncroppedSink.lock();
+            if (uncroppedSink) {
+                int64_t timeStampNs = CMTimeGetSeconds(CMSampleBufferGetPresentationTimeStamp(sampleBuffer)) *
+                kNanosecondsPerSecond;
+                RTCVideoFrame *frame = [[RTCVideoFrame alloc] initWithBuffer:uncroppedRtcPixelBuffer rotation:_rotation timeStampNs:timeStampNs];
+                
+                const int64_t timestamp_us = frame.timeStampNs / rtc::kNumNanosecsPerMicrosec;
+
+                rtc::scoped_refptr<webrtc::VideoFrameBuffer> buffer;
+                buffer = new rtc::RefCountedObject<webrtc::ObjCFrameBuffer>(frame.buffer);
+                
+                webrtc::VideoRotation rotation = static_cast<webrtc::VideoRotation>(frame.rotation);
+                
+                uncroppedSink->OnFrame(webrtc::VideoFrame::Builder()
+                        .set_video_frame_buffer(buffer)
+                        .set_rotation(rotation)
+                        .set_timestamp_us(timestamp_us)
+                        .build());
+            }
         }
     }
 }

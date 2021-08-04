@@ -1,30 +1,19 @@
-#include "VideoCapturerTrackSource.h"
-
-#include "tgcalls/platform/tdesktop/VideoCameraCapturer.h"
-
-#include "modules/video_capture/video_capture_factory.h"
+#include "tgcalls/platform/tdesktop/VideoCapturerTrackSource.h"
 
 namespace tgcalls {
 
-rtc::scoped_refptr<VideoCapturerTrackSource> VideoCapturerTrackSource::Create() {
-	return new rtc::RefCountedObject<VideoCapturerTrackSource>(
-		CreateTag{},
-		std::make_unique<VideoCameraCapturer>());
+VideoCapturerTrackSource::VideoCapturerTrackSource()
+: VideoTrackSource(/*remote=*/false)
+, _broadcaster(std::make_shared<rtc::VideoBroadcaster>()) {
 }
 
-VideoCapturerTrackSource::VideoCapturerTrackSource(
-	const CreateTag &,
-	std::unique_ptr<VideoCameraCapturer> capturer) :
-VideoTrackSource(/*remote=*/false),
-_capturer(std::move(capturer)) {
+auto VideoCapturerTrackSource::sink()
+-> std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> {
+	return _broadcaster;
 }
 
-VideoCameraCapturer *VideoCapturerTrackSource::capturer() const {
-	return _capturer.get();
-}
-
-rtc::VideoSourceInterface<webrtc::VideoFrame>* VideoCapturerTrackSource::source() {
-	return _capturer.get();
+rtc::VideoSourceInterface<webrtc::VideoFrame> *VideoCapturerTrackSource::source() {
+	return _broadcaster.get();
 }
 
 } // namespace tgcalls

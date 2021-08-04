@@ -23,6 +23,10 @@
 #import "TGRTCVideoEncoderH265.h"
 #endif
 
+#import "sdk/objc/api/video_codec/RTCWrappedNativeVideoEncoder.h"
+
+#include "modules/video_coding/codecs/h264/include/h264.h"
+
 @implementation TGRTCDefaultVideoEncoderFactory
 
 @synthesize preferredCodec;
@@ -86,7 +90,12 @@
 
 - (id<RTCVideoEncoder>)createEncoder:(RTCVideoCodecInfo *)info {
   if ([info.name isEqualToString:kRTCVideoCodecH264Name]) {
-    return [[TGRTCVideoEncoderH264 alloc] initWithCodecInfo:info];
+    cricket::VideoCodec videoCodec;
+    videoCodec.name = info.name.UTF8String;
+    for (NSString *key in info.parameters) {
+        videoCodec.SetParam(key.UTF8String, info.parameters[key].UTF8String);
+    }
+    return [[RTC_OBJC_TYPE(RTCWrappedNativeVideoEncoder) alloc] initWithNativeEncoder:std::unique_ptr<webrtc::VideoEncoder>(webrtc::H264Encoder::Create(videoCodec))];
   } else if ([info.name isEqualToString:kRTCVideoCodecVp8Name]) {
     return [RTCVideoEncoderVP8 vp8Encoder];
   }
