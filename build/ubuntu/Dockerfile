@@ -72,7 +72,7 @@ WORKDIR ..
 
 FROM builder AS ffmpeg
 COPY --from=opus ${LibrariesPath}/opus-cache /
-RUN git clone -b release/4.2 --depth=1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
+RUN git clone -b release/4.4 --depth=1 https://github.com/FFmpeg/FFmpeg.git ffmpeg
 
 WORKDIR ffmpeg
 RUN ./configure \

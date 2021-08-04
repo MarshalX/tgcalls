@@ -55,7 +55,7 @@
 
 
 #ifndef USE_RNNOISE
-#define USE_RNNOISE 1
+#define USE_RNNOISE 0
 #endif
 
 #if USE_RNNOISE
@@ -1349,7 +1349,11 @@ public:
                 }, threads);
         }));
 
+    #if USE_RNNOISE
         std::unique_ptr<AudioCapturePostProcessor> audioProcessor = nullptr;
+    #else
+        std::unique_ptr<webrtc::CustomProcessing> audioProcessor = nullptr;
+    #endif
         if (_videoContentType != VideoContentType::Screencast) {
             PlatformInterface::SharedInstance()->configurePlatformAudio();
 

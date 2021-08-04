@@ -50,85 +50,15 @@ PYBIND11_MODULE(tgcalls, m) {
 
     py::class_<tgcalls::GroupJoinPayload>(m, "GroupJoinPayload")
             .def(py::init<>())
-            .def_readwrite("ufrag", &tgcalls::GroupJoinPayload::ufrag)
-            .def_readwrite("pwd", &tgcalls::GroupJoinPayload::pwd)
-            .def_readwrite("fingerprints", &tgcalls::GroupJoinPayload::fingerprints)
-            .def_readwrite("ssrc", &tgcalls::GroupJoinPayload::ssrc)
+            .def_readwrite("audioSsrc", &tgcalls::GroupJoinPayload::audioSsrc)
+            .def_readwrite("json", &tgcalls::GroupJoinPayload::json)
             .def("__repr__", [](const tgcalls::GroupJoinPayload &e) {
                 ostringstream repr;
                 repr << "<tgcalls.GroupJoinPayload ";
-                repr << "ufrag=\"" << e.ufrag << "\" ";
-                repr << "pwd=\"" << e.pwd << "\" ";
-                // TODO for each item to str
-//                repr << "fingerprints=\"" << e.fingerprints << "\" ";
-                repr << "ssrc=\"" << e.ssrc << "\"> ";
+                repr << "audioSsrc=\"" << e.audioSsrc << "\" ";
+                repr << "json=\"" << e.json << "\"> ";
                 return repr.str();
             });
-
-    py::class_<tgcalls::GroupJoinPayloadFingerprint>(m, "GroupJoinPayloadFingerprint")
-            .def(py::init<>())
-            .def_readwrite("hash", &tgcalls::GroupJoinPayloadFingerprint::hash)
-            .def_readwrite("setup", &tgcalls::GroupJoinPayloadFingerprint::setup)
-            .def_readwrite("fingerprint", &tgcalls::GroupJoinPayloadFingerprint::fingerprint)
-            .def("__repr__", [](const tgcalls::GroupJoinPayloadFingerprint &e) {
-                ostringstream repr;
-                repr << "<tgcalls.GroupJoinPayloadFingerprint ";
-                repr << "hash=\"" << e.hash << "\" ";
-                repr << "setup=\"" << e.setup << "\" ";
-                repr << "fingerprint=\"" << e.fingerprint << "\"> ";
-                return repr.str();
-            });
-
-    py::class_<tgcalls::GroupJoinResponsePayload>(m, "GroupJoinResponsePayload")
-            .def(py::init<>())
-            .def_readwrite("ufrag", &tgcalls::GroupJoinResponsePayload::ufrag)
-            .def_readwrite("pwd", &tgcalls::GroupJoinResponsePayload::pwd)
-            .def_readwrite("fingerprints", &tgcalls::GroupJoinResponsePayload::fingerprints)
-            .def_readwrite("candidates", &tgcalls::GroupJoinResponsePayload::candidates)
-            .def("__repr__", [](const tgcalls::GroupJoinResponsePayload &e) {
-                ostringstream repr;
-                repr << "<tgcalls.GroupJoinResponsePayload ";
-                repr << "ufrag=\"" << e.ufrag << "\" ";
-                repr << "pwd=\"" << e.pwd << "\" ";
-                // TODO for each item to str
-//                repr << "fingerprints=\"" << e.fingerprints << "\" ";
-//                repr << "candidates=\"" << e.candidates << "\"> ";
-                return repr.str();
-            });
-
-    py::class_<tgcalls::GroupJoinResponseCandidate>(m, "GroupJoinResponseCandidate")
-            .def(py::init<>())
-            .def_readwrite("port", &tgcalls::GroupJoinResponseCandidate::port)
-            .def_readwrite("protocol", &tgcalls::GroupJoinResponseCandidate::protocol)
-            .def_readwrite("network", &tgcalls::GroupJoinResponseCandidate::network)
-            .def_readwrite("generation", &tgcalls::GroupJoinResponseCandidate::generation)
-            .def_readwrite("id", &tgcalls::GroupJoinResponseCandidate::id)
-            .def_readwrite("component", &tgcalls::GroupJoinResponseCandidate::component)
-            .def_readwrite("foundation", &tgcalls::GroupJoinResponseCandidate::foundation)
-            .def_readwrite("priority", &tgcalls::GroupJoinResponseCandidate::priority)
-            .def_readwrite("ip", &tgcalls::GroupJoinResponseCandidate::ip)
-            .def_readwrite("type", &tgcalls::GroupJoinResponseCandidate::type)
-
-            .def_readwrite("tcpType", &tgcalls::GroupJoinResponseCandidate::tcpType)
-            .def_readwrite("relAddr", &tgcalls::GroupJoinResponseCandidate::relAddr)
-            .def_readwrite("relPort", &tgcalls::GroupJoinResponseCandidate::relPort)
-            .def("__repr__", [](const tgcalls::GroupJoinResponseCandidate &e) {
-                ostringstream repr;
-                repr << "<tgcalls.GroupJoinResponseCandidate ";
-                repr << "port=\"" << e.port << "\" ";
-                // TODO add all fields
-//                repr << "candidates=\"" << e.candidates << "\"> ";
-                return repr.str();
-            });
-
-    py::class_<tgcalls::GroupParticipantDescription>(m, "GroupParticipantDescription")
-            .def(py::init<>())
-            .def_readwrite("endpointId", &tgcalls::GroupParticipantDescription::endpointId)
-            .def_readwrite("audioSsrc", &tgcalls::GroupParticipantDescription::audioSsrc)
-            .def_readwrite("videoPayloadTypes", &tgcalls::GroupParticipantDescription::videoPayloadTypes)
-            .def_readwrite("videoExtensionMap", &tgcalls::GroupParticipantDescription::videoExtensionMap)
-            .def_readwrite("videoSourceGroups", &tgcalls::GroupParticipantDescription::videoSourceGroups)
-            .def_readwrite("isRemoved", &tgcalls::GroupParticipantDescription::isRemoved);
 
     py::class_<tgcalls::GroupJoinPayloadVideoPayloadType>(m, "GroupJoinPayloadVideoPayloadType")
             .def(py::init<>())
@@ -138,11 +68,6 @@ PYBIND11_MODULE(tgcalls, m) {
             .def_readwrite("channels", &tgcalls::GroupJoinPayloadVideoPayloadType::channels)
             .def_readwrite("feedbackTypes", &tgcalls::GroupJoinPayloadVideoPayloadType::feedbackTypes)
             .def_readwrite("parameters", &tgcalls::GroupJoinPayloadVideoPayloadType::parameters);
-
-    py::class_<tgcalls::GroupJoinPayloadVideoPayloadFeedbackType>(m, "GroupJoinPayloadVideoPayloadFeedbackType")
-            .def(py::init<>())
-            .def_readwrite("type", &tgcalls::GroupJoinPayloadVideoPayloadFeedbackType::type)
-            .def_readwrite("subtype", &tgcalls::GroupJoinPayloadVideoPayloadFeedbackType::subtype);
 
     py::class_<tgcalls::GroupJoinPayloadVideoSourceGroup>(m, "GroupJoinPayloadVideoSourceGroup")
             .def(py::init<>())
@@ -189,7 +114,6 @@ PYBIND11_MODULE(tgcalls, m) {
             .def("setAudioOutputDevice", &NativeInstance::setAudioOutputDevice)
             .def("setAudioInputDevice", &NativeInstance::setAudioInputDevice)
             .def("removeSsrcs", &NativeInstance::removeSsrcs)
-            .def("addParticipants", &NativeInstance::addParticipants)
             .def("setJoinResponsePayload", &NativeInstance::setJoinResponsePayload)
             .def("setConnectionMode", &NativeInstance::setConnectionMode)
             .def("emitJoinPayload", &NativeInstance::emitJoinPayload)

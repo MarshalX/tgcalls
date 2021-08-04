@@ -46,7 +46,7 @@ public:
 
     void setIsMuted(bool isMuted) const;
     void setVolume(uint32_t ssrc, double volume) const;
-    void emitJoinPayload(std::function<void(tgcalls::GroupJoinPayload payload)> &) const;
+    void emitJoinPayload(std::function<void(tgcalls::GroupJoinPayload payload)> const &) const;
     void setConnectionMode(tgcalls::GroupConnectionMode, bool) const;
 
     void restartAudioInputDevice() const;
@@ -58,10 +58,9 @@ public:
     void setAudioInputDevice(std::string id) const;
 
     void removeSsrcs(std::vector<uint32_t> ssrcs) const;
-    void addParticipants(std::vector<tgcalls::GroupParticipantDescription> &&participants) const;
 
     void receiveSignalingData(std::vector<uint8_t> &data) const;
-    void setJoinResponsePayload(tgcalls::GroupJoinResponsePayload payload, std::vector<tgcalls::GroupParticipantDescription> &&participants) const;
+    void setJoinResponsePayload(std::string const &) const;
     void setSignalingDataEmittedCallback(const std::function<void(const std::vector<uint8_t> &data)> &f);
 
 private:
