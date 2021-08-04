@@ -22,7 +22,7 @@
     </a>
 </p>
 
-## Telegram WebRTC (VoIP)
+## Telegram WebRTC (VoIP) [![Mentioned in Awesome Telegram Calls](https://awesome.re/mentioned-badge-flat.svg)](https://github.com/tgcalls/awesome-tgcalls)
 
 This project consists of two main parts: [tgcalls](#tgcalls), [pytgcalls](#pytgcalls).
 The first is a C++ Python extension.
