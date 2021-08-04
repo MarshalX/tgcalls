@@ -29,7 +29,7 @@ jobs:
       PREFIX: "/usr/local/macos"
       BUILD_WHEELS: "true"
       UPLOAD_WHEELS: "true"
-      GLOBAL_CACHE_KEY: "2"
+      GLOBAL_CACHE_KEY: "3"
       WEBRTC_CACHE_KEY: "2"
 
     steps:
