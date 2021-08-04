@@ -58,7 +58,7 @@ int CoreAudioInput::Terminate() {
 
 int CoreAudioInput::NumDevices() const {
   RTC_DCHECK_RUN_ON(&thread_checker_);
-  return CoreAudioBase::NumberOfEnumeratedDevices();
+  return core_audio_utility::NumberOfActiveDevices(eCapture);
 }
 
 int CoreAudioInput::SetDevice(int index) {
@@ -385,7 +385,7 @@ bool CoreAudioInput::OnErrorCallback(ErrorType error) {
   RTC_DLOG(INFO) << __FUNCTION__ << ": " << as_integer(error);
   RTC_DCHECK_RUN_ON(&thread_checker_audio_);
   if (error == CoreAudioBase::ErrorType::kStreamDisconnected) {
-    return HandleStreamDisconnected();
+    HandleStreamDisconnected();
   } else {
     RTC_DLOG(WARNING) << "Unsupported error type";
   }

@@ -10,18 +10,22 @@
 
 #include "pc/rtp_transceiver.h"
 
+#include <iterator>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "api/rtp_parameters.h"
+#include "api/sequence_checker.h"
+#include "media/base/codec.h"
+#include "media/base/media_constants.h"
 #include "pc/channel_manager.h"
 #include "pc/rtp_media_utils.h"
-#include "pc/rtp_parameters_conversion.h"
 #include "pc/session_description.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/thread.h"
 
 namespace webrtc {
 namespace {
@@ -146,6 +150,8 @@ void RtpTransceiver::SetChannel(cricket::ChannelInterface* channel) {
     return;
   }
 
+  RTC_LOG_THREAD_BLOCK_COUNT();
+
   if (channel) {
     RTC_DCHECK_EQ(media_type(), channel->media_type());
   }
@@ -166,14 +172,21 @@ void RtpTransceiver::SetChannel(cricket::ChannelInterface* channel) {
                                                  : nullptr);
   }
 
+  RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(0);
+
   for (const auto& receiver : receivers_) {
     if (!channel_) {
+      // TODO(tommi): This can internally block and hop to the worker thread.
+      // It's likely that SetMediaChannel also does that, so perhaps we should
+      // require SetMediaChannel(nullptr) to also Stop() and skip this call.
       receiver->internal()->Stop();
     }
 
     receiver->internal()->SetMediaChannel(channel_ ? channel_->media_channel()
                                                    : nullptr);
   }
+
+  RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(receivers_.size() * 2);
 }
 
 void RtpTransceiver::AddSender(
@@ -485,7 +498,7 @@ RTCError RtpTransceiver::SetOfferedRtpHeaderExtensions(
         header_extensions_to_offer_.begin(), header_extensions_to_offer_.end(),
         [&entry](const auto& offered) { return entry.uri == offered.uri; });
     if (it == header_extensions_to_offer_.end()) {
-      return RTCError(RTCErrorType::INVALID_PARAMETER,
+      return RTCError(RTCErrorType::UNSUPPORTED_PARAMETER,
                       "Attempted to modify an unoffered extension.");
     }
 

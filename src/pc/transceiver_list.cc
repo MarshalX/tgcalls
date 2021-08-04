@@ -10,6 +10,8 @@
 
 #include "pc/transceiver_list.h"
 
+#include "rtc_base/checks.h"
+
 namespace webrtc {
 
 void TransceiverStableState::set_newly_created() {
@@ -32,6 +34,11 @@ void TransceiverStableState::SetRemoteStreamIdsIfUnset(
   if (!remote_stream_ids_.has_value()) {
     remote_stream_ids_ = ids;
   }
+}
+
+void TransceiverStableState::SetInitSendEncodings(
+    const std::vector<RtpEncodingParameters>& encodings) {
+  init_send_encodings_ = encodings;
 }
 
 RtpTransceiverProxyRefPtr TransceiverList::FindBySender(

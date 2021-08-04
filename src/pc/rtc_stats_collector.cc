@@ -10,23 +10,52 @@
 
 #include "pc/rtc_stats_collector.h"
 
+#include <stdio.h>
+
+#include <algorithm>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "api/array_view.h"
 #include "api/candidate.h"
 #include "api/media_stream_interface.h"
-#include "api/peer_connection_interface.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_receiver_interface.h"
+#include "api/rtp_sender_interface.h"
+#include "api/sequence_checker.h"
+#include "api/stats/rtc_stats.h"
+#include "api/stats/rtcstats_objects.h"
+#include "api/task_queue/queued_task.h"
 #include "api/video/video_content_type.h"
+#include "common_video/include/quality_limitation_reason.h"
 #include "media/base/media_channel.h"
+#include "modules/audio_processing/include/audio_processing_statistics.h"
+#include "modules/rtp_rtcp/include/report_block_data.h"
+#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "p2p/base/connection_info.h"
+#include "p2p/base/dtls_transport_internal.h"
+#include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/p2p_constants.h"
 #include "p2p/base/port.h"
-#include "pc/peer_connection.h"
+#include "pc/channel.h"
+#include "pc/channel_interface.h"
+#include "pc/data_channel_utils.h"
 #include "pc/rtc_stats_traversal.h"
 #include "pc/webrtc_sdp.h"
 #include "rtc_base/checks.h"
+#include "rtc_base/ip_address.h"
+#include "rtc_base/location.h"
+#include "rtc_base/logging.h"
+#include "rtc_base/network_constants.h"
+#include "rtc_base/ref_counted_object.h"
+#include "rtc_base/rtc_certificate.h"
+#include "rtc_base/socket_address.h"
+#include "rtc_base/ssl_stream_adapter.h"
+#include "rtc_base/string_encode.h"
 #include "rtc_base/strings/string_builder.h"
 #include "rtc_base/time_utils.h"
 #include "rtc_base/trace_event.h"
@@ -80,17 +109,23 @@ std::string RTCTransportStatsIDFromTransportChannel(
   return sb.str();
 }
 
-std::string RTCInboundRTPStreamStatsIDFromSSRC(bool audio, uint32_t ssrc) {
+std::string RTCInboundRTPStreamStatsIDFromSSRC(cricket::MediaType media_type,
+                                               uint32_t ssrc) {
   char buf[1024];
   rtc::SimpleStringBuilder sb(buf);
-  sb << "RTCInboundRTP" << (audio ? "Audio" : "Video") << "Stream_" << ssrc;
+  sb << "RTCInboundRTP"
+     << (media_type == cricket::MEDIA_TYPE_AUDIO ? "Audio" : "Video")
+     << "Stream_" << ssrc;
   return sb.str();
 }
 
-std::string RTCOutboundRTPStreamStatsIDFromSSRC(bool audio, uint32_t ssrc) {
+std::string RTCOutboundRTPStreamStatsIDFromSSRC(cricket::MediaType media_type,
+                                                uint32_t ssrc) {
   char buf[1024];
   rtc::SimpleStringBuilder sb(buf);
-  sb << "RTCOutboundRTP" << (audio ? "Audio" : "Video") << "Stream_" << ssrc;
+  sb << "RTCOutboundRTP"
+     << (media_type == cricket::MEDIA_TYPE_AUDIO ? "Audio" : "Video")
+     << "Stream_" << ssrc;
   return sb.str();
 }
 
@@ -100,6 +135,17 @@ std::string RTCRemoteInboundRtpStreamStatsIdFromSourceSsrc(
   char buf[1024];
   rtc::SimpleStringBuilder sb(buf);
   sb << "RTCRemoteInboundRtp"
+     << (media_type == cricket::MEDIA_TYPE_AUDIO ? "Audio" : "Video")
+     << "Stream_" << source_ssrc;
+  return sb.str();
+}
+
+std::string RTCRemoteOutboundRTPStreamStatsIDFromSSRC(
+    cricket::MediaType media_type,
+    uint32_t source_ssrc) {
+  char buf[1024];
+  rtc::SimpleStringBuilder sb(buf);
+  sb << "RTCRemoteOutboundRTP"
      << (media_type == cricket::MEDIA_TYPE_AUDIO ? "Audio" : "Video")
      << "Stream_" << source_ssrc;
   return sb.str();
@@ -268,8 +314,6 @@ void SetInboundRTPStreamStatsFromMediaReceiverInfo(
     RTCInboundRTPStreamStats* inbound_stats) {
   RTC_DCHECK(inbound_stats);
   inbound_stats->ssrc = media_receiver_info.ssrc();
-  // TODO(hbos): Support the remote case. https://crbug.com/657855
-  inbound_stats->is_remote = false;
   inbound_stats->packets_received =
       static_cast<uint32_t>(media_receiver_info.packets_rcvd);
   inbound_stats->bytes_received =
@@ -280,17 +324,21 @@ void SetInboundRTPStreamStatsFromMediaReceiverInfo(
       static_cast<int32_t>(media_receiver_info.packets_lost);
 }
 
-void SetInboundRTPStreamStatsFromVoiceReceiverInfo(
-    const std::string& mid,
+std::unique_ptr<RTCInboundRTPStreamStats> CreateInboundAudioStreamStats(
     const cricket::VoiceReceiverInfo& voice_receiver_info,
-    RTCInboundRTPStreamStats* inbound_audio) {
+    const std::string& mid,
+    int64_t timestamp_us) {
+  auto inbound_audio = std::make_unique<RTCInboundRTPStreamStats>(
+      /*id=*/RTCInboundRTPStreamStatsIDFromSSRC(cricket::MEDIA_TYPE_AUDIO,
+                                                voice_receiver_info.ssrc()),
+      timestamp_us);
   SetInboundRTPStreamStatsFromMediaReceiverInfo(voice_receiver_info,
-                                                inbound_audio);
+                                                inbound_audio.get());
   inbound_audio->media_type = "audio";
   inbound_audio->kind = "audio";
   if (voice_receiver_info.codec_payload_type) {
     inbound_audio->codec_id = RTCCodecStatsIDFromMidDirectionAndPayload(
-        mid, true, *voice_receiver_info.codec_payload_type);
+        mid, /*inbound=*/true, *voice_receiver_info.codec_payload_type);
   }
   inbound_audio->jitter = static_cast<double>(voice_receiver_info.jitter_ms) /
                           rtc::kNumMillisecsPerSec;
@@ -318,12 +366,11 @@ void SetInboundRTPStreamStatsFromVoiceReceiverInfo(
   // |fir_count|, |pli_count| and |sli_count| are only valid for video and are
   // purposefully left undefined for audio.
   if (voice_receiver_info.last_packet_received_timestamp_ms) {
-    inbound_audio->last_packet_received_timestamp =
-        static_cast<double>(
-            *voice_receiver_info.last_packet_received_timestamp_ms) /
-        rtc::kNumMillisecsPerSec;
+    inbound_audio->last_packet_received_timestamp = static_cast<double>(
+        *voice_receiver_info.last_packet_received_timestamp_ms);
   }
   if (voice_receiver_info.estimated_playout_ntp_timestamp_ms) {
+    // TODO(bugs.webrtc.org/10529): Fix time origin.
     inbound_audio->estimated_playout_timestamp = static_cast<double>(
         *voice_receiver_info.estimated_playout_ntp_timestamp_ms);
   }
@@ -331,6 +378,51 @@ void SetInboundRTPStreamStatsFromVoiceReceiverInfo(
       voice_receiver_info.fec_packets_received;
   inbound_audio->fec_packets_discarded =
       voice_receiver_info.fec_packets_discarded;
+  return inbound_audio;
+}
+
+std::unique_ptr<RTCRemoteOutboundRtpStreamStats>
+CreateRemoteOutboundAudioStreamStats(
+    const cricket::VoiceReceiverInfo& voice_receiver_info,
+    const std::string& mid,
+    const std::string& inbound_audio_id,
+    const std::string& transport_id) {
+  if (!voice_receiver_info.last_sender_report_timestamp_ms.has_value()) {
+    // Cannot create `RTCRemoteOutboundRtpStreamStats` when the RTCP SR arrival
+    // timestamp is not available - i.e., until the first sender report is
+    // received.
+    return nullptr;
+  }
+  RTC_DCHECK_GT(voice_receiver_info.sender_reports_reports_count, 0);
+
+  // Create.
+  auto stats = std::make_unique<RTCRemoteOutboundRtpStreamStats>(
+      /*id=*/RTCRemoteOutboundRTPStreamStatsIDFromSSRC(
+          cricket::MEDIA_TYPE_AUDIO, voice_receiver_info.ssrc()),
+      /*timestamp_us=*/rtc::kNumMicrosecsPerMillisec *
+          voice_receiver_info.last_sender_report_timestamp_ms.value());
+
+  // Populate.
+  // - RTCRtpStreamStats.
+  stats->ssrc = voice_receiver_info.ssrc();
+  stats->kind = "audio";
+  stats->transport_id = transport_id;
+  stats->codec_id = RTCCodecStatsIDFromMidDirectionAndPayload(
+      mid,
+      /*inbound=*/true,  // Remote-outbound same as local-inbound.
+      *voice_receiver_info.codec_payload_type);
+  // - RTCSentRtpStreamStats.
+  stats->packets_sent = voice_receiver_info.sender_reports_packets_sent;
+  stats->bytes_sent = voice_receiver_info.sender_reports_bytes_sent;
+  // - RTCRemoteOutboundRtpStreamStats.
+  stats->local_id = inbound_audio_id;
+  RTC_DCHECK(
+      voice_receiver_info.last_sender_report_remote_timestamp_ms.has_value());
+  stats->remote_timestamp = static_cast<double>(
+      voice_receiver_info.last_sender_report_remote_timestamp_ms.value());
+  stats->reports_sent = voice_receiver_info.sender_reports_reports_count;
+
+  return stats;
 }
 
 void SetInboundRTPStreamStatsFromVideoReceiverInfo(
@@ -343,8 +435,10 @@ void SetInboundRTPStreamStatsFromVideoReceiverInfo(
   inbound_video->kind = "video";
   if (video_receiver_info.codec_payload_type) {
     inbound_video->codec_id = RTCCodecStatsIDFromMidDirectionAndPayload(
-        mid, true, *video_receiver_info.codec_payload_type);
+        mid, /*inbound=*/true, *video_receiver_info.codec_payload_type);
   }
+  inbound_video->jitter = static_cast<double>(video_receiver_info.jitter_ms) /
+                          rtc::kNumMillisecsPerSec;
   inbound_video->fir_count =
       static_cast<uint32_t>(video_receiver_info.firs_sent);
   inbound_video->pli_count =
@@ -376,17 +470,16 @@ void SetInboundRTPStreamStatsFromVideoReceiverInfo(
   inbound_video->total_squared_inter_frame_delay =
       video_receiver_info.total_squared_inter_frame_delay;
   if (video_receiver_info.last_packet_received_timestamp_ms) {
-    inbound_video->last_packet_received_timestamp =
-        static_cast<double>(
-            *video_receiver_info.last_packet_received_timestamp_ms) /
-        rtc::kNumMillisecsPerSec;
+    inbound_video->last_packet_received_timestamp = static_cast<double>(
+        *video_receiver_info.last_packet_received_timestamp_ms);
   }
   if (video_receiver_info.estimated_playout_ntp_timestamp_ms) {
+    // TODO(bugs.webrtc.org/10529): Fix time origin if needed.
     inbound_video->estimated_playout_timestamp = static_cast<double>(
         *video_receiver_info.estimated_playout_ntp_timestamp_ms);
   }
-  // TODO(https://crbug.com/webrtc/10529): When info's |content_info| is
-  // optional, support the "unspecified" value.
+  // TODO(bugs.webrtc.org/10529): When info's |content_info| is optional
+  // support the "unspecified" value.
   if (video_receiver_info.content_type == VideoContentType::SCREENSHARE)
     inbound_video->content_type = RTCContentType::kScreenshare;
   if (!video_receiver_info.decoder_implementation_name.empty()) {
@@ -401,8 +494,6 @@ void SetOutboundRTPStreamStatsFromMediaSenderInfo(
     RTCOutboundRTPStreamStats* outbound_stats) {
   RTC_DCHECK(outbound_stats);
   outbound_stats->ssrc = media_sender_info.ssrc();
-  // TODO(hbos): Support the remote case. https://crbug.com/657856
-  outbound_stats->is_remote = false;
   outbound_stats->packets_sent =
       static_cast<uint32_t>(media_sender_info.packets_sent);
   outbound_stats->retransmitted_packets_sent =
@@ -425,7 +516,7 @@ void SetOutboundRTPStreamStatsFromVoiceSenderInfo(
   outbound_audio->kind = "audio";
   if (voice_sender_info.codec_payload_type) {
     outbound_audio->codec_id = RTCCodecStatsIDFromMidDirectionAndPayload(
-        mid, false, *voice_sender_info.codec_payload_type);
+        mid, /*inbound=*/false, *voice_sender_info.codec_payload_type);
   }
   // |fir_count|, |pli_count| and |sli_count| are only valid for video and are
   // purposefully left undefined for audio.
@@ -441,7 +532,7 @@ void SetOutboundRTPStreamStatsFromVideoSenderInfo(
   outbound_video->kind = "video";
   if (video_sender_info.codec_payload_type) {
     outbound_video->codec_id = RTCCodecStatsIDFromMidDirectionAndPayload(
-        mid, false, *video_sender_info.codec_payload_type);
+        mid, /*inbound=*/false, *video_sender_info.codec_payload_type);
   }
   outbound_video->fir_count =
       static_cast<uint32_t>(video_sender_info.firs_rcvd);
@@ -510,12 +601,19 @@ ProduceRemoteInboundRtpStreamStatsFromReportBlockData(
   remote_inbound->kind =
       media_type == cricket::MEDIA_TYPE_AUDIO ? "audio" : "video";
   remote_inbound->packets_lost = report_block.packets_lost;
+  remote_inbound->fraction_lost =
+      static_cast<double>(report_block.fraction_lost) / (1 << 8);
   remote_inbound->round_trip_time =
       static_cast<double>(report_block_data.last_rtt_ms()) /
       rtc::kNumMillisecsPerSec;
+  remote_inbound->total_round_trip_time =
+      static_cast<double>(report_block_data.sum_rtt_ms()) /
+      rtc::kNumMillisecsPerSec;
+  remote_inbound->round_trip_time_measurements =
+      report_block_data.num_rtts();
 
-  std::string local_id = RTCOutboundRTPStreamStatsIDFromSSRC(
-      media_type == cricket::MEDIA_TYPE_AUDIO, report_block.source_ssrc);
+  std::string local_id =
+      RTCOutboundRTPStreamStatsIDFromSSRC(media_type, report_block.source_ssrc);
   // Look up local stat from |outbound_rtps| where the pointers are non-const.
   auto local_id_it = outbound_rtps.find(local_id);
   if (local_id_it != outbound_rtps.end()) {
@@ -616,6 +714,7 @@ const std::string& ProduceIceCandidateStats(int64_t timestamp_us,
       RTC_DCHECK_EQ(rtc::ADAPTER_TYPE_UNKNOWN, candidate.network_type());
     }
     candidate_stats->ip = candidate.address().ipaddr().ToString();
+    candidate_stats->address = candidate.address().ipaddr().ToString();
     candidate_stats->port = static_cast<int32_t>(candidate.address().port());
     candidate_stats->protocol = candidate.protocol();
     candidate_stats->candidate_type =
@@ -1060,9 +1159,30 @@ void RTCStatsCollector::GetStatsReportInternal(
     // reentrancy problems.
     std::vector<RequestInfo> requests;
     requests.swap(requests_);
-    signaling_thread_->PostTask(
-        RTC_FROM_HERE, rtc::Bind(&RTCStatsCollector::DeliverCachedReport, this,
-                                 cached_report_, std::move(requests)));
+
+    // Task subclass to take ownership of the requests.
+    // TODO(nisse): Delete when we can use C++14, and do lambda capture with
+    // std::move.
+    class DeliveryTask : public QueuedTask {
+     public:
+      DeliveryTask(rtc::scoped_refptr<RTCStatsCollector> collector,
+                   rtc::scoped_refptr<const RTCStatsReport> cached_report,
+                   std::vector<RequestInfo> requests)
+          : collector_(collector),
+            cached_report_(cached_report),
+            requests_(std::move(requests)) {}
+      bool Run() override {
+        collector_->DeliverCachedReport(cached_report_, std::move(requests_));
+        return true;
+      }
+
+     private:
+      rtc::scoped_refptr<RTCStatsCollector> collector_;
+      rtc::scoped_refptr<const RTCStatsReport> cached_report_;
+      std::vector<RequestInfo> requests_;
+    };
+    signaling_thread_->PostTask(std::make_unique<DeliveryTask>(
+        this, cached_report_, std::move(requests)));
   } else if (!num_pending_partial_reports_) {
     // Only start gathering stats if we're not already gathering stats. In the
     // case of already gathering stats, |callback_| will be invoked when there
@@ -1088,10 +1208,10 @@ void RTCStatsCollector::GetStatsReportInternal(
     // ProducePartialResultsOnNetworkThread() has signaled the
     // |network_report_event_|.
     network_report_event_.Reset();
-    network_thread_->PostTask(
-        RTC_FROM_HERE,
-        rtc::Bind(&RTCStatsCollector::ProducePartialResultsOnNetworkThread,
-                  this, timestamp_us));
+    rtc::scoped_refptr<RTCStatsCollector> collector(this);
+    network_thread_->PostTask(RTC_FROM_HERE, [collector, timestamp_us] {
+      collector->ProducePartialResultsOnNetworkThread(timestamp_us);
+    });
     ProducePartialResultsOnSignalingThread(timestamp_us);
   }
 }
@@ -1160,8 +1280,9 @@ void RTCStatsCollector::ProducePartialResultsOnNetworkThread(
   // Signal that it is now safe to touch |network_report_| on the signaling
   // thread, and post a task to merge it into the final results.
   network_report_event_.Set();
+  rtc::scoped_refptr<RTCStatsCollector> collector(this);
   signaling_thread_->PostTask(
-      RTC_FROM_HERE, rtc::Bind(&RTCStatsCollector::MergeNetworkReport_s, this));
+      RTC_FROM_HERE, [collector] { collector->MergeNetworkReport_s(); });
 }
 
 void RTCStatsCollector::ProducePartialResultsOnNetworkThreadImpl(
@@ -1560,6 +1681,7 @@ void RTCStatsCollector::ProduceMediaSourceStats_s(
           if (video_sender_info) {
             video_source_stats->frames_per_second =
                 video_sender_info->framerate_input;
+            video_source_stats->frames = video_sender_info->frames;
           }
         }
         media_source_stats = std::move(video_source_stats);
@@ -1618,16 +1740,16 @@ void RTCStatsCollector::ProduceAudioRTPStreamStats_n(
   std::string mid = *stats.mid;
   std::string transport_id = RTCTransportStatsIDFromTransportChannel(
       *stats.transport_name, cricket::ICE_CANDIDATE_COMPONENT_RTP);
-  // Inbound
+  // Inbound and remote-outbound.
+  // The remote-outbound stats are based on RTCP sender reports sent from the
+  // remote endpoint providing metrics about the remote outbound streams.
   for (const cricket::VoiceReceiverInfo& voice_receiver_info :
        track_media_info_map.voice_media_info()->receivers) {
     if (!voice_receiver_info.connected())
       continue;
-    auto inbound_audio = std::make_unique<RTCInboundRTPStreamStats>(
-        RTCInboundRTPStreamStatsIDFromSSRC(true, voice_receiver_info.ssrc()),
-        timestamp_us);
-    SetInboundRTPStreamStatsFromVoiceReceiverInfo(mid, voice_receiver_info,
-                                                  inbound_audio.get());
+    // Inbound.
+    auto inbound_audio =
+        CreateInboundAudioStreamStats(voice_receiver_info, mid, timestamp_us);
     // TODO(hta): This lookup should look for the sender, not the track.
     rtc::scoped_refptr<AudioTrackInterface> audio_track =
         track_media_info_map.GetAudioTrack(voice_receiver_info);
@@ -1638,16 +1760,27 @@ void RTCStatsCollector::ProduceAudioRTPStreamStats_n(
               track_media_info_map.GetAttachmentIdByTrack(audio_track).value());
     }
     inbound_audio->transport_id = transport_id;
+    // Remote-outbound.
+    auto remote_outbound_audio = CreateRemoteOutboundAudioStreamStats(
+        voice_receiver_info, mid, inbound_audio->id(), transport_id);
+    // Add stats.
+    if (remote_outbound_audio) {
+      // When the remote outbound stats are available, the remote ID for the
+      // local inbound stats is set.
+      inbound_audio->remote_id = remote_outbound_audio->id();
+      report->AddStats(std::move(remote_outbound_audio));
+    }
     report->AddStats(std::move(inbound_audio));
   }
-  // Outbound
+  // Outbound.
   std::map<std::string, RTCOutboundRTPStreamStats*> audio_outbound_rtps;
   for (const cricket::VoiceSenderInfo& voice_sender_info :
        track_media_info_map.voice_media_info()->senders) {
     if (!voice_sender_info.connected())
       continue;
     auto outbound_audio = std::make_unique<RTCOutboundRTPStreamStats>(
-        RTCOutboundRTPStreamStatsIDFromSSRC(true, voice_sender_info.ssrc()),
+        RTCOutboundRTPStreamStatsIDFromSSRC(cricket::MEDIA_TYPE_AUDIO,
+                                            voice_sender_info.ssrc()),
         timestamp_us);
     SetOutboundRTPStreamStatsFromVoiceSenderInfo(mid, voice_sender_info,
                                                  outbound_audio.get());
@@ -1668,7 +1801,7 @@ void RTCStatsCollector::ProduceAudioRTPStreamStats_n(
         std::make_pair(outbound_audio->id(), outbound_audio.get()));
     report->AddStats(std::move(outbound_audio));
   }
-  // Remote-inbound
+  // Remote-inbound.
   // These are Report Block-based, information sent from the remote endpoint,
   // providing metrics about our Outbound streams. We take advantage of the fact
   // that RTCOutboundRtpStreamStats, RTCCodecStats and RTCTransport have already
@@ -1705,7 +1838,8 @@ void RTCStatsCollector::ProduceVideoRTPStreamStats_n(
     if (!video_receiver_info.connected())
       continue;
     auto inbound_video = std::make_unique<RTCInboundRTPStreamStats>(
-        RTCInboundRTPStreamStatsIDFromSSRC(false, video_receiver_info.ssrc()),
+        RTCInboundRTPStreamStatsIDFromSSRC(cricket::MEDIA_TYPE_VIDEO,
+                                           video_receiver_info.ssrc()),
         timestamp_us);
     SetInboundRTPStreamStatsFromVideoReceiverInfo(mid, video_receiver_info,
                                                   inbound_video.get());
@@ -1719,6 +1853,7 @@ void RTCStatsCollector::ProduceVideoRTPStreamStats_n(
     }
     inbound_video->transport_id = transport_id;
     report->AddStats(std::move(inbound_video));
+    // TODO(crbug.com/webrtc/12529): Add remote-outbound stats.
   }
   // Outbound
   std::map<std::string, RTCOutboundRTPStreamStats*> video_outbound_rtps;
@@ -1727,7 +1862,8 @@ void RTCStatsCollector::ProduceVideoRTPStreamStats_n(
     if (!video_sender_info.connected())
       continue;
     auto outbound_video = std::make_unique<RTCOutboundRTPStreamStats>(
-        RTCOutboundRTPStreamStatsIDFromSSRC(false, video_sender_info.ssrc()),
+        RTCOutboundRTPStreamStatsIDFromSSRC(cricket::MEDIA_TYPE_VIDEO,
+                                            video_sender_info.ssrc()),
         timestamp_us);
     SetOutboundRTPStreamStatsFromVideoSenderInfo(mid, video_sender_info,
                                                  outbound_video.get());

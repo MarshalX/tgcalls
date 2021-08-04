@@ -1,4 +1,4 @@
-add_library(libpffft OBJECT)
+add_library(libpffft OBJECT EXCLUDE_FROM_ALL)
 init_target(libpffft)
 add_library(tg_owt::libpffft ALIAS libpffft)
 

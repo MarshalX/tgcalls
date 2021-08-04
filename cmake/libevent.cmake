@@ -1,4 +1,4 @@
-add_library(libevent OBJECT)
+add_library(libevent OBJECT EXCLUDE_FROM_ALL)
 init_target(libevent)
 add_library(tg_owt::libevent ALIAS libevent)
 
@@ -40,7 +40,8 @@ PRIVATE
 )
 
 target_include_directories(libevent
+PUBLIC
+    $<BUILD_INTERFACE:${libevent_loc}>
 PRIVATE
     ${webrtc_loc}
-    ${libevent_loc}
 )

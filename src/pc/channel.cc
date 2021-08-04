@@ -10,35 +10,39 @@
 
 #include "pc/channel.h"
 
+#include <algorithm>
+#include <cstdint>
 #include <iterator>
+#include <map>
 #include <utility>
 
 #include "absl/algorithm/container.h"
-#include "absl/memory/memory.h"
-#include "api/call/audio_sink.h"
-#include "media/base/media_constants.h"
+#include "absl/strings/string_view.h"
+#include "api/rtp_parameters.h"
+#include "api/sequence_checker.h"
+#include "api/task_queue/queued_task.h"
+#include "media/base/codec.h"
+#include "media/base/rid_description.h"
 #include "media/base/rtp_utils.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
-#include "p2p/base/packet_transport_internal.h"
-#include "pc/channel_manager.h"
 #include "pc/rtp_media_utils.h"
-#include "rtc_base/bind.h"
-#include "rtc_base/byte_order.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/copy_on_write_buffer.h"
-#include "rtc_base/dscp.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/network_route.h"
 #include "rtc_base/strings/string_builder.h"
-#include "rtc_base/synchronization/sequence_checker.h"
+#include "rtc_base/synchronization/mutex.h"
+#include "rtc_base/task_utils/pending_task_safety_flag.h"
+#include "rtc_base/task_utils/to_queued_task.h"
 #include "rtc_base/trace_event.h"
 
 namespace cricket {
-using rtc::Bind;
-using rtc::UniqueRandomIdGenerator;
-using webrtc::SdpType;
-
 namespace {
+
+using ::rtc::UniqueRandomIdGenerator;
+using ::webrtc::PendingTaskSafetyFlag;
+using ::webrtc::SdpType;
+using ::webrtc::ToQueuedTask;
 
 struct SendPacketMessageData : public rtc::MessageData {
   rtc::CopyOnWriteBuffer packet;
@@ -134,6 +138,7 @@ BaseChannel::BaseChannel(rtc::Thread* worker_thread,
     : worker_thread_(worker_thread),
       network_thread_(network_thread),
       signaling_thread_(signaling_thread),
+      alive_(PendingTaskSafetyFlag::Create()),
       content_name_(content_name),
       srtp_required_(srtp_required),
       crypto_options_(crypto_options),
@@ -150,8 +155,8 @@ BaseChannel::~BaseChannel() {
   RTC_DCHECK_RUN_ON(worker_thread_);
 
   // Eats any outstanding messages or packets.
-  worker_thread_->Clear(&invoker_);
-  worker_thread_->Clear(this);
+  alive_->SetNotAlive();
+  signaling_thread_->Clear(this);
   // The media channel is destroyed at the end of the destructor, since it
   // is a std::unique_ptr. The transport channel (rtp_transport) must outlive
   // the media channel.
@@ -168,11 +173,14 @@ std::string BaseChannel::ToString() const {
 }
 
 bool BaseChannel::ConnectToRtpTransport() {
-  RTC_DCHECK_RUN_ON(network_thread());
   RTC_DCHECK(rtp_transport_);
-  // TODO(bugs.webrtc.org/12230): This accesses demuxer_criteria_ on the
-  // networking thread.
-  if (!rtp_transport_->RegisterRtpDemuxerSink(demuxer_criteria_, this)) {
+  // We don't need to call OnDemuxerCriteriaUpdatePending/Complete because
+  // there's no previous criteria to worry about.
+  bool result = rtp_transport_->RegisterRtpDemuxerSink(demuxer_criteria_, this);
+  if (result) {
+    previous_demuxer_criteria_ = demuxer_criteria_;
+  } else {
+    previous_demuxer_criteria_ = {};
     RTC_LOG(LS_ERROR) << "Failed to set up demuxing for " << ToString();
     return false;
   }
@@ -188,7 +196,6 @@ bool BaseChannel::ConnectToRtpTransport() {
 }
 
 void BaseChannel::DisconnectFromRtpTransport() {
-  RTC_DCHECK_RUN_ON(network_thread());
   RTC_DCHECK(rtp_transport_);
   rtp_transport_->UnregisterRtpDemuxerSink(this);
   rtp_transport_->SignalReadyToSend.disconnect(this);
@@ -222,17 +229,11 @@ void BaseChannel::Deinit() {
       DisconnectFromRtpTransport();
     }
     // Clear pending read packets/messages.
-    network_thread_->Clear(&invoker_);
     network_thread_->Clear(this);
   });
 }
 
 bool BaseChannel::SetRtpTransport(webrtc::RtpTransportInternal* rtp_transport) {
-  if (!network_thread_->IsCurrent()) {
-    return network_thread_->Invoke<bool>(RTC_FROM_HERE, [this, rtp_transport] {
-      return SetRtpTransport(rtp_transport);
-    });
-  }
   RTC_DCHECK_RUN_ON(network_thread());
   if (rtp_transport == rtp_transport_) {
     return true;
@@ -268,10 +269,14 @@ bool BaseChannel::SetRtpTransport(webrtc::RtpTransportInternal* rtp_transport) {
 }
 
 bool BaseChannel::Enable(bool enable) {
-  worker_thread_->Invoke<void>(
-      RTC_FROM_HERE,
-      Bind(enable ? &BaseChannel::EnableMedia_w : &BaseChannel::DisableMedia_w,
-           this));
+  worker_thread_->Invoke<void>(RTC_FROM_HERE, [this, enable] {
+    RTC_DCHECK_RUN_ON(worker_thread());
+    if (enable) {
+      EnableMedia_w();
+    } else {
+      DisableMedia_w();
+    }
+  });
   return true;
 }
 
@@ -279,53 +284,27 @@ bool BaseChannel::SetLocalContent(const MediaContentDescription* content,
                                   SdpType type,
                                   std::string* error_desc) {
   TRACE_EVENT0("webrtc", "BaseChannel::SetLocalContent");
-  return InvokeOnWorker<bool>(
-      RTC_FROM_HERE,
-      Bind(&BaseChannel::SetLocalContent_w, this, content, type, error_desc));
+  return InvokeOnWorker<bool>(RTC_FROM_HERE, [this, content, type, error_desc] {
+    RTC_DCHECK_RUN_ON(worker_thread());
+    return SetLocalContent_w(content, type, error_desc);
+  });
 }
 
 bool BaseChannel::SetRemoteContent(const MediaContentDescription* content,
                                    SdpType type,
                                    std::string* error_desc) {
   TRACE_EVENT0("webrtc", "BaseChannel::SetRemoteContent");
-  return InvokeOnWorker<bool>(
-      RTC_FROM_HERE,
-      Bind(&BaseChannel::SetRemoteContent_w, this, content, type, error_desc));
+  return InvokeOnWorker<bool>(RTC_FROM_HERE, [this, content, type, error_desc] {
+    RTC_DCHECK_RUN_ON(worker_thread());
+    return SetRemoteContent_w(content, type, error_desc);
+  });
 }
 
-void BaseChannel::SetPayloadTypeDemuxingEnabled(bool enabled) {
+bool BaseChannel::SetPayloadTypeDemuxingEnabled(bool enabled) {
   TRACE_EVENT0("webrtc", "BaseChannel::SetPayloadTypeDemuxingEnabled");
-  InvokeOnWorker<void>(
-      RTC_FROM_HERE,
-      Bind(&BaseChannel::SetPayloadTypeDemuxingEnabled_w, this, enabled));
-}
-
-bool BaseChannel::UpdateRtpTransport(std::string* error_desc) {
-  return network_thread_->Invoke<bool>(RTC_FROM_HERE, [this, error_desc] {
-    RTC_DCHECK_RUN_ON(network_thread());
-    RTC_DCHECK(rtp_transport_);
-    // TODO(bugs.webrtc.org/12230): This accesses demuxer_criteria_ on the
-    // networking thread.
-    if (!rtp_transport_->RegisterRtpDemuxerSink(demuxer_criteria_, this)) {
-      RTC_LOG(LS_ERROR) << "Failed to set up demuxing for " << ToString();
-      rtc::StringBuilder desc;
-      desc << "Failed to set up demuxing for m-section with mid='"
-           << content_name() << "'.";
-      SafeSetError(desc.str(), error_desc);
-      return false;
-    }
-    // NOTE: This doesn't take the BUNDLE case in account meaning the RTP header
-    // extension maps are not merged when BUNDLE is enabled. This is fine
-    // because the ID for MID should be consistent among all the RTP transports,
-    // and that's all RtpTransport uses this map for.
-    //
-    // TODO(deadbeef): Move this call to JsepTransport, there is no reason
-    // BaseChannel needs to be involved here.
-    if (media_type() != cricket::MEDIA_TYPE_DATA) {
-      rtp_transport_->UpdateRtpHeaderExtensionMap(
-          receive_rtp_header_extensions_);
-    }
-    return true;
+  return InvokeOnWorker<bool>(RTC_FROM_HERE, [this, enabled] {
+    RTC_DCHECK_RUN_ON(worker_thread());
+    return SetPayloadTypeDemuxingEnabled_w(enabled);
   });
 }
 
@@ -357,8 +336,10 @@ bool BaseChannel::SendRtcp(rtc::CopyOnWriteBuffer* packet,
 int BaseChannel::SetOption(SocketType type,
                            rtc::Socket::Option opt,
                            int value) {
-  return network_thread_->Invoke<int>(
-      RTC_FROM_HERE, Bind(&BaseChannel::SetOption_n, this, type, opt, value));
+  return network_thread_->Invoke<int>(RTC_FROM_HERE, [this, type, opt, value] {
+    RTC_DCHECK_RUN_ON(network_thread());
+    return SetOption_n(type, opt, value);
+  });
 }
 
 int BaseChannel::SetOption_n(SocketType type,
@@ -389,7 +370,7 @@ void BaseChannel::OnWritableState(bool writable) {
 
 void BaseChannel::OnNetworkRouteChanged(
     absl::optional<rtc::NetworkRoute> network_route) {
-  RTC_LOG(LS_INFO) << "Network route for " << ToString() << " was changed.";
+  RTC_LOG(LS_INFO) << "Network route changed for " << ToString();
 
   RTC_DCHECK_RUN_ON(network_thread());
   rtc::NetworkRoute new_route;
@@ -400,10 +381,7 @@ void BaseChannel::OnNetworkRouteChanged(
   // use the same transport name and MediaChannel::OnNetworkRouteChanged cannot
   // work correctly. Intentionally leave it broken to simplify the code and
   // encourage the users to stop using non-muxing RTCP.
-  invoker_.AsyncInvoke<void>(RTC_FROM_HERE, worker_thread_, [=] {
-    RTC_DCHECK_RUN_ON(worker_thread());
-    media_channel_->OnNetworkRouteChanged(transport_name_, new_route);
-  });
+  media_channel_->OnNetworkRouteChanged(transport_name_, new_route);
 }
 
 sigslot::signal1<ChannelInterface*>& BaseChannel::SignalFirstPacketReceived() {
@@ -419,10 +397,8 @@ sigslot::signal1<const rtc::SentPacket&>& BaseChannel::SignalSentPacket() {
 }
 
 void BaseChannel::OnTransportReadyToSend(bool ready) {
-  invoker_.AsyncInvoke<void>(RTC_FROM_HERE, worker_thread_, [=] {
-    RTC_DCHECK_RUN_ON(worker_thread());
-    media_channel_->OnReadyToSend(ready);
-  });
+  RTC_DCHECK_RUN_ON(network_thread());
+  media_channel_->OnReadyToSend(ready);
 }
 
 bool BaseChannel::SendPacket(bool rtcp,
@@ -524,17 +500,47 @@ void BaseChannel::OnRtpPacket(const webrtc::RtpPacketReceived& parsed_packet) {
     return;
   }
 
-  auto packet_buffer = parsed_packet.Buffer();
+  media_channel_->OnPacketReceived(parsed_packet.Buffer(), packet_time_us);
+}
 
-  invoker_.AsyncInvoke<void>(
-      RTC_FROM_HERE, worker_thread_, [this, packet_buffer, packet_time_us] {
-        RTC_DCHECK_RUN_ON(worker_thread());
-        media_channel_->OnPacketReceived(packet_buffer, packet_time_us);
+void BaseChannel::UpdateRtpHeaderExtensionMap(
+    const RtpHeaderExtensions& header_extensions) {
+  // Update the header extension map on network thread in case there is data
+  // race.
+  //
+  // NOTE: This doesn't take the BUNDLE case in account meaning the RTP header
+  // extension maps are not merged when BUNDLE is enabled. This is fine because
+  // the ID for MID should be consistent among all the RTP transports.
+  network_thread_->Invoke<void>(RTC_FROM_HERE, [this, &header_extensions] {
+    RTC_DCHECK_RUN_ON(network_thread());
+    rtp_transport_->UpdateRtpHeaderExtensionMap(header_extensions);
+  });
+}
+
+bool BaseChannel::RegisterRtpDemuxerSink_w() {
+  if (demuxer_criteria_ == previous_demuxer_criteria_) {
+    return true;
+  }
+  media_channel_->OnDemuxerCriteriaUpdatePending();
+  // Copy demuxer criteria, since they're a worker-thread variable
+  // and we want to pass them to the network thread
+  return network_thread_->Invoke<bool>(
+      RTC_FROM_HERE, [this, demuxer_criteria = demuxer_criteria_] {
+        RTC_DCHECK_RUN_ON(network_thread());
+        RTC_DCHECK(rtp_transport_);
+        bool result =
+            rtp_transport_->RegisterRtpDemuxerSink(demuxer_criteria, this);
+        if (result) {
+          previous_demuxer_criteria_ = demuxer_criteria;
+        } else {
+          previous_demuxer_criteria_ = {};
+        }
+        media_channel_->OnDemuxerCriteriaUpdateComplete();
+        return result;
       });
 }
 
 void BaseChannel::EnableMedia_w() {
-  RTC_DCHECK(worker_thread_ == rtc::Thread::Current());
   if (enabled_)
     return;
 
@@ -544,7 +550,6 @@ void BaseChannel::EnableMedia_w() {
 }
 
 void BaseChannel::DisableMedia_w() {
-  RTC_DCHECK(worker_thread_ == rtc::Thread::Current());
   if (!enabled_)
     return;
 
@@ -567,17 +572,16 @@ void BaseChannel::ChannelWritable_n() {
     return;
   }
   writable_ = true;
-
   RTC_LOG(LS_INFO) << "Channel writable (" << ToString() << ")"
                    << (was_ever_writable_n_ ? "" : " for the first time");
-  // We only have to do this AsyncInvoke once, when first transitioning to
+  // We only have to do this PostTask once, when first transitioning to
   // writable.
   if (!was_ever_writable_n_) {
-    invoker_.AsyncInvoke<void>(RTC_FROM_HERE, worker_thread_, [this] {
+    worker_thread_->PostTask(ToQueuedTask(alive_, [this] {
       RTC_DCHECK_RUN_ON(worker_thread());
       was_ever_writable_ = true;
       UpdateMediaSendRecvState_w();
-    });
+    }));
   }
   was_ever_writable_n_ = true;
 }
@@ -599,13 +603,12 @@ bool BaseChannel::RemoveRecvStream_w(uint32_t ssrc) {
 }
 
 void BaseChannel::ResetUnsignaledRecvStream_w() {
-  RTC_DCHECK(worker_thread() == rtc::Thread::Current());
   media_channel()->ResetUnsignaledRecvStream();
 }
 
-void BaseChannel::SetPayloadTypeDemuxingEnabled_w(bool enabled) {
+bool BaseChannel::SetPayloadTypeDemuxingEnabled_w(bool enabled) {
   if (enabled == payload_type_demuxing_enabled_) {
-    return;
+    return true;
   }
   payload_type_demuxing_enabled_ = enabled;
   if (!enabled) {
@@ -616,10 +619,21 @@ void BaseChannel::SetPayloadTypeDemuxingEnabled_w(bool enabled) {
     // there is no straightforward way to identify those streams.
     media_channel()->ResetUnsignaledRecvStream();
     demuxer_criteria_.payload_types.clear();
+    if (!RegisterRtpDemuxerSink_w()) {
+      RTC_LOG(LS_ERROR) << "Failed to disable payload type demuxing for "
+                        << ToString();
+      return false;
+    }
   } else if (!payload_types_.empty()) {
     demuxer_criteria_.payload_types.insert(payload_types_.begin(),
                                            payload_types_.end());
+    if (!RegisterRtpDemuxerSink_w()) {
+      RTC_LOG(LS_ERROR) << "Failed to enable payload type demuxing for "
+                        << ToString();
+      return false;
+    }
   }
+  return true;
 }
 
 bool BaseChannel::UpdateLocalStreams_w(const std::vector<StreamParams>& streams,
@@ -760,6 +774,11 @@ bool BaseChannel::UpdateRemoteStreams_w(
     demuxer_criteria_.ssrcs.insert(new_stream.ssrcs.begin(),
                                    new_stream.ssrcs.end());
   }
+  // Re-register the sink to update the receiving ssrcs.
+  if (!RegisterRtpDemuxerSink_w()) {
+    RTC_LOG(LS_ERROR) << "Failed to set up demuxing for " << ToString();
+    ret = false;
+  }
   remote_streams_ = streams;
   return ret;
 }
@@ -776,10 +795,6 @@ RtpHeaderExtensions BaseChannel::GetFilteredRtpHeaderExtensions(
   }
 
   return webrtc::RtpExtension::FilterDuplicateNonEncrypted(extensions);
-}
-
-void BaseChannel::SetReceiveExtensions(const RtpHeaderExtensions& extensions) {
-  receive_rtp_header_extensions_ = extensions;
 }
 
 void BaseChannel::OnMessage(rtc::Message* pmsg) {
@@ -829,27 +844,22 @@ void BaseChannel::FlushRtcpMessages_n() {
 }
 
 void BaseChannel::SignalSentPacket_n(const rtc::SentPacket& sent_packet) {
-  invoker_.AsyncInvoke<void>(RTC_FROM_HERE, worker_thread_,
-                             [this, sent_packet] {
-                               RTC_DCHECK_RUN_ON(worker_thread());
-                               SignalSentPacket()(sent_packet);
-                             });
+  worker_thread_->PostTask(ToQueuedTask(alive_, [this, sent_packet] {
+    RTC_DCHECK_RUN_ON(worker_thread());
+    SignalSentPacket()(sent_packet);
+  }));
 }
 
 void BaseChannel::SetNegotiatedHeaderExtensions_w(
     const RtpHeaderExtensions& extensions) {
   TRACE_EVENT0("webrtc", __func__);
-  RtpHeaderExtensions extensions_copy = extensions;
-  invoker_.AsyncInvoke<void>(
-      RTC_FROM_HERE, signaling_thread(),
-      [this, extensions_copy = std::move(extensions_copy)] {
-        RTC_DCHECK_RUN_ON(signaling_thread());
-        negotiated_header_extensions_ = std::move(extensions_copy);
-      });
+  webrtc::MutexLock lock(&negotiated_header_extensions_lock_);
+  negotiated_header_extensions_ = extensions;
 }
 
 RtpHeaderExtensions BaseChannel::GetNegotiatedRtpHeaderExtensions() const {
   RTC_DCHECK_RUN_ON(signaling_thread());
+  webrtc::MutexLock lock(&negotiated_header_extensions_lock_);
   return negotiated_header_extensions_;
 }
 
@@ -875,10 +885,6 @@ VoiceChannel::~VoiceChannel() {
   // this can't be done in the base class, since it calls a virtual
   DisableMedia_w();
   Deinit();
-}
-
-void VoiceChannel::Init_w(webrtc::RtpTransportInternal* rtp_transport) {
-  BaseChannel::Init_w(rtp_transport);
 }
 
 void VoiceChannel::UpdateMediaSendRecvState_w() {
@@ -917,7 +923,7 @@ bool VoiceChannel::SetLocalContent_w(const MediaContentDescription* content,
 
   RtpHeaderExtensions rtp_header_extensions =
       GetFilteredRtpHeaderExtensions(audio->rtp_header_extensions());
-  SetReceiveExtensions(rtp_header_extensions);
+  UpdateRtpHeaderExtensionMap(rtp_header_extensions);
   media_channel()->SetExtmapAllowMixed(audio->extmap_allow_mixed());
 
   AudioRecvParameters recv_params = last_recv_params_;
@@ -936,6 +942,11 @@ bool VoiceChannel::SetLocalContent_w(const MediaContentDescription* content,
   if (webrtc::RtpTransceiverDirectionHasRecv(audio->direction())) {
     for (const AudioCodec& codec : audio->codecs()) {
       MaybeAddHandledPayloadType(codec.id);
+    }
+    // Need to re-register the sink to update the handled payload.
+    if (!RegisterRtpDemuxerSink_w()) {
+      RTC_LOG(LS_ERROR) << "Failed to set up audio demuxing for " << ToString();
+      return false;
     }
   }
 
@@ -1002,6 +1013,10 @@ bool VoiceChannel::SetRemoteContent_w(const MediaContentDescription* content,
                             "disable payload type demuxing for "
                          << ToString();
     ClearHandledPayloadTypes();
+    if (!RegisterRtpDemuxerSink_w()) {
+      RTC_LOG(LS_ERROR) << "Failed to update audio demuxing for " << ToString();
+      return false;
+    }
   }
 
   // TODO(pthatcher): Move remote streams into AudioRecvParameters,
@@ -1061,8 +1076,9 @@ void VideoChannel::UpdateMediaSendRecvState_w() {
 }
 
 void VideoChannel::FillBitrateInfo(BandwidthEstimationInfo* bwe_info) {
-  InvokeOnWorker<void>(RTC_FROM_HERE, Bind(&VideoMediaChannel::FillBitrateInfo,
-                                           media_channel(), bwe_info));
+  VideoMediaChannel* mc = media_channel();
+  InvokeOnWorker<void>(RTC_FROM_HERE,
+                       [mc, bwe_info] { mc->FillBitrateInfo(bwe_info); });
 }
 
 bool VideoChannel::SetLocalContent_w(const MediaContentDescription* content,
@@ -1085,7 +1101,7 @@ bool VideoChannel::SetLocalContent_w(const MediaContentDescription* content,
 
   RtpHeaderExtensions rtp_header_extensions =
       GetFilteredRtpHeaderExtensions(video->rtp_header_extensions());
-  SetReceiveExtensions(rtp_header_extensions);
+  UpdateRtpHeaderExtensionMap(rtp_header_extensions);
   media_channel()->SetExtmapAllowMixed(video->extmap_allow_mixed());
 
   VideoRecvParameters recv_params = last_recv_params_;
@@ -1127,6 +1143,11 @@ bool VideoChannel::SetLocalContent_w(const MediaContentDescription* content,
   if (webrtc::RtpTransceiverDirectionHasRecv(video->direction())) {
     for (const VideoCodec& codec : video->codecs()) {
       MaybeAddHandledPayloadType(codec.id);
+    }
+    // Need to re-register the sink to update the handled payload.
+    if (!RegisterRtpDemuxerSink_w()) {
+      RTC_LOG(LS_ERROR) << "Failed to set up video demuxing for " << ToString();
+      return false;
     }
   }
 
@@ -1237,6 +1258,10 @@ bool VideoChannel::SetRemoteContent_w(const MediaContentDescription* content,
                             "disable payload type demuxing for "
                          << ToString();
     ClearHandledPayloadTypes();
+    if (!RegisterRtpDemuxerSink_w()) {
+      RTC_LOG(LS_ERROR) << "Failed to update video demuxing for " << ToString();
+      return false;
+    }
   }
 
   // TODO(pthatcher): Move remote streams into VideoRecvParameters,
@@ -1291,9 +1316,10 @@ void RtpDataChannel::Init_w(webrtc::RtpTransportInternal* rtp_transport) {
 bool RtpDataChannel::SendData(const SendDataParams& params,
                               const rtc::CopyOnWriteBuffer& payload,
                               SendDataResult* result) {
-  return InvokeOnWorker<bool>(
-      RTC_FROM_HERE, Bind(&DataMediaChannel::SendData, media_channel(), params,
-                          payload, result));
+  DataMediaChannel* mc = media_channel();
+  return InvokeOnWorker<bool>(RTC_FROM_HERE, [mc, &params, &payload, result] {
+    return mc->SendData(params, payload, result);
+  });
 }
 
 bool RtpDataChannel::CheckDataChannelTypeFromContent(
@@ -1346,6 +1372,11 @@ bool RtpDataChannel::SetLocalContent_w(const MediaContentDescription* content,
   }
   for (const DataCodec& codec : data->codecs()) {
     MaybeAddHandledPayloadType(codec.id);
+  }
+  // Need to re-register the sink to update the handled payload.
+  if (!RegisterRtpDemuxerSink_w()) {
+    RTC_LOG(LS_ERROR) << "Failed to set up data demuxing for " << ToString();
+    return false;
   }
 
   last_recv_params_ = recv_params;

@@ -56,6 +56,13 @@
 @synthesize turnLoggingId = _turnLoggingId;
 @synthesize rtcpAudioReportIntervalMs = _rtcpAudioReportIntervalMs;
 @synthesize rtcpVideoReportIntervalMs = _rtcpVideoReportIntervalMs;
+@synthesize enableImplicitRollback = _enableImplicitRollback;
+@synthesize offerExtmapAllowMixed = _offerExtmapAllowMixed;
+@synthesize iceCheckIntervalStrongConnectivity = _iceCheckIntervalStrongConnectivity;
+@synthesize iceCheckIntervalWeakConnectivity = _iceCheckIntervalWeakConnectivity;
+@synthesize iceUnwritableTimeout = _iceUnwritableTimeout;
+@synthesize iceUnwritableMinChecks = _iceUnwritableMinChecks;
+@synthesize iceInactiveTimeout = _iceInactiveTimeout;
 
 - (instancetype)init {
   // Copy defaults.
@@ -134,6 +141,24 @@
     _rtcpAudioReportIntervalMs = config.audio_rtcp_report_interval_ms();
     _rtcpVideoReportIntervalMs = config.video_rtcp_report_interval_ms();
     _allowCodecSwitching = config.allow_codec_switching.value_or(false);
+    _enableImplicitRollback = config.enable_implicit_rollback;
+    _offerExtmapAllowMixed = config.offer_extmap_allow_mixed;
+    _iceCheckIntervalStrongConnectivity =
+        config.ice_check_interval_strong_connectivity.has_value() ?
+        [NSNumber numberWithInt:*config.ice_check_interval_strong_connectivity] :
+        nil;
+    _iceCheckIntervalWeakConnectivity = config.ice_check_interval_weak_connectivity.has_value() ?
+        [NSNumber numberWithInt:*config.ice_check_interval_weak_connectivity] :
+        nil;
+    _iceUnwritableTimeout = config.ice_unwritable_timeout.has_value() ?
+        [NSNumber numberWithInt:*config.ice_unwritable_timeout] :
+        nil;
+    _iceUnwritableMinChecks = config.ice_unwritable_min_checks.has_value() ?
+        [NSNumber numberWithInt:*config.ice_unwritable_min_checks] :
+        nil;
+    _iceInactiveTimeout = config.ice_inactive_timeout.has_value() ?
+        [NSNumber numberWithInt:*config.ice_inactive_timeout] :
+        nil;
   }
   return self;
 }
@@ -141,7 +166,7 @@
 - (NSString *)description {
   static NSString *formatString = @"RTC_OBJC_TYPE(RTCConfiguration): "
                                   @"{\n%@\n%@\n%@\n%@\n%@\n%@\n%@\n%@\n%d\n%d\n%d\n%d\n%d\n%d\n"
-                                  @"%d\n%@\n%d\n%d\n%d\n%d\n%d\n%@\n}\n";
+                                  @"%d\n%@\n%d\n%d\n%d\n%d\n%d\n%@\n%@\n}\n";
 
   return [NSString
       stringWithFormat:formatString,
@@ -167,7 +192,8 @@
                        _disableIPV6OnWiFi,
                        _maxIPv6Networks,
                        _activeResetSrtpParams,
-                       _enableDscp];
+                       _enableDscp,
+                       _enableImplicitRollback];
 }
 
 #pragma mark - Private
@@ -264,6 +290,25 @@
   nativeConfig->set_audio_rtcp_report_interval_ms(_rtcpAudioReportIntervalMs);
   nativeConfig->set_video_rtcp_report_interval_ms(_rtcpVideoReportIntervalMs);
   nativeConfig->allow_codec_switching = _allowCodecSwitching;
+  nativeConfig->enable_implicit_rollback = _enableImplicitRollback;
+  nativeConfig->offer_extmap_allow_mixed = _offerExtmapAllowMixed;
+  if (_iceCheckIntervalStrongConnectivity != nil) {
+    nativeConfig->ice_check_interval_strong_connectivity =
+        absl::optional<int>(_iceCheckIntervalStrongConnectivity.intValue);
+  }
+  if (_iceCheckIntervalWeakConnectivity != nil) {
+    nativeConfig->ice_check_interval_weak_connectivity =
+        absl::optional<int>(_iceCheckIntervalWeakConnectivity.intValue);
+  }
+  if (_iceUnwritableTimeout != nil) {
+    nativeConfig->ice_unwritable_timeout = absl::optional<int>(_iceUnwritableTimeout.intValue);
+  }
+  if (_iceUnwritableMinChecks != nil) {
+    nativeConfig->ice_unwritable_min_checks = absl::optional<int>(_iceUnwritableMinChecks.intValue);
+  }
+  if (_iceInactiveTimeout != nil) {
+    nativeConfig->ice_inactive_timeout = absl::optional<int>(_iceInactiveTimeout.intValue);
+  }
   return nativeConfig.release();
 }
 

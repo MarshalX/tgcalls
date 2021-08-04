@@ -15,14 +15,13 @@
 #include "rtc_base/logging.h"
 
 namespace webrtc {
-namespace video_coding {
 
 RtpFrameReferenceFinder::ReturnVector RtpGenericFrameRefFinder::ManageFrame(
     std::unique_ptr<RtpFrameObject> frame,
     const RTPVideoHeader::GenericDescriptorInfo& descriptor) {
   // Frame IDs are unwrapped in the RtpVideoStreamReceiver, no need to unwrap
   // them here.
-  frame->id.picture_id = descriptor.frame_id;
+  frame->SetId(descriptor.frame_id);
   frame->SetSpatialIndex(descriptor.spatial_index);
 
   RtpFrameReferenceFinder::ReturnVector res;
@@ -40,5 +39,4 @@ RtpFrameReferenceFinder::ReturnVector RtpGenericFrameRefFinder::ManageFrame(
   return res;
 }
 
-}  // namespace video_coding
 }  // namespace webrtc

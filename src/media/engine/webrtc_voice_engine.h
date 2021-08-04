@@ -18,6 +18,7 @@
 
 #include "api/audio_codecs/audio_encoder_factory.h"
 #include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
 #include "api/task_queue/task_queue_factory.h"
 #include "api/transport/rtp/rtp_source.h"
 #include "api/transport/webrtc_key_value_config.h"
@@ -29,7 +30,7 @@
 #include "rtc_base/buffer.h"
 #include "rtc_base/network_route.h"
 #include "rtc_base/task_queue.h"
-#include "rtc_base/thread_checker.h"
+#include "rtc_base/task_utils/pending_task_safety_flag.h"
 
 namespace webrtc {
 class AudioFrameProcessor;
@@ -56,8 +57,7 @@ class WebRtcVoiceEngine final : public VoiceEngineInterface {
       rtc::scoped_refptr<webrtc::AudioMixer> audio_mixer,
       rtc::scoped_refptr<webrtc::AudioProcessing> audio_processing,
       webrtc::AudioFrameProcessor* audio_frame_processor,
-      const webrtc::WebRtcKeyValueConfig& trials,
-      std::function<void(uint32_t)> onUnknownAudioSsrc);
+      const webrtc::WebRtcKeyValueConfig& trials);
 
   WebRtcVoiceEngine() = delete;
   WebRtcVoiceEngine(const WebRtcVoiceEngine&) = delete;
@@ -113,8 +113,8 @@ class WebRtcVoiceEngine final : public VoiceEngineInterface {
   std::vector<AudioCodec> CollectCodecs(
       const std::vector<webrtc::AudioCodecSpec>& specs) const;
 
-  rtc::ThreadChecker signal_thread_checker_;
-  rtc::ThreadChecker worker_thread_checker_;
+  webrtc::SequenceChecker signal_thread_checker_;
+  webrtc::SequenceChecker worker_thread_checker_;
 
   // The audio device module.
   rtc::scoped_refptr<webrtc::AudioDeviceModule> adm_;
@@ -146,8 +146,6 @@ class WebRtcVoiceEngine final : public VoiceEngineInterface {
   // redundancy for opus audio.
   const bool audio_red_for_opus_trial_enabled_;
   const bool minimized_remsampling_on_mobile_trial_enabled_;
-
-  std::function<void(uint32_t)> onUnknownAudioSsrc_ = nullptr;
 };
 
 // WebRtcVoiceMediaChannel is an implementation of VoiceMediaChannel that uses
@@ -189,6 +187,8 @@ class WebRtcVoiceMediaChannel final : public VoiceMediaChannel,
   bool AddRecvStream(const StreamParams& sp) override;
   bool RemoveRecvStream(uint32_t ssrc) override;
   void ResetUnsignaledRecvStream() override;
+  void OnDemuxerCriteriaUpdatePending() override;
+  void OnDemuxerCriteriaUpdateComplete() override;
 
   // E2EE Frame API
   // Set a frame decryptor to a particular ssrc that will intercept all
@@ -279,7 +279,6 @@ class WebRtcVoiceMediaChannel final : public VoiceMediaChannel,
   bool MuteStream(uint32_t ssrc, bool mute);
 
   WebRtcVoiceEngine* engine() { return engine_; }
-  void ChangePlayout(bool playout);
   int CreateVoEChannel();
   bool DeleteVoEChannel(int channel);
   bool SetMaxSendBitrate(int bps);
@@ -288,7 +287,9 @@ class WebRtcVoiceMediaChannel final : public VoiceMediaChannel,
   // unsignaled anymore (i.e. it is now removed, or signaled), and return true.
   bool MaybeDeregisterUnsignaledRecvStream(uint32_t ssrc);
 
-  rtc::ThreadChecker worker_thread_checker_;
+  webrtc::TaskQueueBase* const worker_thread_;
+  webrtc::ScopedTaskSafety task_safety_;
+  webrtc::SequenceChecker network_thread_checker_;
 
   WebRtcVoiceEngine* const engine_ = nullptr;
   std::vector<AudioCodec> send_codecs_;
@@ -304,7 +305,6 @@ class WebRtcVoiceMediaChannel final : public VoiceMediaChannel,
   int dtmf_payload_freq_ = -1;
   bool recv_transport_cc_enabled_ = false;
   bool recv_nack_enabled_ = false;
-  bool desired_playout_ = false;
   bool playout_ = false;
   bool send_ = false;
   webrtc::Call* const call_ = nullptr;

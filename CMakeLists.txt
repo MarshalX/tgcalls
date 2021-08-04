@@ -6,11 +6,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 set(TG_OWT_SPECIAL_TARGET "" CACHE STRING "Use special platform target, like 'macstore' for Mac App Store.")
 
-if (NOT TG_OWT_SPECIAL_TARGET STREQUAL "osx")
-    set(CMAKE_OSX_DEPLOYMENT_TARGET 10.12 CACHE STRING "Minimum OS X deployment version" FORCE)
-else()
-    set(CMAKE_OSX_DEPLOYMENT_TARGET 10.10 CACHE STRING "Minimum OS X deployment version" FORCE)
-endif()
+set(CMAKE_OSX_DEPLOYMENT_TARGET 10.11 CACHE STRING "Minimum OS X deployment version" FORCE)
 
 if (NOT TG_OWT_SPECIAL_TARGET STREQUAL "")
     set(TG_OWT_PACKAGED_BUILD 0)
@@ -18,8 +14,20 @@ else()
     set(TG_OWT_PACKAGED_BUILD 1)
 endif()
 
+set(not_packaged_build 0)
+if (NOT TG_OWT_PACKAGED_BUILD)
+    set(not_packaged_build 1)
+endif()
+
 option(BUILD_SHARED_LIBS "Builds shared libraries instead of static." ${TG_OWT_PACKAGED_BUILD})
 option(TG_OWT_USE_PROTOBUF "Use protobuf to generate additional headers. Useful for packaged build." ${BUILD_SHARED_LIBS})
+option(TG_OWT_USE_PIPEWIRE "Use pipewire for desktop capture on non-Apple Unix." ON)
+option(TG_OWT_DLOPEN_PIPEWIRE "dlopen pipewire 0.3 for desktop capture on non-Apple Unix." ${not_packaged_build})
+option(TG_OWT_BUILD_AUDIO_BACKENDS "Build webrtc audio backends." ON)
+
+if (NOT UNIX OR APPLE)
+    set(TG_OWT_USE_PIPEWIRE OFF)
+endif()
 
 if (BUILD_SHARED_LIBS)
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -34,6 +42,7 @@ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT t
 
 get_filename_component(webrtc_loc "src" REALPATH)
 set(third_party_loc ${webrtc_loc}/third_party)
+set(tools_loc ${webrtc_loc}/tools)
 
 include(GNUInstallDirs)
 set(webrtc_includedir ${CMAKE_INSTALL_INCLUDEDIR}/tg_owt)
@@ -51,6 +60,7 @@ endif()
 
 include(cmake/nice_target_sources.cmake)
 include(cmake/init_target.cmake)
+include(cmake/generate_target.cmake)
 include(cmake/target_yasm_sources.cmake)
 include(cmake/external.cmake)
 include(cmake/libabsl.cmake)
@@ -60,7 +70,6 @@ include(cmake/librnnoise.cmake)
 include(cmake/libsrtp.cmake)
 include(cmake/libusrsctp.cmake)
 include(cmake/libvpx.cmake)
-include(cmake/libwebrtcbuild.cmake)
 include(cmake/libyuv.cmake)
 if (NOT WIN32 AND NOT APPLE)
     include(cmake/libevent.cmake)
@@ -78,43 +87,45 @@ endif()
 add_library(tg_owt)
 init_target(tg_owt)
 
+if (TG_OWT_USE_PIPEWIRE)
+    if (TG_OWT_DLOPEN_PIPEWIRE)
+        include(cmake/generate_stubs.cmake)
+        set(stubs_loc ${webrtc_loc}/modules/desktop_capture/linux)
+        generate_stubs(tg_owt
+            ${stubs_loc}/pipewire_stub_header.fragment
+            pipewire_stubs
+            ${stubs_loc}/pipewire03.sigs
+        )
+        target_compile_definitions(tg_owt
+        PRIVATE
+            WEBRTC_DLOPEN_PIPEWIRE
+        )
+        target_include_directories(tg_owt
+        PRIVATE
+            ${webrtc_loc}/third_party/pipewire/spa/include
+            ${webrtc_loc}/third_party/pipewire/src
+            ${webrtc_loc}/third_party/pipewire/build/src
+        )
+    else()
+        link_pipewire(tg_owt)
+    endif()
+endif()
+
 set_target_properties(tg_owt PROPERTIES SOVERSION 0 VERSION 0.0.0)
+
+target_link_libraries(tg_owt
+PRIVATE
+    tg_owt::libpffft
+    tg_owt::librnnoise
+    tg_owt::libsrtp
+    tg_owt::libyuv
+)
 
 if (is_x86 OR is_x64)
     target_link_libraries(tg_owt
-    PUBLIC
-        tg_owt::libwebrtcbuild
     PRIVATE
         tg_owt::tg_owt_avx2
         tg_owt::tg_owt_sse2
-        tg_owt::libabsl
-        tg_owt::libopenh264
-        tg_owt::libpffft
-        tg_owt::librnnoise
-        tg_owt::libsrtp
-        tg_owt::libusrsctp
-        tg_owt::libvpx
-        tg_owt::libvpx_mmx
-        tg_owt::libvpx_sse2
-        tg_owt::libvpx_ssse3
-        tg_owt::libvpx_sse4
-        tg_owt::libvpx_avx
-        tg_owt::libvpx_avx2
-        tg_owt::libyuv
-    )
-else()
-    target_link_libraries(tg_owt
-    PUBLIC
-        tg_owt::libwebrtcbuild
-    PRIVATE
-        tg_owt::libabsl
-        tg_owt::libopenh264
-        tg_owt::libpffft
-        tg_owt::librnnoise
-        tg_owt::libsrtp
-        tg_owt::libusrsctp
-        tg_owt::libvpx
-        tg_owt::libyuv
     )
 endif()
 
@@ -131,9 +142,6 @@ PRIVATE
     ${libopenh264_yasm_objects}
 )
 
-if (NOT WIN32 AND NOT APPLE)
-    target_link_libraries(tg_owt PRIVATE tg_owt::libevent)
-endif()
 if (APPLE)
     target_link_libraries(tg_owt PUBLIC tg_owt::libsdkmacos)
 endif()
@@ -141,6 +149,28 @@ endif()
 link_openssl(tg_owt)
 link_ffmpeg(tg_owt)
 link_opus(tg_owt)
+link_libabsl(tg_owt)
+link_libopenh264(tg_owt)
+link_libusrsctp(tg_owt)
+link_libvpx(tg_owt)
+
+if (TG_OWT_BUILD_AUDIO_BACKENDS AND (UNIX AND NOT APPLE))
+    link_libalsa(tg_owt)
+    link_libpulse(tg_owt)
+    link_dl(tg_owt)
+endif()
+
+if (NOT WIN32 AND NOT APPLE)
+    link_libevent(tg_owt)
+endif()
+
+include(cmake/libwebrtcbuild.cmake)
+target_link_libraries(tg_owt PUBLIC tg_owt::libwebrtcbuild)
+
+if (UNIX AND NOT APPLE)
+    link_x11(tg_owt)
+    link_glib(tg_owt)
+endif()
 
 function(add_sublibrary postfix)
     add_library(tg_owt_${postfix} OBJECT)
@@ -149,9 +179,8 @@ function(add_sublibrary postfix)
     target_link_libraries(tg_owt_${postfix}
     PUBLIC
         tg_owt::libwebrtcbuild
-    PRIVATE
-        tg_owt::libabsl
     )
+    link_libabsl(tg_owt_${postfix})
     target_include_directories(tg_owt_${postfix}
     PUBLIC
         $<BUILD_INTERFACE:${webrtc_loc}>
@@ -176,6 +205,8 @@ PRIVATE
     rtc_base/async_packet_socket.h
     rtc_base/async_resolver_interface.cc
     rtc_base/async_resolver_interface.h
+    rtc_base/async_resolver.cc
+    rtc_base/async_resolver.h
     rtc_base/async_socket.cc
     rtc_base/async_socket.h
     rtc_base/async_tcp_socket.cc
@@ -205,7 +236,7 @@ PRIVATE
     rtc_base/ip_address.h
     rtc_base/logging.cc
     rtc_base/logging.h
-    rtc_base/keep_ref_until_done.h
+    # rtc_base/keep_ref_until_done.h
     rtc_base/mdns_responder_interface.h
     rtc_base/memory/aligned_malloc.cc
     rtc_base/memory/aligned_malloc.h
@@ -296,7 +327,7 @@ PRIVATE
     rtc_base/thread_message.h
     rtc_base/unique_id_generator.cc
     rtc_base/unique_id_generator.h
-    rtc_base/bind.h
+    # rtc_base/bind.h
     rtc_base/bit_buffer.cc
     rtc_base/bit_buffer.h
     rtc_base/buffer.h
@@ -349,12 +380,18 @@ PRIVATE
     rtc_base/win32_window.h
     rtc_base/win/scoped_com_initializer.cc
     rtc_base/win/scoped_com_initializer.h
+    rtc_base/win/windows_version.cc
+    rtc_base/win/windows_version.h
+    rtc_base/win/create_direct3d_device.cc
+    rtc_base/win/create_direct3d_device.h
     rtc_base/strings/string_builder.cc
     rtc_base/strings/string_builder.h
     rtc_base/strings/string_format.cc
     rtc_base/strings/string_format.h
     # rtc_base/experiments/experimental_screenshare_settings.cc
     # rtc_base/experiments/experimental_screenshare_settings.h
+    rtc_base/experiments/encoder_info_settings.cc
+    rtc_base/experiments/encoder_info_settings.h
     rtc_base/experiments/alr_experiment.cc
     rtc_base/experiments/balanced_degradation_settings.cc
     rtc_base/experiments/cpu_speed_experiment.cc
@@ -393,8 +430,8 @@ PRIVATE
     # rtc_base/synchronization/rw_lock_win.h
     # rtc_base/synchronization/rw_lock_wrapper.cc
     # rtc_base/synchronization/rw_lock_wrapper.h
-    rtc_base/synchronization/sequence_checker.cc
-    rtc_base/synchronization/sequence_checker.h
+    rtc_base/synchronization/sequence_checker_internal.cc
+    rtc_base/synchronization/sequence_checker_internal.h
     rtc_base/synchronization/yield_policy.cc
     rtc_base/synchronization/yield_policy.h
     rtc_base/system/file_wrapper.cc
@@ -404,6 +441,8 @@ PRIVATE
     rtc_base/system/cocoa_threading.mm
     rtc_base/system/gcd_helpers.h
     rtc_base/system/gcd_helpers.m
+    rtc_base/system_time.cc
+    rtc_base/system_time.h
     rtc_base/task_queue.cc
     rtc_base/task_queue_gcd.cc
     rtc_base/task_queue_gcd.h
@@ -413,6 +452,8 @@ PRIVATE
     rtc_base/task_queue_win.h
     rtc_base/ifaddrs_converter.cc
     rtc_base/ifaddrs_converter.h
+    rtc_base/internal/default_socket_server.cc
+    rtc_base/internal/default_socket_server.h
     rtc_base/mac_ifaddrs_converter.cc
     rtc_base/task_utils/repeating_task.cc
     rtc_base/task_utils/repeating_task.h
@@ -453,6 +494,7 @@ PRIVATE
     api/audio_codecs/opus/audio_encoder_opus_config.cc
     api/audio_codecs/opus_audio_decoder_factory.cc
     api/audio_codecs/opus_audio_encoder_factory.cc
+    api/async_dns_resolver.h
     api/audio_options.cc
     api/call/transport.cc
     api/candidate.cc
@@ -547,7 +589,7 @@ PRIVATE
     api/video/video_frame_metadata.h
     api/video/video_source_interface.cc
     api/video/video_stream_decoder_create.cc
-    api/video/video_stream_encoder_create.cc
+    # api/video/video_stream_encoder_create.cc
     api/video/video_timing.cc
     api/video/video_stream_encoder_interface.h
     # api/video/video_stream_encoder_observer.cc
@@ -573,8 +615,8 @@ PRIVATE
     pc/channel_manager.h
     # pc/composite_data_channel_transport.cc
     # pc/composite_data_channel_transport.h
-    pc/composite_rtp_transport.cc
-    pc/composite_rtp_transport.h
+    # pc/composite_rtp_transport.cc
+    # pc/composite_rtp_transport.h
     # pc/datagram_rtp_transport.cc
     # pc/datagram_rtp_transport.h
     pc/dtls_srtp_transport.cc
@@ -727,7 +769,7 @@ PRIVATE
     media/base/video_source_base.cc
     media/base/vp9_profile.cc
     media/engine/adm_helpers.cc
-    media/engine/constants.cc
+    # media/engine/constants.cc
     media/engine/encoder_simulcast_proxy.cc
     media/engine/internal_decoder_factory.cc
     media/engine/internal_encoder_factory.cc
@@ -963,6 +1005,8 @@ PRIVATE
     modules/audio_coding/neteq/sync_buffer.cc
     modules/audio_coding/neteq/time_stretch.cc
     modules/audio_coding/neteq/timestamp_scaler.cc
+    modules/audio_device/include/audio_device_factory.cc
+    modules/audio_device/include/audio_device_factory.h
     # modules/audio_device/android/audio_manager.cc
     # modules/audio_device/android/audio_record_jni.cc
     # modules/audio_device/android/audio_track_jni.cc
@@ -970,10 +1014,36 @@ PRIVATE
     # modules/audio_device/android/opensles_common.cc
     # modules/audio_device/android/opensles_player.cc
     # modules/audio_device/android/opensles_recorder.cc
+    modules/audio_device/linux/alsasymboltable_linux.cc
+    modules/audio_device/linux/alsasymboltable_linux.h
+    modules/audio_device/linux/audio_device_alsa_linux.cc
+    modules/audio_device/linux/audio_device_alsa_linux.h
+    modules/audio_device/linux/audio_mixer_manager_alsa_linux.cc
+    modules/audio_device/linux/audio_mixer_manager_alsa_linux.h
+    modules/audio_device/linux/latebindingsymboltable_linux.cc
+    modules/audio_device/linux/latebindingsymboltable_linux.h
+    modules/audio_device/linux/audio_device_pulse_linux.cc
+    modules/audio_device/linux/audio_device_pulse_linux.h
+    modules/audio_device/linux/audio_mixer_manager_pulse_linux.cc
+    modules/audio_device/linux/audio_mixer_manager_pulse_linux.h
+    modules/audio_device/linux/pulseaudiosymboltable_linux.cc
+    modules/audio_device/linux/pulseaudiosymboltable_linux.h
     modules/audio_device/mac/audio_device_mac.cc
     modules/audio_device/mac/audio_device_mac.h
     modules/audio_device/mac/audio_mixer_manager_mac.cc
     modules/audio_device/mac/audio_mixer_manager_mac.h
+    modules/audio_device/win/audio_device_module_win.cc
+    modules/audio_device/win/audio_device_module_win.h
+    modules/audio_device/win/core_audio_base_win.cc
+    modules/audio_device/win/core_audio_base_win.h
+    modules/audio_device/win/core_audio_input_win.cc
+    modules/audio_device/win/core_audio_input_win.h
+    modules/audio_device/win/core_audio_output_win.cc
+    modules/audio_device/win/core_audio_output_win.h
+    modules/audio_device/win/core_audio_utility_win.cc
+    modules/audio_device/win/core_audio_utility_win.h
+    modules/audio_device/win/audio_device_core_win.cc
+    modules/audio_device/win/audio_device_core_win.h
     modules/audio_device/audio_device_buffer.cc
     modules/audio_device/audio_device_data_observer.cc
     modules/audio_device/audio_device_generic.cc
@@ -1060,7 +1130,7 @@ PRIVATE
     modules/audio_processing/agc2/adaptive_agc.cc
     modules/audio_processing/agc2/adaptive_digital_gain_applier.cc
     modules/audio_processing/agc2/adaptive_mode_level_estimator.cc
-    modules/audio_processing/agc2/adaptive_mode_level_estimator_agc.cc
+    # modules/audio_processing/agc2/adaptive_mode_level_estimator_agc.cc
     # modules/audio_processing/agc2/agc2_common.cc
     modules/audio_processing/agc2/agc2_testing_common.cc
     modules/audio_processing/agc2/biquad_filter.cc
@@ -1076,6 +1146,8 @@ PRIVATE
     modules/audio_processing/agc2/noise_level_estimator.cc
     modules/audio_processing/agc2/noise_spectrum_estimator.cc
     modules/audio_processing/agc2/saturation_protector.cc
+    modules/audio_processing/agc2/saturation_protector_buffer.cc
+    modules/audio_processing/agc2/saturation_protector_buffer.h
     modules/audio_processing/agc2/signal_classifier.cc
     modules/audio_processing/agc2/vad_with_level.cc
     modules/audio_processing/agc2/vector_float_frame.cc
@@ -1095,6 +1167,10 @@ PRIVATE
     modules/audio_processing/audio_processing_impl.cc
     modules/audio_processing/audio_processing_impl.h
     modules/audio_processing/audio_processing_builder_impl.cc
+    modules/audio_processing/capture_levels_adjuster/audio_samples_scaler.cc
+    modules/audio_processing/capture_levels_adjuster/audio_samples_scaler.h
+    modules/audio_processing/capture_levels_adjuster/capture_levels_adjuster.cc
+    modules/audio_processing/capture_levels_adjuster/capture_levels_adjuster.h
     modules/audio_processing/common.h
     modules/audio_processing/echo_control_mobile_impl.cc
     modules/audio_processing/echo_control_mobile_impl.h
@@ -1248,6 +1324,8 @@ PRIVATE
     modules/rtp_rtcp/source/forward_error_correction_internal.h
     modules/rtp_rtcp/source/packet_loss_stats.cc
     modules/rtp_rtcp/source/packet_loss_stats.h
+    modules/rtp_rtcp/source/packet_sequencer.cc
+    modules/rtp_rtcp/source/packet_sequencer.h
     modules/rtp_rtcp/source/receive_statistics_impl.cc
     modules/rtp_rtcp/source/receive_statistics_impl.h
     modules/rtp_rtcp/source/remote_ntp_time_estimator.cc
@@ -1481,6 +1559,8 @@ PRIVATE
     modules/video_coding/utility/framerate_controller.cc
     modules/video_coding/utility/ivf_file_reader.cc
     modules/video_coding/utility/ivf_file_writer.cc
+    modules/video_coding/utility/qp_parser.cc
+    modules/video_coding/utility/qp_parser.h
     modules/video_coding/utility/quality_scaler.cc
     modules/video_coding/utility/simulcast_rate_allocator.cc
     modules/video_coding/utility/simulcast_utility.cc
@@ -1508,24 +1588,26 @@ PRIVATE
     modules/video_coding/svc/scalability_structure_full_svc.h
     modules/video_coding/svc/scalability_structure_key_svc.cc
     modules/video_coding/svc/scalability_structure_key_svc.h
-    modules/video_coding/svc/scalability_structure_l1t2.cc
-    modules/video_coding/svc/scalability_structure_l1t2.h
-    modules/video_coding/svc/scalability_structure_l1t3.cc
-    modules/video_coding/svc/scalability_structure_l1t3.h
-    modules/video_coding/svc/scalability_structure_l2t1.cc
-    modules/video_coding/svc/scalability_structure_l2t1.h
-    modules/video_coding/svc/scalability_structure_l2t1h.cc
-    modules/video_coding/svc/scalability_structure_l2t1h.h
-    modules/video_coding/svc/scalability_structure_l2t2.cc
-    modules/video_coding/svc/scalability_structure_l2t2.h
+    # modules/video_coding/svc/scalability_structure_l1t2.cc
+    # modules/video_coding/svc/scalability_structure_l1t2.h
+    # modules/video_coding/svc/scalability_structure_l1t3.cc
+    # modules/video_coding/svc/scalability_structure_l1t3.h
+    # modules/video_coding/svc/scalability_structure_l2t1.cc
+    # modules/video_coding/svc/scalability_structure_l2t1.h
+    # modules/video_coding/svc/scalability_structure_l2t1h.cc
+    # modules/video_coding/svc/scalability_structure_l2t1h.h
+    # modules/video_coding/svc/scalability_structure_l2t2.cc
+    # modules/video_coding/svc/scalability_structure_l2t2.h
     modules/video_coding/svc/scalability_structure_l2t2_key_shift.cc
     modules/video_coding/svc/scalability_structure_l2t2_key_shift.h
-    modules/video_coding/svc/scalability_structure_l3t1.cc
-    modules/video_coding/svc/scalability_structure_l3t1.h
-    modules/video_coding/svc/scalability_structure_l3t3.cc
-    modules/video_coding/svc/scalability_structure_l3t3.h
-    modules/video_coding/svc/scalability_structure_s2t1.cc
-    modules/video_coding/svc/scalability_structure_s2t1.h
+    # modules/video_coding/svc/scalability_structure_l3t1.cc
+    # modules/video_coding/svc/scalability_structure_l3t1.h
+    # modules/video_coding/svc/scalability_structure_l3t3.cc
+    # modules/video_coding/svc/scalability_structure_l3t3.h
+    # modules/video_coding/svc/scalability_structure_s2t1.cc
+    # modules/video_coding/svc/scalability_structure_s2t1.h
+    modules/video_coding/svc/scalability_structure_simulcast.cc
+    modules/video_coding/svc/scalability_structure_simulcast.h
     modules/video_coding/svc/scalable_video_controller.h
     modules/video_coding/svc/scalable_video_controller_no_layering.cc
     modules/video_coding/svc/scalable_video_controller_no_layering.h
@@ -1868,8 +1950,10 @@ PRIVATE
     modules/desktop_capture/screen_drawer.cc
     modules/desktop_capture/screen_drawer.h
     modules/desktop_capture/screen_drawer_mac.cc
+    modules/desktop_capture/screen_drawer_linux.cc
     modules/desktop_capture/screen_drawer_lock_posix.cc
     modules/desktop_capture/screen_drawer_lock_posix.h
+    modules/desktop_capture/screen_drawer_win.cc
 
     # primitives
     modules/desktop_capture/desktop_capture_types.h
@@ -1921,6 +2005,7 @@ PRIVATE
     modules/desktop_capture/mouse_cursor.cc
     modules/desktop_capture/mouse_cursor.h
     modules/desktop_capture/mouse_cursor_monitor.h
+    modules/desktop_capture/mouse_cursor_monitor_linux.cc
     modules/desktop_capture/mouse_cursor_monitor_mac.mm
     modules/desktop_capture/mouse_cursor_monitor_win.cc
     modules/desktop_capture/resolution_tracker.cc
@@ -1931,8 +2016,9 @@ PRIVATE
     modules/desktop_capture/screen_capturer_helper.cc
     modules/desktop_capture/screen_capturer_helper.h
     modules/desktop_capture/screen_capturer_darwin.mm
+    modules/desktop_capture/screen_capturer_linux.cc
     modules/desktop_capture/screen_capturer_win.cc
-    modules/desktop_capture/screen_drawer_win.cc
+    modules/desktop_capture/window_capturer_linux.cc
     modules/desktop_capture/window_capturer_mac.mm
     modules/desktop_capture/window_capturer_win.cc
     modules/desktop_capture/window_finder.cc
@@ -1941,11 +2027,35 @@ PRIVATE
     modules/desktop_capture/window_finder_mac.mm
     modules/desktop_capture/window_finder_win.cc
     modules/desktop_capture/window_finder_win.h
-    
+
     # stubs for non-supported
     modules/desktop_capture/mouse_cursor_monitor_null.cc
     modules/desktop_capture/screen_capturer_null.cc
     modules/desktop_capture/window_capturer_null.cc
+
+    # linux specific
+    modules/desktop_capture/linux/base_capturer_pipewire.cc
+    modules/desktop_capture/linux/base_capturer_pipewire.h
+    modules/desktop_capture/linux/mouse_cursor_monitor_x11.cc
+    modules/desktop_capture/linux/mouse_cursor_monitor_x11.h
+    modules/desktop_capture/linux/screen_capturer_x11.cc
+    modules/desktop_capture/linux/screen_capturer_x11.h
+    modules/desktop_capture/linux/shared_x_display.cc
+    modules/desktop_capture/linux/shared_x_display.h
+    modules/desktop_capture/linux/window_capturer_x11.cc
+    modules/desktop_capture/linux/window_capturer_x11.h
+    modules/desktop_capture/linux/window_finder_x11.cc
+    modules/desktop_capture/linux/window_finder_x11.h
+    modules/desktop_capture/linux/window_list_utils.cc
+    modules/desktop_capture/linux/window_list_utils.h
+    modules/desktop_capture/linux/x_atom_cache.cc
+    modules/desktop_capture/linux/x_atom_cache.h
+    modules/desktop_capture/linux/x_error_trap.cc
+    modules/desktop_capture/linux/x_error_trap.h
+    modules/desktop_capture/linux/x_server_pixel_buffer.cc
+    modules/desktop_capture/linux/x_server_pixel_buffer.h
+    modules/desktop_capture/linux/x_window_property.cc
+    modules/desktop_capture/linux/x_window_property.h
 
     # mac specific
     modules/desktop_capture/mac/desktop_configuration.mm
@@ -2010,12 +2120,16 @@ PRIVATE
     modules/desktop_capture/win/selected_window_context.h
     modules/desktop_capture/win/wgc_capture_session.cc
     modules/desktop_capture/win/wgc_capture_session.h
+    modules/desktop_capture/win/wgc_capture_source.cc
+    modules/desktop_capture/win/wgc_capture_source.h
+    modules/desktop_capture/win/wgc_capturer_win.cc
+    modules/desktop_capture/win/wgc_capturer_win.h
+    modules/desktop_capture/win/wgc_desktop_frame.cc
+    modules/desktop_capture/win/wgc_desktop_frame.h
     modules/desktop_capture/win/window_capture_utils.cc
     modules/desktop_capture/win/window_capture_utils.h
     modules/desktop_capture/win/window_capturer_win_gdi.cc
     modules/desktop_capture/win/window_capturer_win_gdi.h
-    modules/desktop_capture/win/window_capturer_win_wgc.cc
-    modules/desktop_capture/win/window_capturer_win_wgc.h
 
     stats/rtc_stats_report.cc
     stats/rtc_stats.cc
@@ -2047,16 +2161,60 @@ if (NOT TG_OWT_USE_PROTOBUF)
     )
 endif()
 
+if (NOT TG_OWT_BUILD_AUDIO_BACKENDS)
+    remove_target_sources(tg_owt ${webrtc_loc}
+        rtc_base/win/windows_version.cc
+        rtc_base/win/windows_version.h
+        modules/audio_device/include/audio_device_factory.cc
+        modules/audio_device/include/audio_device_factory.h
+        modules/audio_device/linux/alsasymboltable_linux.cc
+        modules/audio_device/linux/alsasymboltable_linux.h
+        modules/audio_device/linux/audio_device_alsa_linux.cc
+        modules/audio_device/linux/audio_device_alsa_linux.h
+        modules/audio_device/linux/audio_mixer_manager_alsa_linux.cc
+        modules/audio_device/linux/audio_mixer_manager_alsa_linux.h
+        modules/audio_device/linux/latebindingsymboltable_linux.cc
+        modules/audio_device/linux/latebindingsymboltable_linux.h
+        modules/audio_device/linux/audio_device_pulse_linux.cc
+        modules/audio_device/linux/audio_device_pulse_linux.h
+        modules/audio_device/linux/audio_mixer_manager_pulse_linux.cc
+        modules/audio_device/linux/audio_mixer_manager_pulse_linux.h
+        modules/audio_device/linux/pulseaudiosymboltable_linux.cc
+        modules/audio_device/linux/pulseaudiosymboltable_linux.h
+        modules/audio_device/mac/audio_device_mac.cc
+        modules/audio_device/mac/audio_device_mac.h
+        modules/audio_device/mac/audio_mixer_manager_mac.cc
+        modules/audio_device/mac/audio_mixer_manager_mac.h
+        modules/audio_device/win/audio_device_module_win.cc
+        modules/audio_device/win/audio_device_module_win.h
+        modules/audio_device/win/core_audio_base_win.cc
+        modules/audio_device/win/core_audio_base_win.h
+        modules/audio_device/win/core_audio_input_win.cc
+        modules/audio_device/win/core_audio_input_win.h
+        modules/audio_device/win/core_audio_output_win.cc
+        modules/audio_device/win/core_audio_output_win.h
+        modules/audio_device/win/core_audio_utility_win.cc
+        modules/audio_device/win/core_audio_utility_win.h
+        modules/audio_device/win/audio_device_core_win.cc
+        modules/audio_device/win/audio_device_core_win.h
+    )
+endif()
+
 if (NOT WIN32)
     remove_target_sources(tg_owt ${webrtc_loc}
         rtc_base/win32.cc
         rtc_base/win32.h
         rtc_base/win32_window.cc
         rtc_base/win32_window.h
+        rtc_base/task_queue_win.cc
+        rtc_base/task_queue_win.h
+        api/task_queue/default_task_queue_factory_win.cc
+        modules/audio_device/include/audio_device_factory.cc
+        modules/audio_device/include/audio_device_factory.h
     )
 endif()
 
-if (APPLE OR WIN32)
+if (APPLE OR WIN32 OR UNIX)
     remove_target_sources(tg_owt ${webrtc_loc}
         modules/desktop_capture/window_capturer_null.cc
         modules/desktop_capture/screen_capturer_null.cc
@@ -2165,7 +2323,7 @@ else()
 endif()
 
 set(platform_export)
-if (NOT WIN32 AND NOT APPLE)
+if (NOT WIN32 AND NOT APPLE AND NOT LIBEVENT_FOUND)
     set(platform_export
         libevent
     )
@@ -2198,20 +2356,28 @@ endif()
 
 set(export_targets
     ${tg_owt_export}
-    libabsl
-    libopenh264
     libpffft
     librnnoise
     libsrtp
-    libusrsctp
-    libvpx
-    ${vpx_export}
     libwebrtcbuild
     libyuv
     ${platform_export}
 )
 if (TG_OWT_USE_PROTOBUF)
     list(APPEND export_targets proto)
+endif()
+
+if (NOT absl_FOUND)
+    list(APPEND export_targets libabsl)
+endif()
+if (NOT LIBOPENH264_FOUND)
+    list(APPEND export_targets libopenh264)
+endif()
+if (NOT LIBUSRSCTP_FOUND)
+    list(APPEND export_targets libusrsctp)
+endif()
+if (NOT LIBVPX_FOUND)
+    list(APPEND export_targets libvpx ${vpx_export})
 endif()
 
 export(
@@ -2223,7 +2389,7 @@ export(
 configure_file(
     "cmake/tg_owtConfig.cmake"
     "${CMAKE_CURRENT_BINARY_DIR}/tg_owtConfig.cmake"
-    COPYONLY
+    @ONLY
 )
 
 target_include_directories(tg_owt

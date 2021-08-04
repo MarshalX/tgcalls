@@ -60,6 +60,8 @@ class BaseCapturerPipeWire : public DesktopCapturer {
   bool SelectSource(SourceId id) override;
 
  private:
+  static bool Supported();
+
   // PipeWire types -->
 #if PW_CHECK_VERSION(0, 3, 0)
   struct pw_context* pw_context_ = nullptr;

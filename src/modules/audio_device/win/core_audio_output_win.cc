@@ -14,7 +14,6 @@
 
 #include "modules/audio_device/audio_device_buffer.h"
 #include "modules/audio_device/fine_audio_buffer.h"
-#include "rtc_base/bind.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/time_utils.h"
@@ -56,7 +55,7 @@ int CoreAudioOutput::Terminate() {
 
 int CoreAudioOutput::NumDevices() const {
   RTC_DCHECK_RUN_ON(&thread_checker_);
-  return CoreAudioBase::NumberOfEnumeratedDevices();
+  return core_audio_utility::NumberOfActiveDevices(eRender);
 }
 
 int CoreAudioOutput::SetDevice(int index) {
@@ -272,7 +271,7 @@ bool CoreAudioOutput::OnErrorCallback(ErrorType error) {
   }
 
   if (error == CoreAudioBase::ErrorType::kStreamDisconnected) {
-    return HandleStreamDisconnected();
+    HandleStreamDisconnected();
   } else {
     RTC_DLOG(WARNING) << "Unsupported error type";
   }

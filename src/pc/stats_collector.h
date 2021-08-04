@@ -16,6 +16,8 @@
 
 #include <stdint.h>
 
+#include <algorithm>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
@@ -25,6 +27,7 @@
 #include "api/media_stream_interface.h"
 #include "api/peer_connection_interface.h"
 #include "api/stats_types.h"
+#include "p2p/base/connection_info.h"
 #include "p2p/base/port.h"
 #include "pc/peer_connection_internal.h"
 #include "pc/stats_collector_interface.h"
@@ -148,6 +151,7 @@ class StatsCollector : public StatsCollectorInterface {
   TrackIdMap track_ids_;
   // Raw pointer to the peer connection the statistics are gathered from.
   PeerConnectionInternal* const pc_;
+  int64_t cache_timestamp_ms_ = 0;
   double stats_gathering_started_;
   const bool use_standard_bytes_stats_;
 

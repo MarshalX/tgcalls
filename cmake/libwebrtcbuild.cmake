@@ -3,9 +3,11 @@ add_library(tg_owt::libwebrtcbuild ALIAS libwebrtcbuild)
 
 target_link_libraries(libwebrtcbuild
 INTERFACE
-    tg_owt::libabsl
     tg_owt::libyuv
 )
+if (NOT absl_FOUND)
+    target_link_libraries(libwebrtcbuild INTERFACE tg_owt::libabsl)
+endif()
 
 target_compile_definitions(libwebrtcbuild
 INTERFACE
@@ -13,6 +15,7 @@ INTERFACE
     WEBRTC_APM_DEBUG_DUMP=0
     WEBRTC_USE_BUILTIN_ISAC_FLOAT
     WEBRTC_OPUS_VARIABLE_COMPLEXITY=0
+    WEBRTC_OPUS_SUPPORT_120MS_PTIME=1
     WEBRTC_INCLUDE_INTERNAL_AUDIO_DEVICE
     WEBRTC_USE_H264
     WEBRTC_LIBRARY_IMPL
@@ -20,12 +23,27 @@ INTERFACE
     NO_MAIN_THREAD_WRAPPING
     HAVE_WEBRTC_VIDEO
     RTC_ENABLE_VP9
+    RTC_DISABLE_TRACE_EVENTS
+    BWE_TEST_LOGGING_COMPILE_TIME_ENABLE=0
 )
 
-if (NOT APPLE)
+if (TG_OWT_USE_PIPEWIRE)
+    target_compile_definitions(libwebrtcbuild
+    INTERFACE
+        WEBRTC_USE_PIPEWIRE
+    )
+endif()
+
+if (NOT TG_OWT_BUILD_AUDIO_BACKENDS)
     target_compile_definitions(libwebrtcbuild
     INTERFACE
         WEBRTC_DUMMY_AUDIO_BUILD
+    )
+elseif (UNIX AND NOT APPLE)
+    target_compile_definitions(libwebrtcbuild
+    INTERFACE
+        WEBRTC_ENABLE_LINUX_ALSA
+        WEBRTC_ENABLE_LINUX_PULSE
     )
 endif()
 
@@ -45,6 +63,7 @@ else()
     INTERFACE
         WEBRTC_POSIX
         WEBRTC_LINUX
+        WEBRTC_USE_X11
     )
 endif()
 
