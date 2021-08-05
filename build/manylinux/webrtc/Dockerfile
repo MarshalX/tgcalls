@@ -5,6 +5,11 @@ COPY tgcalls/third_party/webrtc ${LibrariesPath}/tg_owt
 
 WORKDIR tg_owt
 
+WORKDIR src/third_party/pipewire
+RUN meson build
+
+WORKDIR ../../..
+
 RUN cmake3 -B out/Release . \
 	-DCMAKE_BUILD_TYPE=Release \
 	-DTG_OWT_SPECIAL_TARGET=linux \
