@@ -47,6 +47,8 @@ void NativeInstance::createInstanceHolder(
       [=](tgcalls::GroupNetworkState groupNetworkState) {
         _networkStateUpdated(groupNetworkState.isConnected);
       },
+      .audioLevelsUpdated =
+      [=](tgcalls::GroupLevelsUpdate const &update) {}, // its necessary for audio analyzing (VAD)
       .initialInputDeviceId = std::move(initialInputDeviceId),
       .initialOutputDeviceId = std::move(initialOutputDeviceId),
       .createAudioDeviceModule = std::move(createAudioDeviceModule),

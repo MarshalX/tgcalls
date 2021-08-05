@@ -883,6 +883,74 @@ private:
     std::vector<int16_t> _samples;
 };
 
+#if not USE_RNNOISE
+class AudioCaptureAnalyzer : public webrtc::CustomAudioAnalyzer {
+private:
+  void Initialize(int sample_rate_hz, int num_channels) override {
+
+  }
+
+  void Analyze(const webrtc::AudioBuffer* buffer) override {
+    if (!buffer) {
+      return;
+    }
+    if (buffer->num_channels() != 1) {
+      return;
+    }
+
+    float peak = 0;
+    int peakCount = 0;
+    const float *samples = buffer->channels_const()[0];
+    for (int i = 0; i < buffer->num_frames(); i++) {
+      float sample = samples[i];
+      if (sample < 0) {
+        sample = -sample;
+      }
+      if (peak < sample) {
+        peak = sample;
+      }
+      peakCount += 1;
+    }
+
+    bool vadStatus = _vad.update((webrtc::AudioBuffer *)buffer);
+
+    _peakCount += peakCount;
+    if (_peak < peak) {
+      _peak = peak;
+    }
+
+    if (_peakCount >= 1200) {
+      float level = _peak / 4000.0f;
+      _peak = 0;
+      _peakCount = 0;
+
+      _updated(GroupLevelValue{
+          level,
+          vadStatus,
+      });
+    }
+  }
+
+  std::string ToString() const override {
+    return "analyzing";
+  }
+
+private:
+  std::function<void(GroupLevelValue const &)> _updated;
+
+  CombinedVad _vad;
+  int32_t _peakCount = 0;
+  float _peak = 0;
+
+public:
+  AudioCaptureAnalyzer(std::function<void(GroupLevelValue const &)> updated) :
+      _updated(updated) {
+  }
+
+  virtual ~AudioCaptureAnalyzer() = default;
+};
+#endif
+
 class IncomingAudioChannel : public sigslot::has_slots<> {
 public:
     IncomingAudioChannel(
@@ -1368,7 +1436,22 @@ public:
     #endif
         }
 
+    #if not USE_RNNOISE
+          auto analyzer = new AudioCaptureAnalyzer([weak, threads = _threads](GroupLevelValue const &level) {
+            threads->getMediaThread()->PostTask(RTC_FROM_HERE, [weak, level](){
+              auto strong = weak.lock();
+              if (!strong) {
+                return;
+              }
+              strong->_myAudioLevel = level;
+            });
+          });
+    #endif
+
       _threads->getWorkerThread()->Invoke<void>(RTC_FROM_HERE, [this
+    #if not USE_RNNOISE
+          , analyzer
+    #endif
     #if USE_RNNOISE
           , audioProcessor = std::move(audioProcessor)
     #endif
@@ -1381,14 +1464,11 @@ public:
             mediaDeps.video_encoder_factory = PlatformInterface::SharedInstance()->makeVideoEncoderFactory();
             mediaDeps.video_decoder_factory = PlatformInterface::SharedInstance()->makeVideoDecoderFactory();
 
-      #if USE_RNNOISE
-            if (_audioLevelsUpdated && audioProcessor) {
-                webrtc::AudioProcessingBuilder builder;
-                builder.SetCapturePostProcessing(std::move(audioProcessor));
-
-                mediaDeps.audio_processing = builder.Create();
-            }
-      #endif
+    #if not USE_RNNOISE
+            webrtc::AudioProcessingBuilder builder;
+            builder.SetCaptureAnalyzer(std::unique_ptr<AudioCaptureAnalyzer>(analyzer));
+            mediaDeps.audio_processing = builder.Create();
+    #endif
 
             _audioDeviceModule = createAudioDeviceModule();
             if (!_audioDeviceModule) {
