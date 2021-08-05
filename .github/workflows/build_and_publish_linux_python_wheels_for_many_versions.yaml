@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - pypi-dev
     paths:
       - '.github/workflows/build_and_publish_linux_python_wheels_for_many_versions.yaml'
       - 'setup.py'
