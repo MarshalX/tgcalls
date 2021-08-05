@@ -199,6 +199,7 @@ RUN cmake -B out/Release . \
     -DTG_OWT_SPECIAL_TARGET=linux \
     -DBUILD_SHARED_LIBS=OFF \
     -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    -DTG_OWT_USE_PIPEWIRE=OFF \
     -DTG_OWT_LIBJPEG_INCLUDE_PATH=/usr/local/include \
     -DTG_OWT_OPENSSL_INCLUDE_PATH=$OPENSSL_PREFIX/include \
     -DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \

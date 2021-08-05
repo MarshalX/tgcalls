@@ -33,8 +33,8 @@ webrtc::DesktopCaptureOptions DesktopCaptureSourceManager::OptionsForType(
     result.set_allow_use_magnification_api(false);
 #elif defined WEBRTC_MAC
     result.set_allow_iosurface(type == DesktopCaptureType::Screen);
-#elif defined WEBRTC_LINUX
-    result.set_allow_pipewire(true);
+#elif defined WEBRTC_LINUX // its not enough statement cuz we can build tg_owg without pipewire
+//    result.set_allow_pipewire(true);
 #endif // WEBRTC_WIN || WEBRTC_MAC
     result.set_detect_updated_region(true);
     return result;

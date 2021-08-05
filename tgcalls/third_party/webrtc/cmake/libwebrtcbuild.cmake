@@ -63,7 +63,7 @@ else()
     INTERFACE
         WEBRTC_POSIX
         WEBRTC_LINUX
-        WEBRTC_USE_X11
+#        WEBRTC_USE_X11
     )
 endif()
 

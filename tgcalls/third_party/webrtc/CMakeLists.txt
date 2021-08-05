@@ -2034,28 +2034,29 @@ PRIVATE
     modules/desktop_capture/window_capturer_null.cc
 
     # linux specific
-    modules/desktop_capture/linux/base_capturer_pipewire.cc
-    modules/desktop_capture/linux/base_capturer_pipewire.h
-    modules/desktop_capture/linux/mouse_cursor_monitor_x11.cc
-    modules/desktop_capture/linux/mouse_cursor_monitor_x11.h
-    modules/desktop_capture/linux/screen_capturer_x11.cc
-    modules/desktop_capture/linux/screen_capturer_x11.h
-    modules/desktop_capture/linux/shared_x_display.cc
-    modules/desktop_capture/linux/shared_x_display.h
-    modules/desktop_capture/linux/window_capturer_x11.cc
-    modules/desktop_capture/linux/window_capturer_x11.h
-    modules/desktop_capture/linux/window_finder_x11.cc
-    modules/desktop_capture/linux/window_finder_x11.h
-    modules/desktop_capture/linux/window_list_utils.cc
-    modules/desktop_capture/linux/window_list_utils.h
-    modules/desktop_capture/linux/x_atom_cache.cc
-    modules/desktop_capture/linux/x_atom_cache.h
-    modules/desktop_capture/linux/x_error_trap.cc
-    modules/desktop_capture/linux/x_error_trap.h
-    modules/desktop_capture/linux/x_server_pixel_buffer.cc
-    modules/desktop_capture/linux/x_server_pixel_buffer.h
-    modules/desktop_capture/linux/x_window_property.cc
-    modules/desktop_capture/linux/x_window_property.h
+    # idk wth with use_x11 and rtc_use_x11_extensions...
+#    modules/desktop_capture/linux/base_capturer_pipewire.cc
+#    modules/desktop_capture/linux/base_capturer_pipewire.h
+#    modules/desktop_capture/linux/mouse_cursor_monitor_x11.cc
+#    modules/desktop_capture/linux/mouse_cursor_monitor_x11.h
+#    modules/desktop_capture/linux/screen_capturer_x11.cc
+#    modules/desktop_capture/linux/screen_capturer_x11.h
+#    modules/desktop_capture/linux/shared_x_display.cc
+#    modules/desktop_capture/linux/shared_x_display.h
+#    modules/desktop_capture/linux/window_capturer_x11.cc
+#    modules/desktop_capture/linux/window_capturer_x11.h
+#    modules/desktop_capture/linux/window_finder_x11.cc
+#    modules/desktop_capture/linux/window_finder_x11.h
+#    modules/desktop_capture/linux/window_list_utils.cc
+#    modules/desktop_capture/linux/window_list_utils.h
+#    modules/desktop_capture/linux/x_atom_cache.cc
+#    modules/desktop_capture/linux/x_atom_cache.h
+#    modules/desktop_capture/linux/x_error_trap.cc
+#    modules/desktop_capture/linux/x_error_trap.h
+#    modules/desktop_capture/linux/x_server_pixel_buffer.cc
+#    modules/desktop_capture/linux/x_server_pixel_buffer.h
+#    modules/desktop_capture/linux/x_window_property.cc
+#    modules/desktop_capture/linux/x_window_property.h
 
     # mac specific
     modules/desktop_capture/mac/desktop_configuration.mm
