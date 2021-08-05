@@ -82,7 +82,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.__is_stop_requested = False
         self.__is_emit_join_payload_called = False
 
-        self.__cached_participants = dict()
+        self.__is_muted = True
 
     def __create_and_setup_native_instance(self, enable_logs_to_console: bool, path_to_log_file='group_call.log'):
         """Create NativeInstance of tgcalls C++ part.
@@ -114,6 +114,12 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         for participant in update.participants:
             ssrc = uint_ssrc(participant.source)
+
+            # maybe (if needed) set unmute status on server side after allowing to speak by admin
+            # also mb there is need a some delay after getting update cuz server sometimes cant handle editing properly
+            if participant.is_self and participant.can_self_unmute:
+                if not self.__is_muted:
+                    await self.edit_group_call(muted=False)
 
             if participant.peer == self.mtproto_bridge.join_as and ssrc != self.mtproto_bridge.my_ssrc:
                 logger.debug(f'Not equal ssrc. Expected: {ssrc}. Actual: {self.mtproto_bridge.my_ssrc}.')
@@ -264,15 +270,22 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         logger.debug('Start native group call...')
         self.__native_instance.startGroupCall(*args)
 
-    def set_is_mute(self, is_muted: bool):
+    def __set_is_mute(self, is_muted: bool):
+        logger.debug(f'Set is muted on native instance side. New value: {is_muted}.')
+        self.__native_instance.setIsMuted(is_muted)
+
+    async def set_is_mute(self, is_muted: bool):
         """Set is mute.
 
         Args:
             is_muted (`bool`): Is muted.
         """
 
-        logger.debug(f'Set is muted. New value: {is_muted}.')
-        self.__native_instance.setIsMuted(is_muted)
+        self.__is_muted = is_muted
+        self.__set_is_mute(is_muted)
+
+        logger.debug(f'Set is muted on server side. New value: {is_muted}.')
+        await self.edit_group_call(muted=is_muted)
 
     def __set_volume(self, ssrc, volume):
         self.__native_instance.setVolume(ssrc, volume)
@@ -365,7 +378,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         self.is_connected = state
         if self.is_connected:
-            self.set_is_mute(False)
+            asyncio.ensure_future(self.set_is_mute(False), loop=self.mtproto_bridge.get_event_loop())
             if self.enable_action:
                 self.__start_status_worker()
 

@@ -67,7 +67,17 @@ class TelethonBridge(MTProtoBridgeBase):
         raise StopPropagation
 
     async def _process_group_call_participants_update(self, update):
-        participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in update.participants]
+        participants = [
+            GroupCallParticipantWrapper(
+                p.source,
+                p.left,
+                p.peer,
+                p.muted,
+                p.can_self_unmute,
+                p.is_self,
+            )
+            for p in update.participants
+        ]
         wrapped_update = UpdateGroupCallParticipantsWrapper(participants)
 
         await self.group_call_participants_update_callback(wrapped_update)

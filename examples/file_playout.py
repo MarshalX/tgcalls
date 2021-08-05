@@ -47,13 +47,13 @@ async def main(client):
     # .restart_recording, .stop_output
 
     # to mute yourself:
-    # group_call.set_is_mute(True)
+    # await group_call.set_is_mute(True)
 
     # to leave a VC
-    # group_call.stop()
+    # await group_call.stop()
 
     # to rejoin
-    # group_call.reconnect()
+    # await group_call.reconnect()
 
     await pyrogram.idle()
 
