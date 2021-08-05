@@ -10,6 +10,6 @@
 [submodule "tgcalls/third_party/webrtc/src/third_party/libvpx/source/libvpx"]
     path = tgcalls/third_party/webrtc/src/third_party/libvpx/source/libvpx
     url = https://chromium.googlesource.com/webm/libvpx
-[submodule "venv/tgcalls/third_party/webrtc/src/third_party/pipewire"]
-	path = venv/tgcalls/third_party/webrtc/src/third_party/pipewire
+[submodule "tgcalls/third_party/webrtc/src/third_party/pipewire"]
+	path = tgcalls/third_party/webrtc/src/third_party/pipewire
 	url = https://github.com/PipeWire/pipewire.git
