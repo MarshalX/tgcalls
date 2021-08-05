@@ -369,7 +369,7 @@ jobs:
           path: dist/
 
       - name: Upload wheels to PyPi.
-        if: env.UPLOAD_WHEELS == 'true' && github.ref == 'refs/heads/main'
+        if: env.UPLOAD_WHEELS == 'true' # && github.ref == 'refs/heads/main'
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
