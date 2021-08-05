@@ -1364,11 +1364,11 @@ public:
         const auto weak = std::weak_ptr<GroupInstanceCustomInternal>(shared_from_this());
 
         webrtc::field_trial::InitFieldTrialsFromString(
-            "WebRTC-Audio-Allocation/min:32kbps,max:32kbps/"
+            "WebRTC-Audio-Allocation/min:32kbps,max:2048kbps/"
             "WebRTC-Audio-OpusMinPacketLossRate/Enabled-1/"
             "WebRTC-TaskQueuePacer/Enabled/"
             "WebRTC-VP8ConferenceTemporalLayers/1/"
-            "WebRTC-Audio-MinimizeResamplingOnMobile/Enabled/"
+//            "WebRTC-Audio-MinimizeResamplingOnMobile/Enabled/"
             //"WebRTC-MutedStateKillSwitch/Enabled/"
             //"WebRTC-VP8IosMaxNumberOfThread/max_thread:1/"
         );
@@ -1784,7 +1784,7 @@ public:
         const uint8_t opusStartBitrateKbps = _outgoingAudioBitrateKbit;
         const uint8_t opusPTimeMs = 120;
 
-        cricket::AudioCodec opusCodec(111, "opus", 48000, 0, 2);
+        cricket::AudioCodec opusCodec(111, "opus", 48000, _outgoingAudioBitrateKbit, 2);
         opusCodec.AddFeedbackParam(cricket::FeedbackParam(cricket::kRtcpFbParamTransportCc));
         opusCodec.SetParam(cricket::kCodecParamMinBitrate, opusMinBitrateKbps);
         opusCodec.SetParam(cricket::kCodecParamStartBitrate, opusStartBitrateKbps);

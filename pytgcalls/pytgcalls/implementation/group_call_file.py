@@ -52,8 +52,9 @@ class GroupCallFile(GroupCallNative, GroupCallFileDispatcherMixin):
         play_on_repeat=True,
         enable_logs_to_console=False,
         path_to_log_file=None,
+        outgoing_audio_bitrate_kbit=128,
     ):
-        super().__init__(mtproto_bridge, enable_logs_to_console, path_to_log_file)
+        super().__init__(mtproto_bridge, enable_logs_to_console, path_to_log_file, outgoing_audio_bitrate_kbit)
         super(GroupCallFileDispatcherMixin, self).__init__(GroupCallFileAction)
 
         self.play_on_repeat = play_on_repeat

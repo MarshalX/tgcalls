@@ -19,6 +19,8 @@ public:
     bool _logToStdErr;
     string _logPath;
 
+    int _outgoingAudioBitrateKbit = 128;
+
     std::function<void(const std::vector<uint8_t> &data)> signalingDataEmittedCallback;
 
     std::function<void(tgcalls::GroupJoinPayload payload)> _emitJoinPayloadCallback = nullptr;
@@ -33,7 +35,8 @@ public:
 
     void setupGroupCall(
             std::function<void(tgcalls::GroupJoinPayload)> &,
-            std::function<void(bool)> &
+            std::function<void(bool)> &,
+            int
     );
 
     void startGroupCall(FileAudioDeviceDescriptor &);

@@ -49,7 +49,12 @@ class GroupCallFactory:
     }
 
     def __init__(
-        self, client, mtproto_backend=MTProtoClientType.PYROGRAM, enable_logs_to_console=False, path_to_log_file=None
+        self,
+        client,
+        mtproto_backend=MTProtoClientType.PYROGRAM,
+        enable_logs_to_console=False,
+        path_to_log_file=None,
+        outgoing_audio_bitrate_kbit=128,
     ):
         self.client = client
 
@@ -68,6 +73,7 @@ class GroupCallFactory:
 
         self.enable_logs_to_console = enable_logs_to_console
         self.path_to_log_file = path_to_log_file
+        self.outgoing_audio_bitrate_kbit = outgoing_audio_bitrate_kbit
 
     def get_mtproto_bridge(self):
         return self.__mtproto_bride_class(self.client)
@@ -77,6 +83,7 @@ class GroupCallFactory:
             mtproto_bridge=self.get_mtproto_bridge(),
             enable_logs_to_console=self.enable_logs_to_console,
             path_to_log_file=self.path_to_log_file,
+            outgoing_audio_bitrate_kbit=self.outgoing_audio_bitrate_kbit,
             **kwargs,
         )
 
@@ -90,6 +97,7 @@ class GroupCallFactory:
             play_on_repeat,
             self.enable_logs_to_console,
             self.path_to_log_file,
+            self.outgoing_audio_bitrate_kbit,
         )
 
     def get_device_group_call(
@@ -101,6 +109,7 @@ class GroupCallFactory:
             audio_output_device,
             self.enable_logs_to_console,
             self.path_to_log_file,
+            self.outgoing_audio_bitrate_kbit,
         )
 
     def get_raw_group_call(
@@ -114,4 +123,5 @@ class GroupCallFactory:
             on_recorded_data,
             self.enable_logs_to_console,
             self.path_to_log_file,
+            self.outgoing_audio_bitrate_kbit,
         )

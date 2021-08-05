@@ -60,6 +60,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         mtproto_bridge,
         enable_logs_to_console: bool,
         path_to_log_file: str,
+        outgoing_audio_bitrate_kbit: int,
     ):
         super().__init__(GroupCallNativeAction)
 
@@ -68,7 +69,9 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             self._group_call_participants_update_callback, self._group_call_update_callback
         )
 
-        self.__native_instance = self.__create_and_setup_native_instance(enable_logs_to_console, path_to_log_file)
+        self.__native_instance = self.__create_and_setup_native_instance(
+            enable_logs_to_console, path_to_log_file, outgoing_audio_bitrate_kbit
+        )
 
         self.invite_hash = None
         '''Hash from invite link to join as speaker'''
@@ -84,7 +87,9 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         self.__is_muted = True
 
-    def __create_and_setup_native_instance(self, enable_logs_to_console: bool, path_to_log_file='group_call.log'):
+    def __create_and_setup_native_instance(
+        self, enable_logs_to_console: bool, path_to_log_file='group_call.log', outgoing_audio_bitrate_kbit=128
+    ):
         """Create NativeInstance of tgcalls C++ part.
 
         Args:
@@ -102,6 +107,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         native_instance.setupGroupCall(
             self.__emit_join_payload_callback,
             self.__network_state_updated_callback,
+            outgoing_audio_bitrate_kbit,
         )
 
         logger.debug('Native instance created.')

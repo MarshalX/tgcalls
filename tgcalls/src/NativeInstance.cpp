@@ -28,9 +28,11 @@ NativeInstance::~NativeInstance() {
 
 void NativeInstance::setupGroupCall(
     std::function<void(tgcalls::GroupJoinPayload)> &emitJoinPayloadCallback,
-    std::function<void(bool)> &networkStateUpdated) {
+    std::function<void(bool)> &networkStateUpdated,
+    int outgoingAudioBitrateKbit) {
   _emitJoinPayloadCallback = emitJoinPayloadCallback;
   _networkStateUpdated = networkStateUpdated;
+  _outgoingAudioBitrateKbit = outgoingAudioBitrateKbit;
 }
 
 void NativeInstance::createInstanceHolder(
@@ -52,8 +54,8 @@ void NativeInstance::createInstanceHolder(
       .initialInputDeviceId = std::move(initialInputDeviceId),
       .initialOutputDeviceId = std::move(initialOutputDeviceId),
       .createAudioDeviceModule = std::move(createAudioDeviceModule),
-      .outgoingAudioBitrateKbit=128,  // TODO move to arg
-      .disableOutgoingAudioProcessing=true, // TODO move to arg
+      .outgoingAudioBitrateKbit=_outgoingAudioBitrateKbit,
+      .disableOutgoingAudioProcessing=true,
       // deprecated
 //      .participantDescriptionsRequired =
 //      [=](std::vector<uint32_t> const &ssrcs) {
