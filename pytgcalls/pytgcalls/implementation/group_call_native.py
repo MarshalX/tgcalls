@@ -55,6 +55,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
     SEND_ACTION_UPDATE_EACH = 0.45
     '''How often to send speaking action to chat'''
 
+    __ASYNCIO_TIMEOUT = 10
+
     def __init__(
         self,
         mtproto_bridge,
@@ -83,7 +85,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         '''Is connected to voice chat via tgcalls'''
 
         self.__is_stop_requested = False
-        self.__is_emit_join_payload_called = False
+        self.__emit_join_payload_event = None
 
         self.__is_muted = True
 
@@ -209,14 +211,40 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         logger.debug('Stop requested.')
 
         self.unregister_update_handlers()
+        # to bypass recreating of outgoing audio channel
+        self.__set_is_mute(True)
         self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
 
-        # cuz native instance doesnt block python
-        while self.is_connected:
-            await asyncio.sleep(1)
+        on_disconnect_event = asyncio.Event()
 
-        await self.leave_current_group_call()
-        self.mtproto_bridge.reset()
+        async def post_disconnect():
+            await self.leave_current_group_call()
+            self.mtproto_bridge.reset()
+
+        async def on_disconnect(obj, is_connected):
+            if is_connected:
+                return
+
+            obj._stop_audio_device_module()
+
+            # need for normal waiting of stopping audio devices
+            # destroying of webrtc client during .stop not needed yet
+            # because we a working in the same native instance
+            # and can reuse tis client for another connections.
+            # In any case now its possible to reset group call ptr
+            # self.__native_instance.stopGroupCall()
+
+            await post_disconnect()
+
+            obj.remove_handler(on_disconnect, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
+            on_disconnect_event.set()
+
+        if self.is_connected:
+            self.add_handler(on_disconnect, GroupCallNativeAction.NETWORK_STATUS_CHANGED)
+            await asyncio.wait_for(on_disconnect_event.wait(), timeout=self.__ASYNCIO_TIMEOUT)
+        else:
+            await post_disconnect()
+
         logger.debug('GroupCall stopped properly.')
 
     async def start(self, group, join_as=None, invite_hash: Optional[str] = None, enable_action=True):
@@ -267,10 +295,13 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.__set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
         self.__native_instance.emitJoinPayload(self.__emit_join_payload_callback)
 
+        # during the .stop we stop audio device module. Need to restart
+        self.restart_recording()
+        self.restart_playout()
+
         # cuz native instance doesnt block python
-        self.__is_emit_join_payload_called = False
-        while not self.__is_emit_join_payload_called:
-            await asyncio.sleep(1)
+        self.__emit_join_payload_event = asyncio.Event()
+        await asyncio.wait_for(self.__emit_join_payload_event.wait(), timeout=self.__ASYNCIO_TIMEOUT)
 
     def _start_native_group_call(self, *args):
         logger.debug('Start native group call...')
@@ -357,6 +388,14 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
         self.__native_instance.setAudioOutputDevice(name or '')
 
+    def _stop_audio_device_module(self):
+        logger.debug(f'Stop audio device module.')
+        self.__native_instance.stopAudioDeviceModule()
+
+    def _start_audio_device_module(self):
+        logger.debug(f'Start audio device module.')
+        self.__native_instance.startAudioDeviceModule()
+
     def restart_playout(self):
         """Start play current input file from start or just reload file audio device.
 
@@ -436,7 +475,8 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
                 # TODO move before handle updates from join GC
                 self.mtproto_bridge.set_my_ssrc(payload.audioSsrc)
-                self.__is_emit_join_payload_called = True
+                if self.__emit_join_payload_event:
+                    self.__emit_join_payload_event.set()
 
                 logger.debug(
                     f'Successfully connected to VC with '

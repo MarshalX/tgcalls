@@ -37,8 +37,6 @@ class GroupCallDevice(GroupCallNative):
         self.__is_playout_paused = False
         self.__is_recording_paused = False
 
-        self.__raw_audio_device_descriptor = None
-
         self.__audio_input_device = audio_input_device or ''
         self.__audio_output_device = audio_output_device or ''
 

@@ -43,7 +43,12 @@ public:
     void setVolume(uint32_t ssrc, double volume);
     void setRequestedVideoChannels(std::vector<VideoChannelDescription> &&requestedVideoChannels);
 
-//private:
+    void stopAudioDeviceModule() const;
+    void startAudioDeviceModule() const;
+    void restartAudioInputDevice() const;
+    void restartAudioOutputDevice() const;
+
+  private:
     std::shared_ptr<Threads> _threads;
     std::unique_ptr<ThreadLocalObject<GroupInstanceCustomInternal>> _internal;
     std::unique_ptr<LogSinkImpl> _logSink;

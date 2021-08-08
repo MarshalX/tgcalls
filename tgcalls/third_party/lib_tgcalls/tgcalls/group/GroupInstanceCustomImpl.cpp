@@ -3319,6 +3319,63 @@ public:
         }
     }
 
+    void stopAudioDeviceModule() {
+        _threads->getWorkerThread()->Invoke<void>(RTC_FROM_HERE, [&] {
+          if (!_audioDeviceModule) {
+            return;
+          }
+
+          _audioDeviceModule->StopRecording();
+          _audioDeviceModule->StopPlayout();
+//          _audioDeviceModule->Stop();
+        });
+    }
+
+    void startAudioDeviceModule() {
+      _threads->getWorkerThread()->Invoke<void>(RTC_FROM_HERE, [&] {
+        if (!_audioDeviceModule) {
+          return;
+        }
+
+        if (!_audioDeviceModule->Recording()) {
+          _audioDeviceModule->StartRecording();
+        }
+        if (!_audioDeviceModule->Playing()){
+          _audioDeviceModule->StartPlayout();
+        }
+      });
+    }
+
+    void restartAudioInputDevice() {
+        _threads->getWorkerThread()->Invoke<void>(RTC_FROM_HERE, [&] {
+          if (!_audioDeviceModule) {
+            return;
+          }
+
+          const auto recording = _audioDeviceModule->Recording();
+          if (recording) {
+            _audioDeviceModule->StopRecording();
+          }
+          if (recording && _audioDeviceModule->InitRecording() == 0) {
+            _audioDeviceModule->StartRecording();
+          }
+        });
+    }
+
+    void restartAudioOutputDevice() {
+        _threads->getWorkerThread()->Invoke<void>(RTC_FROM_HERE, [&] {
+          if (!_audioDeviceModule) {
+            return;
+          }
+
+          if (_audioDeviceModule->Playing()) {
+            _audioDeviceModule->StopPlayout();
+          }
+          if (_audioDeviceModule->InitPlayout() == 0) {
+            _audioDeviceModule->StartPlayout();
+          }
+        });
+    }
 private:
     rtc::scoped_refptr<WrappedAudioDeviceModule> createAudioDeviceModule() {
         const auto create = [&](webrtc::AudioDeviceModule::AudioLayer layer) {
@@ -3601,6 +3658,30 @@ std::vector<GroupInstanceInterface::AudioDevice> GroupInstanceInterface::getAudi
   resolve();
 #endif
   return result;
+}
+
+void GroupInstanceCustomImpl::stopAudioDeviceModule() const {
+  _internal->perform(RTC_FROM_HERE, [&](GroupInstanceCustomInternal *internal) {
+    internal->stopAudioDeviceModule();
+  });
+}
+
+void GroupInstanceCustomImpl::startAudioDeviceModule() const {
+  _internal->perform(RTC_FROM_HERE, [&](GroupInstanceCustomInternal *internal) {
+    internal->startAudioDeviceModule();
+  });
+}
+
+void GroupInstanceCustomImpl::restartAudioInputDevice() const {
+  _internal->perform(RTC_FROM_HERE, [&](GroupInstanceCustomInternal *internal) {
+    internal->restartAudioInputDevice();
+  });
+}
+
+void GroupInstanceCustomImpl::restartAudioOutputDevice() const {
+  _internal->perform(RTC_FROM_HERE, [&](GroupInstanceCustomInternal *internal) {
+    internal->restartAudioOutputDevice();
+  });
 }
 
 } // namespace tgcalls

@@ -26,7 +26,8 @@ public:
     std::function<void(tgcalls::GroupJoinPayload payload)> _emitJoinPayloadCallback = nullptr;
     std::function<void(bool)> _networkStateUpdated = nullptr;
 
-    rtc::scoped_refptr<webrtc::AudioDeviceModule> _audioDeviceModule;
+    std::shared_ptr<FileAudioDeviceDescriptor> _fileAudioDeviceDescriptor;
+    std::shared_ptr<RawAudioDeviceDescriptor> _rawAudioDeviceDescriptor;
 
     NativeInstance(bool, string);
     ~NativeInstance();
@@ -39,8 +40,8 @@ public:
             int
     );
 
-    void startGroupCall(FileAudioDeviceDescriptor &);
-    void startGroupCall(RawAudioDeviceDescriptor &);
+    void startGroupCall(std::shared_ptr<FileAudioDeviceDescriptor>);
+    void startGroupCall(std::shared_ptr<RawAudioDeviceDescriptor>);
     void startGroupCall(std::string, std::string);
     void stopGroupCall() const;
     bool isGroupCallStarted() const;
@@ -52,6 +53,9 @@ public:
 
     void restartAudioInputDevice() const;
     void restartAudioOutputDevice() const;
+
+    void stopAudioDeviceModule() const;
+    void startAudioDeviceModule() const;
 
     void printAvailablePlayoutDevices() const;
     void printAvailableRecordingDevices() const;

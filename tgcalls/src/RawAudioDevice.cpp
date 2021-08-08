@@ -20,7 +20,7 @@ const size_t kPlayoutBufferSize =
 const size_t kRecordingBufferSize =
     kRecordingFixedSampleRate / 100 * kRecordingNumChannels * 2;
 
-RawAudioDevice::RawAudioDevice(RawAudioDeviceDescriptor *RawAudioDeviceDescriptor)
+RawAudioDevice::RawAudioDevice(std::shared_ptr<RawAudioDeviceDescriptor> RawAudioDeviceDescriptor)
     : _ptrAudioBuffer(nullptr),
       _recordingBuffer(nullptr),
       _playoutBuffer(nullptr),
@@ -32,7 +32,7 @@ RawAudioDevice::RawAudioDevice(RawAudioDeviceDescriptor *RawAudioDeviceDescripto
       _recording(false),
       _lastCallPlayoutMillis(0),
       _lastCallRecordMillis(0),
-      _rawAudioDeviceDescriptor(RawAudioDeviceDescriptor) {}
+      _rawAudioDeviceDescriptor(std::move(RawAudioDeviceDescriptor)) {}
 
 RawAudioDevice::~RawAudioDevice() = default;
 
@@ -447,6 +447,7 @@ bool RawAudioDevice::RecThreadProcess() {
     if (!_rawAudioDeviceDescriptor->_isPlayoutPaused()) {
       _recordingBuffer = _rawAudioDeviceDescriptor->_getPlayoutBuffer(kRecordingBufferSize);
       _ptrAudioBuffer->SetRecordedBuffer(_recordingBuffer, _recordingFramesIn10MS);
+      free(_recordingBuffer);
 
       _lastCallRecordMillis = currentTime;
       mutex_.Unlock();
