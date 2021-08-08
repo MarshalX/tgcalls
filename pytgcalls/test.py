@@ -457,7 +457,7 @@ async def start(client1, client2, make_out, make_inc):
 
 import logging
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 for name, logger in logging.root.manager.loggerDict.items():
     if name.startswith('pyrogram'):
@@ -474,28 +474,75 @@ async def main(client1, client2, telethon1, make_out, make_inc):
         await asyncio.sleep(1)
 
     # example hot to use another mtproto backend
-    # group_call_factory = GroupCallFactory(telethon1, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON)
-    group_call_factory = GroupCallFactory(client2, GroupCallFactory.MTPROTO_CLIENT_TYPE.PYROGRAM)
+    group_call_factory = GroupCallFactory(telethon1, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON, enable_logs_to_console=False)
+    # group_call_factory = GroupCallFactory(client2, GroupCallFactory.MTPROTO_CLIENT_TYPE.PYROGRAM, enable_logs_to_console=False, outgoing_audio_bitrate_kbit=512)
 
-    gc = group_call_factory.get_file_group_call('input.raw')
-    await gc.start('@ilya_marshal')
-    await gc.stop()
-    await gc.stop()
-    print('case 1')
-    await gc.start('@ilya_marshal')
-    await asyncio.sleep(10)
-    await gc.stop()
-    await gc.stop()
-    print('case 2')
-    await gc.start('@ilya_marshal')
-    print('case 3')
-    await gc.start('@ilya_marshal')
-    print('case 4')
-    await asyncio.sleep(10)
-    await gc.reconnect()
-    print('case 5')
+    def on_played_data(_, leng):
+        # print('on_played_data')
+        pass
 
-    print('all cases has been passed')
+    def on_recorded_data(_, data, leng):
+        # print('on_recorded_data')
+        pass
+    #
+    # try:
+    #     gcf = GroupCallFactory(client2)
+    #     gc = gcf.get_file_group_call('input.raw')
+    #     await gc.start('@ilya_marshal')
+    # except RuntimeError:
+    #     print('pass1')
+    #
+    # try:
+    #     gcf2 = GroupCallFactory(client2)
+    #     gc2 = gcf2.get_file_group_call('input.raw')
+    #     await gc2.start('@ilya_marshal')
+    # except RuntimeError:
+    #     print('pass2')
+
+    # group_call = group_call_factory.get_device_group_call()
+    group_call = group_call_factory.get_file_group_call('input.raw')
+    # group_call = group_call_factory.get_raw_group_call(on_recorded_data=on_recorded_data, on_played_data=on_played_data)
+    await group_call.start('@ilya_marshal')
+    # await asyncio.sleep(15)
+    # group_call.restart_playout()
+    # await group_call.stop()
+    # await group_call.reconnect()
+    # await group_call.start('@ilya_marshal')
+    # await asyncio.sleep(2)
+
+    # while True:
+    #     group_call_factory = GroupCallFactory(telethon1, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON)
+    #     # group_call_factory = GroupCallFactory(client2, GroupCallFactory.MTPROTO_CLIENT_TYPE.PYROGRAM, enable_logs_to_console=False, outgoing_audio_bitrate_kbit=512)
+    #     group_call = group_call_factory.get_raw_group_call(on_played_data=on_played_data)
+    #     # group_call = group_call_factory.get_file_group_call('input.raw')
+    #     await group_call.start('@ilya_marshal')
+    #     await asyncio.sleep(5)
+    #     # await group_call.stop()
+    #     # del group_call
+    #     await asyncio.sleep(2)
+    #     break
+
+    # gc = group_call_factory.get_file_group_call('input.raw')
+    # # gc = group_call_factory.get_device_group_call()
+    # await gc.start('@ilya_marshal')
+    # await gc.stop()
+    # await gc.stop()
+    # print('case 1')
+    # await gc.start('@ilya_marshal')
+    # await asyncio.sleep(20)
+    # await gc.set_is_mute(True)
+    # await gc.stop()
+    # await gc.stop()
+    # print('case 2')
+    # await gc.start('@ilya_marshal')
+    # print('case 3')
+    # await gc.start('@ilya_marshal')
+    # print('case 4')
+    # await asyncio.sleep(10)
+    # await gc.reconnect()
+    # print('case 5')
+    #
+    # print('all cases has been passed')
 
     # await tgc.reconnect()
     # await tgc.stop()

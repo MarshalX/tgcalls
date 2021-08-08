@@ -14,13 +14,14 @@ public:
     virtual ~AudioDeviceModuleIOS() {
     }
 
-    virtual int32_t StopPlayout() override {
-        return 0;
-    }
-
-    virtual int32_t StopRecording() override {
-        return 0;
-    }
+// отдохни
+//    virtual int32_t StopPlayout() override {
+//        return 0;
+//    }
+//
+//    virtual int32_t StopRecording() override {
+//        return 0;
+//    }
 
     virtual int32_t Terminate() override {
         return 0;

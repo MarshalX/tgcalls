@@ -17,7 +17,7 @@ namespace rtc {
 
 class RawAudioDevice : public webrtc::AudioDeviceGeneric {
 public:
-  explicit RawAudioDevice(RawAudioDeviceDescriptor*);
+  explicit RawAudioDevice(std::shared_ptr<RawAudioDeviceDescriptor>);
 
   ~RawAudioDevice() override;
 
@@ -159,5 +159,5 @@ private:
   int64_t _lastCallPlayoutMillis;
   int64_t _lastCallRecordMillis;
 
-  RawAudioDeviceDescriptor *_rawAudioDeviceDescriptor;
+  std::shared_ptr<RawAudioDeviceDescriptor> _rawAudioDeviceDescriptor;
 };
