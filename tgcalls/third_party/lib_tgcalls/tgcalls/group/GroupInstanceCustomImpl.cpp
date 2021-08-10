@@ -3319,62 +3319,10 @@ public:
         }
     }
 
-    void stopAudioDeviceModule() {
-        _threads->getWorkerThread()->Invoke<void>(RTC_FROM_HERE, [&] {
-          if (!_audioDeviceModule) {
-            return;
-          }
-
-          _audioDeviceModule->StopRecording();
-          _audioDeviceModule->StopPlayout();
-//          _audioDeviceModule->Stop();
-        });
-    }
-
-    void startAudioDeviceModule() {
+    void performWithAudioDeviceModule(std::function<void(rtc::scoped_refptr<WrappedAudioDeviceModule>)> callback) {
       _threads->getWorkerThread()->Invoke<void>(RTC_FROM_HERE, [&] {
-        if (!_audioDeviceModule) {
-          return;
-        }
-
-        if (!_audioDeviceModule->Recording()) {
-          _audioDeviceModule->StartRecording();
-        }
-        if (!_audioDeviceModule->Playing()){
-          _audioDeviceModule->StartPlayout();
-        }
+        callback(_audioDeviceModule);
       });
-    }
-
-    void restartAudioInputDevice() {
-        _threads->getWorkerThread()->Invoke<void>(RTC_FROM_HERE, [&] {
-          if (!_audioDeviceModule) {
-            return;
-          }
-
-          const auto recording = _audioDeviceModule->Recording();
-          if (recording) {
-            _audioDeviceModule->StopRecording();
-          }
-          if (recording && _audioDeviceModule->InitRecording() == 0) {
-            _audioDeviceModule->StartRecording();
-          }
-        });
-    }
-
-    void restartAudioOutputDevice() {
-        _threads->getWorkerThread()->Invoke<void>(RTC_FROM_HERE, [&] {
-          if (!_audioDeviceModule) {
-            return;
-          }
-
-          if (_audioDeviceModule->Playing()) {
-            _audioDeviceModule->StopPlayout();
-          }
-          if (_audioDeviceModule->InitPlayout() == 0) {
-            _audioDeviceModule->StartPlayout();
-          }
-        });
     }
 private:
     rtc::scoped_refptr<WrappedAudioDeviceModule> createAudioDeviceModule() {
@@ -3631,7 +3579,7 @@ void GroupInstanceCustomImpl::setRequestedVideoChannels(std::vector<VideoChannel
 
 std::vector<GroupInstanceInterface::AudioDevice> GroupInstanceInterface::getAudioDevices(AudioDevice::Type type) {
   auto result = std::vector<AudioDevice>();
-#ifdef WEBRTC_LINUX //Not needed for ios, and some crl::sync stuff is needed for windows
+//#ifdef WEBRTC_LINUX //Not needed for ios, and some crl::sync stuff is needed for windows
   const auto resolve = [&] {
     const auto queueFactory = webrtc::CreateDefaultTaskQueueFactory();
     const auto info = webrtc::AudioDeviceModule::Create(
@@ -3656,31 +3604,13 @@ std::vector<GroupInstanceInterface::AudioDevice> GroupInstanceInterface::getAudi
     }
   };
   resolve();
-#endif
+//#endif
   return result;
 }
 
-void GroupInstanceCustomImpl::stopAudioDeviceModule() const {
-  _internal->perform(RTC_FROM_HERE, [&](GroupInstanceCustomInternal *internal) {
-    internal->stopAudioDeviceModule();
-  });
-}
-
-void GroupInstanceCustomImpl::startAudioDeviceModule() const {
-  _internal->perform(RTC_FROM_HERE, [&](GroupInstanceCustomInternal *internal) {
-    internal->startAudioDeviceModule();
-  });
-}
-
-void GroupInstanceCustomImpl::restartAudioInputDevice() const {
-  _internal->perform(RTC_FROM_HERE, [&](GroupInstanceCustomInternal *internal) {
-    internal->restartAudioInputDevice();
-  });
-}
-
-void GroupInstanceCustomImpl::restartAudioOutputDevice() const {
-  _internal->perform(RTC_FROM_HERE, [&](GroupInstanceCustomInternal *internal) {
-    internal->restartAudioOutputDevice();
+void GroupInstanceCustomImpl::performWithAudioDeviceModule(std::function<void(rtc::scoped_refptr<WrappedAudioDeviceModule>)> callback) {
+  _internal->perform(RTC_FROM_HERE, [callback = std::move(callback)](GroupInstanceCustomInternal *internal) {
+    internal->performWithAudioDeviceModule(callback);
   });
 }
 

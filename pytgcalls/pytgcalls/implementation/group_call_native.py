@@ -19,7 +19,8 @@
 
 import asyncio
 import logging
-from typing import Callable, Optional
+import warnings
+from typing import Callable, Optional, List
 
 import tgcalls
 
@@ -203,7 +204,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
 
     async def stop(self):
         """Properly stop tgcalls, remove MTProto handler, leave from server side."""
-        if not self.__native_instance.isGroupCallStarted():
+        if not self.is_group_call_native_created():
             logger.debug('Group call is not started, so there\'s nothing to stop.')
             return
 
@@ -279,7 +280,7 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         self.re_register_update_handlers()
 
         # when trying to connect to another chat or with another join_as
-        if self.__native_instance.isGroupCallStarted():
+        if self.is_group_call_native_created():
             await self.reconnect()
         # the first start
         else:
@@ -344,6 +345,22 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
         await self.edit_group_call(volume)
         self.__set_volume(uint_ssrc(self.mtproto_bridge.my_ssrc), volume / 100)
 
+    def is_group_call_native_created(self):
+        return self.__native_instance.isGroupCallNativeCreated()
+
+    def get_playout_devices(self) -> List['tgcalls.AudioDevice']:
+        if not self.is_group_call_native_created():
+            raise RuntimeError("You can't use this method after calling .start()")
+
+        return self.__native_instance.getPlayoutDevices()
+
+    def get_recording_devices(self) -> List['tgcalls.AudioDevice']:
+        # TODO create a decorator, move all not native methods to GroupCall class
+        if not self.is_group_call_native_created():
+            raise RuntimeError("You can't use this method after calling .start()")
+
+        return self.__native_instance.getRecordingDevices()
+
     def print_available_playout_devices(self):
         """Print name and guid of available playout audio devices in system. Just helper method
 
@@ -351,7 +368,13 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             You should use this method after calling .start()!
         """
 
-        self.__native_instance.printAvailablePlayoutDevices()
+        warnings.warn("It's a deprecated method. Use .get_recording_devices() instead", DeprecationWarning, 2)
+
+        if not self.is_group_call_native_created():
+            raise RuntimeError("You can't use this method after calling .start()")
+
+        for device in self.__native_instance.getPlayoutDevices():
+            print(f'Playout device \n name: {device.name} \n guid: {device.guid}')
 
     def print_available_recording_devices(self):
         """Print name and guid of available recording audio devices in system. Just helper method
@@ -360,7 +383,13 @@ class GroupCallNative(GroupCallNativeDispatcherMixin):
             You should use this method after calling .start()!
         """
 
-        self.__native_instance.printAvailableRecordingDevices()
+        warnings.warn("It's a deprecated method. Use .get_playout_devices() instead", DeprecationWarning, 2)
+
+        if not self.is_group_call_native_created():
+            raise RuntimeError("You can't use this method after calling .start()")
+
+        for device in self.__native_instance.getRecordingDevices():
+            print(f'Recording device \n name: {device.name} \n guid: {device.guid}')
 
     def set_audio_input_device(self, name: Optional[str] = None):
         """Set audio input device.

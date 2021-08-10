@@ -97,6 +97,17 @@ PYBIND11_MODULE(tgcalls, m) {
             .def_readwrite("isPlayoutPaused", &RawAudioDeviceDescriptor::_isPlayoutPaused)
             .def_readwrite("isRecordingPaused", &RawAudioDeviceDescriptor::_isRecordingPaused);
 
+    py::class_<tgcalls::GroupInstanceInterface::AudioDevice>(m, "AudioDevice")
+            .def_readwrite("name", &tgcalls::GroupInstanceInterface::AudioDevice::name)
+            .def_readwrite("guid", &tgcalls::GroupInstanceInterface::AudioDevice::guid)
+            .def("__repr__", [](const tgcalls::GroupInstanceInterface::AudioDevice &e) {
+              ostringstream repr;
+              repr << "<tgcalls.AudioDevice ";
+              repr << "name=\"" << e.name << "\" ";
+              repr << "guid=\"" << e.guid << "\"> ";
+              return repr.str();
+            });
+
     py::enum_<tgcalls::GroupConnectionMode>(m, "GroupConnectionMode")
             .value("GroupConnectionModeNone", tgcalls::GroupConnectionMode::GroupConnectionModeNone)
             .value("GroupConnectionModeRtc", tgcalls::GroupConnectionMode::GroupConnectionModeRtc)
@@ -110,7 +121,7 @@ PYBIND11_MODULE(tgcalls, m) {
             .def("startGroupCall", py::overload_cast<std::shared_ptr<FileAudioDeviceDescriptor>>(&NativeInstance::startGroupCall))
             .def("startGroupCall", py::overload_cast<std::shared_ptr<RawAudioDeviceDescriptor>>(&NativeInstance::startGroupCall))
             .def("startGroupCall", py::overload_cast<std::string, std::string>(&NativeInstance::startGroupCall))
-            .def("isGroupCallStarted", &NativeInstance::isGroupCallStarted)
+            .def("isGroupCallNativeCreated", &NativeInstance::isGroupCallNativeCreated)
             .def("stopGroupCall", &NativeInstance::stopGroupCall)
             .def("setIsMuted", &NativeInstance::setIsMuted)
             .def("setVolume", &NativeInstance::setVolume)
@@ -118,8 +129,8 @@ PYBIND11_MODULE(tgcalls, m) {
             .def("restartAudioOutputDevice", &NativeInstance::restartAudioOutputDevice)
             .def("stopAudioDeviceModule", &NativeInstance::stopAudioDeviceModule)
             .def("startAudioDeviceModule", &NativeInstance::startAudioDeviceModule)
-            .def("printAvailablePlayoutDevices", &NativeInstance::printAvailablePlayoutDevices)
-            .def("printAvailableRecordingDevices", &NativeInstance::printAvailableRecordingDevices)
+            .def("getPlayoutDevices", &NativeInstance::getPlayoutDevices)
+            .def("getRecordingDevices", &NativeInstance::getRecordingDevices)
             .def("setAudioOutputDevice", &NativeInstance::setAudioOutputDevice)
             .def("setAudioInputDevice", &NativeInstance::setAudioInputDevice)
             .def("setJoinResponsePayload", &NativeInstance::setJoinResponsePayload)

@@ -105,7 +105,7 @@ void NativeInstance::stopGroupCall() const {
   instanceHolder->groupNativeInstance = nullptr;
 }
 
-bool NativeInstance::isGroupCallStarted() const {
+bool NativeInstance::isGroupCallNativeCreated() const {
   return instanceHolder != nullptr && instanceHolder->groupNativeInstance != nullptr;
 }
 
@@ -133,70 +133,82 @@ void NativeInstance::setConnectionMode(
 }
 
 void NativeInstance::stopAudioDeviceModule() const {
-  // added to tgcalls for python binding for correct destroy and call in right threads
-  instanceHolder->groupNativeInstance->stopAudioDeviceModule();
+  instanceHolder->groupNativeInstance->performWithAudioDeviceModule(
+      [&](const rtc::scoped_refptr<tgcalls::WrappedAudioDeviceModule>& audioDeviceModule) {
+        if (!audioDeviceModule) {
+          return;
+        }
+
+        audioDeviceModule->StopRecording();
+        audioDeviceModule->StopPlayout();
+//        audioDeviceModule->Stop();
+      }
+  );
 }
 
 void NativeInstance::startAudioDeviceModule() const {
-  // added to tgcalls for python binding for correct destroy and call in right threads
-  instanceHolder->groupNativeInstance->startAudioDeviceModule();
+  instanceHolder->groupNativeInstance->performWithAudioDeviceModule(
+      [&](const rtc::scoped_refptr<tgcalls::WrappedAudioDeviceModule>& audioDeviceModule) {
+        if (!audioDeviceModule) {
+          return;
+        }
+
+        if (!audioDeviceModule->Recording()) {
+          audioDeviceModule->StartRecording();
+        }
+        if (!audioDeviceModule->Playing()){
+          audioDeviceModule->StartPlayout();
+        }
+      }
+  );
 }
 
 void NativeInstance::restartAudioInputDevice() const {
-  // added to tgcalls for python binding for correct destroy and call in right threads
-  instanceHolder->groupNativeInstance->restartAudioInputDevice();
+  instanceHolder->groupNativeInstance->performWithAudioDeviceModule(
+      [&](const rtc::scoped_refptr<tgcalls::WrappedAudioDeviceModule>& audioDeviceModule) {
+        if (!audioDeviceModule) {
+          return;
+        }
+
+        const auto recording = audioDeviceModule->Recording();
+        if (recording) {
+          audioDeviceModule->StopRecording();
+        }
+        if (recording && audioDeviceModule->InitRecording() == 0) {
+          audioDeviceModule->StartRecording();
+        }
+      }
+  );
 }
 
 void NativeInstance::restartAudioOutputDevice() const {
-  // added to tgcalls for python binding for correct destroy and call in right threads
-  instanceHolder->groupNativeInstance->restartAudioOutputDevice();
+  instanceHolder->groupNativeInstance->performWithAudioDeviceModule(
+      [&](const rtc::scoped_refptr<tgcalls::WrappedAudioDeviceModule>& audioDeviceModule) {
+        if (!audioDeviceModule) {
+          return;
+        }
+
+        if (audioDeviceModule->Playing()) {
+          audioDeviceModule->StopPlayout();
+        }
+        if (audioDeviceModule->InitPlayout() == 0) {
+          audioDeviceModule->StartPlayout();
+        }
+      }
+  );
 }
 
-void NativeInstance::printAvailablePlayoutDevices() const {
-// TODO
-//  instanceHolder->groupNativeInstance->_internal->perform(
-//      RTC_FROM_HERE,
-//      [=](tgcalls::GroupInstanceCustomInternal *internal) {
-//        const auto count = _audioDeviceModule ? _audioDeviceModule->PlayoutDevices() : int16_t(-1);
-//
-//        if (count < 0) {
-//          std::cout << "Can't find available playout devices" << std::endl;
-//          return;
-//        }
-//
-//        for (auto i = 0; i != count; ++i) {
-//          char name[webrtc::kAdmMaxDeviceNameSize + 1] = {0};
-//          char guid[webrtc::kAdmMaxGuidSize + 1] = {0};
-//          _audioDeviceModule->PlayoutDeviceName(i, name, guid);
-//          std::cout << "Playout device #" << i << std::endl
-//          << "name: " << name << std::endl
-//          << "guid: " << guid << std::endl;
-//        }
-//      });
+std::vector<tgcalls::GroupInstanceInterface::AudioDevice> NativeInstance::getPlayoutDevices() const {
+  return instanceHolder->groupNativeInstance->getAudioDevices(
+      tgcalls::GroupInstanceInterface::AudioDevice::Type::Output
+  );
 }
 
 
-void NativeInstance::printAvailableRecordingDevices() const {
-// TODO
-//  instanceHolder->groupNativeInstance->_internal->perform(
-//      RTC_FROM_HERE,
-//      [=](tgcalls::GroupInstanceCustomInternal *internal) {
-//        const auto count = _audioDeviceModule ? _audioDeviceModule->RecordingDevices() : int16_t(-1);
-//
-//        if (count < 0) {
-//          std::cout << "Can't find available recording devices" << std::endl;
-//          return;
-//        }
-//
-//        for (auto i = 0; i != count; ++i) {
-//          char name[webrtc::kAdmMaxDeviceNameSize + 1] = {0};
-//          char guid[webrtc::kAdmMaxGuidSize + 1] = {0};
-//          _audioDeviceModule->RecordingDeviceName(i, name, guid);
-//          std::cout << "Recording device #" << i << std::endl
-//          << "name: " << name << std::endl
-//          << "guid: " << guid << std::endl;
-//        }
-//      });
+std::vector<tgcalls::GroupInstanceInterface::AudioDevice> NativeInstance::getRecordingDevices() const {
+  return instanceHolder->groupNativeInstance->getAudioDevices(
+      tgcalls::GroupInstanceInterface::AudioDevice::Type::Input
+  );
 }
 
 

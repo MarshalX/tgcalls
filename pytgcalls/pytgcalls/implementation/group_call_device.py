@@ -48,7 +48,7 @@ class GroupCallDevice(GroupCallNative):
         """Get audio input device name or GUID
 
         Note:
-            To get system recording device list you can use `print_available_recording_devices()` method.
+            To get system recording device list you can use `get_recording_devices()` method.
         """
 
         return self.__audio_input_device
@@ -62,7 +62,7 @@ class GroupCallDevice(GroupCallNative):
         """Get audio output device name or GUID
 
         Note:
-            To get system playout device list you can use `print_available_playout_devices()` method.
+            To get system playout device list you can use `get_playout_devices()` method.
         """
 
         return self.__audio_output_device

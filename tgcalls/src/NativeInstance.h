@@ -44,7 +44,7 @@ public:
     void startGroupCall(std::shared_ptr<RawAudioDeviceDescriptor>);
     void startGroupCall(std::string, std::string);
     void stopGroupCall() const;
-    bool isGroupCallStarted() const;
+    bool isGroupCallNativeCreated() const;
 
     void setIsMuted(bool isMuted) const;
     void setVolume(uint32_t ssrc, double volume) const;
@@ -57,8 +57,9 @@ public:
     void stopAudioDeviceModule() const;
     void startAudioDeviceModule() const;
 
-    void printAvailablePlayoutDevices() const;
-    void printAvailableRecordingDevices() const;
+    std::vector<tgcalls::GroupInstanceInterface::AudioDevice> getPlayoutDevices() const;
+    std::vector<tgcalls::GroupInstanceInterface::AudioDevice> getRecordingDevices() const;
+
     void setAudioOutputDevice(std::string id) const;
     void setAudioInputDevice(std::string id) const;
 

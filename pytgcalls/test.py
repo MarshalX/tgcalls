@@ -457,7 +457,7 @@ async def start(client1, client2, make_out, make_inc):
 
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 for name, logger in logging.root.manager.loggerDict.items():
     if name.startswith('pyrogram'):
@@ -499,8 +499,8 @@ async def main(client1, client2, telethon1, make_out, make_inc):
     # except RuntimeError:
     #     print('pass2')
 
-    # group_call = group_call_factory.get_device_group_call()
-    group_call = group_call_factory.get_file_group_call('input.raw')
+    group_call = group_call_factory.get_device_group_call()
+    # group_call = group_call_factory.get_file_group_call('input.raw')
     # group_call = group_call_factory.get_raw_group_call(on_recorded_data=on_recorded_data, on_played_data=on_played_data)
     await group_call.start('@ilya_marshal')
     # await asyncio.sleep(15)
@@ -509,6 +509,11 @@ async def main(client1, client2, telethon1, make_out, make_inc):
     # await group_call.reconnect()
     # await group_call.start('@ilya_marshal')
     # await asyncio.sleep(2)
+    print(group_call.get_playout_devices())
+    print(group_call.get_recording_devices())
+    group_call.print_available_playout_devices()
+    group_call.print_available_recording_devices()
+    await asyncio.sleep(2)
 
     # while True:
     #     group_call_factory = GroupCallFactory(telethon1, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON)
