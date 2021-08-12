@@ -26,6 +26,9 @@ services:
     build:
       context: .
       dockerfile: build/ubuntu/Dockerfile
-    command: pip3 wheel . --no-deps -w ../dist/ --use-feature=in-tree-build
+    env_file: pytgcalls/.env
+#    command: tail -F anything
+    command: python3 pytgcalls/test3.py
     volumes:
       - ./dist:/usr/src/dist
+      - ./pytgcalls:/usr/src/tgcalls/pytgcalls
