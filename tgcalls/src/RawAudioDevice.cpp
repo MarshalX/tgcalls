@@ -445,14 +445,16 @@ bool RawAudioDevice::RecThreadProcess() {
 
   if (_lastCallRecordMillis == 0 || currentTime - _lastCallRecordMillis >= 10) {
     if (!_rawAudioDeviceDescriptor->_isPlayoutPaused()) {
-      _recordingBuffer = _rawAudioDeviceDescriptor->_getPlayoutBuffer(kRecordingBufferSize);
-      _ptrAudioBuffer->SetRecordedBuffer(_recordingBuffer, _recordingFramesIn10MS);
-      free(_recordingBuffer);
+      auto recordingStringBuffer = _rawAudioDeviceDescriptor->_getPlayoutBuffer(kRecordingBufferSize);
+//      in prev impl was setting of _recordingBuffer
+      _ptrAudioBuffer->SetRecordedBuffer((int8_t *) recordingStringBuffer->data(), _recordingFramesIn10MS);
 
       _lastCallRecordMillis = currentTime;
       mutex_.Unlock();
       _ptrAudioBuffer->DeliverRecordedData();
       mutex_.Lock();
+
+      delete recordingStringBuffer;
     }
   }
 
