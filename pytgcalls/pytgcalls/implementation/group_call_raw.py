@@ -20,10 +20,10 @@
 from typing import Callable
 
 import tgcalls
-from pytgcalls.implementation import GroupCallNative
+from pytgcalls.implementation import GroupCall
 
 
-class GroupCallRaw(GroupCallNative):
+class GroupCallRaw(GroupCall):
     def __init__(
         self,
         mtproto_bridge,

@@ -19,10 +19,10 @@
 
 from typing import Optional
 
-from pytgcalls.implementation import GroupCallNative
+from pytgcalls.implementation import GroupCall
 
 
-class GroupCallDevice(GroupCallNative):
+class GroupCallDevice(GroupCall):
     def __init__(
         self,
         mtproto_bridge,

@@ -22,7 +22,7 @@ import warnings
 
 from pytgcalls.group_call_factory import GroupCallFactory
 from pytgcalls.implementation.group_call_file import GroupCallFileAction
-from pytgcalls.implementation.group_call_native import GroupCallNativeAction
+from pytgcalls.implementation.group_call import GroupCallAction
 
 # backward compatibility below. Dont use it in new projects
 
@@ -75,7 +75,7 @@ def GroupCallRaw(client, *args, **kwargs):
 __all__ = [
     'GroupCallFactory',
     'GroupCallFileAction',
-    'GroupCallNativeAction',
+    'GroupCallAction',
     # below backward compatibility
     'GroupCall',
     'GroupCallDevice',

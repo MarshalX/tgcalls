@@ -84,4 +84,4 @@ class Dispatcher:
 
         for handler in self.get_handlers(action):
             logger.debug(f'Trigger {handler.__name__}...')
-            asyncio.ensure_future(handler(instance, *args, **kwargs), loop=instance.mtproto_bridge.get_event_loop())
+            asyncio.ensure_future(handler(instance, *args, **kwargs), loop=instance.mtproto.get_event_loop())
