@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-<meta name="generator" content="pdoc 0.9.2" />
+<meta name="generator" content="pdoc 0.10.0" />
 <title>pytgcalls.mtproto.telethon_bridge API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
@@ -56,7 +56,7 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 #  along with tgcalls. If not, see &lt;http://www.gnu.org/licenses/&gt;.
 
 from asyncio import AbstractEventLoop
-from typing import List
+from typing import Callable
 
 from telethon.errors import (
     BadRequestError as TelethonBadRequestError,
@@ -76,9 +76,9 @@ from telethon.tl.types import (
     InputPeerChannel,
 )
 
+from pytgcalls import PytgcallsError
 from pytgcalls.mtproto import MTProtoBridgeBase
 from pytgcalls.mtproto.data import GroupCallDiscardedWrapper, GroupCallParticipantWrapper, GroupCallWrapper
-
 from pytgcalls.mtproto.data.update import UpdateGroupCallParticipantsWrapper, UpdateGroupCallWrapper
 from pytgcalls.mtproto.exceptions import BadRequest, GroupcallSsrcDuplicateMuch
 from pytgcalls.utils import int_ssrc
@@ -107,7 +107,17 @@ class TelethonBridge(MTProtoBridgeBase):
         raise StopPropagation
 
     async def _process_group_call_participants_update(self, update):
-        participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in update.participants]
+        participants = [
+            GroupCallParticipantWrapper(
+                p.source,
+                p.left,
+                p.peer,
+                p.muted,
+                p.can_self_unmute,
+                p.is_self,
+            )
+            for p in update.participants
+        ]
         wrapped_update = UpdateGroupCallParticipantsWrapper(participants)
 
         await self.group_call_participants_update_callback(wrapped_update)
@@ -145,13 +155,6 @@ class TelethonBridge(MTProtoBridgeBase):
                 raise BadRequest(e)
 
         return int_ssrc(self.my_ssrc) in ssrcs_in_group_call
-
-    async def get_group_call_participants(self) -&gt; List[&#39;GroupCallParticipantWrapper&#39;]:
-        telethon_participants = (
-            await (self.client(functions.phone.GetGroupCallRequest(call=self.full_chat.call)))
-        ).participants
-        wrapped_participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in telethon_participants]
-        return wrapped_participants
 
     async def leave_current_group_call(self):
         if not self.full_chat or not self.full_chat.call or not self.my_ssrc:
@@ -192,7 +195,7 @@ class TelethonBridge(MTProtoBridgeBase):
             self.full_chat = (await self.client(functions.messages.GetFullChatRequest(group))).full_chat
 
         if self.full_chat is None:
-            raise RuntimeError(f&#39;Can\&#39;t get full chat by {group}&#39;)
+            raise PytgcallsError(f&#39;Can\&#39;t get full chat by {group}&#39;)
 
         self.group_call = self.full_chat.call
 
@@ -215,7 +218,7 @@ class TelethonBridge(MTProtoBridgeBase):
     async def send_speaking_group_call_action(self):
         await self.client(functions.messages.SetTypingRequest(peer=self.chat_peer, action=SpeakingInGroupCallAction()))
 
-    async def join_group_call(self, invite_hash: str, params: str, muted: bool):
+    async def join_group_call(self, invite_hash: str, params: str, muted: bool, pre_update_processing: Callable):
         try:
             response = await self.client(
                 functions.phone.JoinGroupCallRequest(
@@ -226,6 +229,8 @@ class TelethonBridge(MTProtoBridgeBase):
                     muted=muted,
                 )
             )
+
+            pre_update_processing()
 
             # it is here cuz we need to associate params for connection with group call
             for update in response.updates:
@@ -283,7 +288,17 @@ inheritance.</p></div>
         raise StopPropagation
 
     async def _process_group_call_participants_update(self, update):
-        participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in update.participants]
+        participants = [
+            GroupCallParticipantWrapper(
+                p.source,
+                p.left,
+                p.peer,
+                p.muted,
+                p.can_self_unmute,
+                p.is_self,
+            )
+            for p in update.participants
+        ]
         wrapped_update = UpdateGroupCallParticipantsWrapper(participants)
 
         await self.group_call_participants_update_callback(wrapped_update)
@@ -321,13 +336,6 @@ inheritance.</p></div>
                 raise BadRequest(e)
 
         return int_ssrc(self.my_ssrc) in ssrcs_in_group_call
-
-    async def get_group_call_participants(self) -&gt; List[&#39;GroupCallParticipantWrapper&#39;]:
-        telethon_participants = (
-            await (self.client(functions.phone.GetGroupCallRequest(call=self.full_chat.call)))
-        ).participants
-        wrapped_participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in telethon_participants]
-        return wrapped_participants
 
     async def leave_current_group_call(self):
         if not self.full_chat or not self.full_chat.call or not self.my_ssrc:
@@ -368,7 +376,7 @@ inheritance.</p></div>
             self.full_chat = (await self.client(functions.messages.GetFullChatRequest(group))).full_chat
 
         if self.full_chat is None:
-            raise RuntimeError(f&#39;Can\&#39;t get full chat by {group}&#39;)
+            raise PytgcallsError(f&#39;Can\&#39;t get full chat by {group}&#39;)
 
         self.group_call = self.full_chat.call
 
@@ -391,7 +399,7 @@ inheritance.</p></div>
     async def send_speaking_group_call_action(self):
         await self.client(functions.messages.SetTypingRequest(peer=self.chat_peer, action=SpeakingInGroupCallAction()))
 
-    async def join_group_call(self, invite_hash: str, params: str, muted: bool):
+    async def join_group_call(self, invite_hash: str, params: str, muted: bool, pre_update_processing: Callable):
         try:
             response = await self.client(
                 functions.phone.JoinGroupCallRequest(
@@ -402,6 +410,8 @@ inheritance.</p></div>
                     muted=muted,
                 )
             )
+
+            pre_update_processing()
 
             # it is here cuz we need to associate params for connection with group call
             for update in response.updates:
@@ -581,7 +591,7 @@ need to support all of them …</p></div>
         self.full_chat = (await self.client(functions.messages.GetFullChatRequest(group))).full_chat
 
     if self.full_chat is None:
-        raise RuntimeError(f&#39;Can\&#39;t get full chat by {group}&#39;)
+        raise PytgcallsError(f&#39;Can\&#39;t get full chat by {group}&#39;)
 
     self.group_call = self.full_chat.call
 
@@ -624,29 +634,8 @@ need to support all of them …</p></div>
     return self._loop</code></pre>
 </details>
 </dd>
-<dt id="pytgcalls.mtproto.telethon_bridge.TelethonBridge.get_group_call_participants"><code class="name flex">
-<span>async def <span class="ident">get_group_call_participants</span></span>(<span>self) ‑> List[pytgcalls.mtproto.data.group_call_participant_wrapper.GroupCallParticipantWrapper]</span>
-</code></dt>
-<dd>
-<p class="inheritance">
-<em>Inherited from:</em>
-<code><a title="pytgcalls.mtproto.base_bridge.MTProtoBridgeBase" href="base_bridge.html#pytgcalls.mtproto.base_bridge.MTProtoBridgeBase">MTProtoBridgeBase</a></code>.<code><a title="pytgcalls.mtproto.base_bridge.MTProtoBridgeBase.get_group_call_participants" href="base_bridge.html#pytgcalls.mtproto.base_bridge.MTProtoBridgeBase.get_group_call_participants">get_group_call_participants</a></code>
-</p>
-<div class="desc inherited"><p>call phone.GetGroupCall method, return wrapped participants</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">async def get_group_call_participants(self) -&gt; List[&#39;GroupCallParticipantWrapper&#39;]:
-    telethon_participants = (
-        await (self.client(functions.phone.GetGroupCallRequest(call=self.full_chat.call)))
-    ).participants
-    wrapped_participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in telethon_participants]
-    return wrapped_participants</code></pre>
-</details>
-</dd>
 <dt id="pytgcalls.mtproto.telethon_bridge.TelethonBridge.join_group_call"><code class="name flex">
-<span>async def <span class="ident">join_group_call</span></span>(<span>self, invite_hash: str, params: str, muted: bool)</span>
+<span>async def <span class="ident">join_group_call</span></span>(<span>self, invite_hash: str, params: str, muted: bool, pre_update_processing: Callable)</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -658,7 +647,7 @@ need to support all of them …</p></div>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">async def join_group_call(self, invite_hash: str, params: str, muted: bool):
+<pre><code class="python">async def join_group_call(self, invite_hash: str, params: str, muted: bool, pre_update_processing: Callable):
     try:
         response = await self.client(
             functions.phone.JoinGroupCallRequest(
@@ -669,6 +658,8 @@ need to support all of them …</p></div>
                 muted=muted,
             )
         )
+
+        pre_update_processing()
 
         # it is here cuz we need to associate params for connection with group call
         for update in response.updates:
@@ -703,6 +694,16 @@ need to support all of them …</p></div>
 
     self.client._handle_update(response)</code></pre>
 </details>
+</dd>
+<dt id="pytgcalls.mtproto.telethon_bridge.TelethonBridge.re_register_update_handlers"><code class="name flex">
+<span>def <span class="ident">re_register_update_handlers</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.mtproto.base_bridge.MTProtoBridgeBase" href="base_bridge.html#pytgcalls.mtproto.base_bridge.MTProtoBridgeBase">MTProtoBridgeBase</a></code>.<code><a title="pytgcalls.mtproto.base_bridge.MTProtoBridgeBase.re_register_update_handlers" href="base_bridge.html#pytgcalls.mtproto.base_bridge.MTProtoBridgeBase.re_register_update_handlers">re_register_update_handlers</a></code>
+</p>
+<div class="desc inherited"><p>Delete and add pytgcalls handler in MTProto client.</p></div>
 </dd>
 <dt id="pytgcalls.mtproto.telethon_bridge.TelethonBridge.register_update_handlers"><code class="name flex">
 <span>def <span class="ident">register_update_handlers</span></span>(<span>self)</span>
@@ -832,7 +833,6 @@ data-gaCategoryParameter="pytgcalls.mtproto.telethon_bridge">
 <li><code><a title="pytgcalls.mtproto.telethon_bridge.TelethonBridge.get_and_set_group_call" href="#pytgcalls.mtproto.telethon_bridge.TelethonBridge.get_and_set_group_call">get_and_set_group_call</a></code></li>
 <li><code><a title="pytgcalls.mtproto.telethon_bridge.TelethonBridge.get_and_set_self_peer" href="#pytgcalls.mtproto.telethon_bridge.TelethonBridge.get_and_set_self_peer">get_and_set_self_peer</a></code></li>
 <li><code><a title="pytgcalls.mtproto.telethon_bridge.TelethonBridge.get_event_loop" href="#pytgcalls.mtproto.telethon_bridge.TelethonBridge.get_event_loop">get_event_loop</a></code></li>
-<li><code><a title="pytgcalls.mtproto.telethon_bridge.TelethonBridge.get_group_call_participants" href="#pytgcalls.mtproto.telethon_bridge.TelethonBridge.get_group_call_participants">get_group_call_participants</a></code></li>
 <li><code><a title="pytgcalls.mtproto.telethon_bridge.TelethonBridge.group_call" href="base_bridge.html#pytgcalls.mtproto.telethon_bridge.TelethonBridge.group_call">group_call</a></code></li>
 <li><code><a title="pytgcalls.mtproto.telethon_bridge.TelethonBridge.group_call_participants_update_callback" href="base_bridge.html#pytgcalls.mtproto.telethon_bridge.TelethonBridge.group_call_participants_update_callback">group_call_participants_update_callback</a></code></li>
 <li><code><a title="pytgcalls.mtproto.telethon_bridge.TelethonBridge.group_call_update_callback" href="base_bridge.html#pytgcalls.mtproto.telethon_bridge.TelethonBridge.group_call_update_callback">group_call_update_callback</a></code></li>
@@ -841,6 +841,7 @@ data-gaCategoryParameter="pytgcalls.mtproto.telethon_bridge">
 <li><code><a title="pytgcalls.mtproto.telethon_bridge.TelethonBridge.leave_current_group_call" href="#pytgcalls.mtproto.telethon_bridge.TelethonBridge.leave_current_group_call">leave_current_group_call</a></code></li>
 <li><code><a title="pytgcalls.mtproto.telethon_bridge.TelethonBridge.my_peer" href="base_bridge.html#pytgcalls.mtproto.telethon_bridge.TelethonBridge.my_peer">my_peer</a></code></li>
 <li><code><a title="pytgcalls.mtproto.telethon_bridge.TelethonBridge.my_ssrc" href="base_bridge.html#pytgcalls.mtproto.telethon_bridge.TelethonBridge.my_ssrc">my_ssrc</a></code></li>
+<li><code><a title="pytgcalls.mtproto.telethon_bridge.TelethonBridge.re_register_update_handlers" href="base_bridge.html#pytgcalls.mtproto.telethon_bridge.TelethonBridge.re_register_update_handlers">re_register_update_handlers</a></code></li>
 <li><code><a title="pytgcalls.mtproto.telethon_bridge.TelethonBridge.register_update_handlers" href="#pytgcalls.mtproto.telethon_bridge.TelethonBridge.register_update_handlers">register_update_handlers</a></code></li>
 <li><code><a title="pytgcalls.mtproto.telethon_bridge.TelethonBridge.resolve_and_set_join_as" href="#pytgcalls.mtproto.telethon_bridge.TelethonBridge.resolve_and_set_join_as">resolve_and_set_join_as</a></code></li>
 <li><code><a title="pytgcalls.mtproto.telethon_bridge.TelethonBridge.send_speaking_group_call_action" href="#pytgcalls.mtproto.telethon_bridge.TelethonBridge.send_speaking_group_call_action">send_speaking_group_call_action</a></code></li>
@@ -854,7 +855,7 @@ data-gaCategoryParameter="pytgcalls.mtproto.telethon_bridge">
 </main>
 <footer id="footer">
 <p>© Copyright 2020-2021 <a target="_blank" href="https://github.com/MarshalX">Il`ya (Marshal)</a></>
-<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
 </footer>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-<meta name="generator" content="pdoc 0.9.2" />
+<meta name="generator" content="pdoc 0.10.0" />
 <title>pytgcalls.mtproto API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
@@ -132,6 +132,11 @@ inheritance.</p></div>
         self.group_call_participants_update_callback = group_call_participants_update_callback
         self.group_call_update_callback = group_call_update_callback
 
+    def re_register_update_handlers(self):
+        &#34;&#34;&#34;Delete and add pytgcalls handler in MTProto client.&#34;&#34;&#34;
+        self.unregister_update_handlers()
+        self.register_update_handlers()
+
     async def check_group_call(self) -&gt; bool:
         &#34;&#34;&#34;Check if client is in a voice chat.
 
@@ -141,12 +146,6 @@ inheritance.</p></div>
         raise wrapped BadRequest if you got [400 GROUPCALL_JOIN_MISSING] response!
         &#34;&#34;&#34;
 
-        raise NotImplementedError
-
-    async def get_group_call_participants(self) -&gt; List[&#39;GroupCallParticipantWrapper&#39;]:
-        &#34;&#34;&#34;
-        call phone.GetGroupCall method, return wrapped participants
-        &#34;&#34;&#34;
         raise NotImplementedError
 
     async def leave_current_group_call(self):
@@ -203,7 +202,7 @@ inheritance.</p></div>
         &#34;&#34;&#34;
         raise NotImplementedError
 
-    async def join_group_call(self, invite_hash: str, params: dict, muted: bool):
+    async def join_group_call(self, invite_hash: str, params: dict, muted: bool, pre_update_processing: Callable):
         &#34;&#34;&#34;
         call phone.JoinGroupCall with group_call, join_as, invite hash, muted and params
 
@@ -368,24 +367,8 @@ need to support all of them</p>
     raise NotImplementedError</code></pre>
 </details>
 </dd>
-<dt id="pytgcalls.mtproto.MTProtoBridgeBase.get_group_call_participants"><code class="name flex">
-<span>async def <span class="ident">get_group_call_participants</span></span>(<span>self) ‑> List[_ForwardRef('GroupCallParticipantWrapper')]</span>
-</code></dt>
-<dd>
-<div class="desc"><p>call phone.GetGroupCall method, return wrapped participants</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">async def get_group_call_participants(self) -&gt; List[&#39;GroupCallParticipantWrapper&#39;]:
-    &#34;&#34;&#34;
-    call phone.GetGroupCall method, return wrapped participants
-    &#34;&#34;&#34;
-    raise NotImplementedError</code></pre>
-</details>
-</dd>
 <dt id="pytgcalls.mtproto.MTProtoBridgeBase.join_group_call"><code class="name flex">
-<span>async def <span class="ident">join_group_call</span></span>(<span>self, invite_hash: str, params: dict, muted: bool)</span>
+<span>async def <span class="ident">join_group_call</span></span>(<span>self, invite_hash: str, params: dict, muted: bool, pre_update_processing: Callable)</span>
 </code></dt>
 <dd>
 <div class="desc"><p>call phone.JoinGroupCall with group_call, join_as, invite hash, muted and params</p>
@@ -395,7 +378,7 @@ need to support all of them</p>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">async def join_group_call(self, invite_hash: str, params: dict, muted: bool):
+<pre><code class="python">async def join_group_call(self, invite_hash: str, params: dict, muted: bool, pre_update_processing: Callable):
     &#34;&#34;&#34;
     call phone.JoinGroupCall with group_call, join_as, invite hash, muted and params
 
@@ -420,6 +403,21 @@ need to support all of them</p>
     call phone.LeaveGroupCall and handle returned updates
     &#34;&#34;&#34;
     raise NotImplementedError</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.mtproto.MTProtoBridgeBase.re_register_update_handlers"><code class="name flex">
+<span>def <span class="ident">re_register_update_handlers</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Delete and add pytgcalls handler in MTProto client.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def re_register_update_handlers(self):
+    &#34;&#34;&#34;Delete and add pytgcalls handler in MTProto client.&#34;&#34;&#34;
+    self.unregister_update_handlers()
+    self.register_update_handlers()</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.mtproto.MTProtoBridgeBase.register_group_call_native_callback"><code class="name flex">
@@ -591,7 +589,6 @@ data-gaCategoryParameter="pytgcalls.mtproto">
 <li><code><a title="pytgcalls.mtproto.MTProtoBridgeBase.get_and_set_group_call" href="#pytgcalls.mtproto.MTProtoBridgeBase.get_and_set_group_call">get_and_set_group_call</a></code></li>
 <li><code><a title="pytgcalls.mtproto.MTProtoBridgeBase.get_and_set_self_peer" href="#pytgcalls.mtproto.MTProtoBridgeBase.get_and_set_self_peer">get_and_set_self_peer</a></code></li>
 <li><code><a title="pytgcalls.mtproto.MTProtoBridgeBase.get_event_loop" href="#pytgcalls.mtproto.MTProtoBridgeBase.get_event_loop">get_event_loop</a></code></li>
-<li><code><a title="pytgcalls.mtproto.MTProtoBridgeBase.get_group_call_participants" href="#pytgcalls.mtproto.MTProtoBridgeBase.get_group_call_participants">get_group_call_participants</a></code></li>
 <li><code><a title="pytgcalls.mtproto.MTProtoBridgeBase.group_call" href="#pytgcalls.mtproto.MTProtoBridgeBase.group_call">group_call</a></code></li>
 <li><code><a title="pytgcalls.mtproto.MTProtoBridgeBase.group_call_participants_update_callback" href="#pytgcalls.mtproto.MTProtoBridgeBase.group_call_participants_update_callback">group_call_participants_update_callback</a></code></li>
 <li><code><a title="pytgcalls.mtproto.MTProtoBridgeBase.group_call_update_callback" href="#pytgcalls.mtproto.MTProtoBridgeBase.group_call_update_callback">group_call_update_callback</a></code></li>
@@ -600,6 +597,7 @@ data-gaCategoryParameter="pytgcalls.mtproto">
 <li><code><a title="pytgcalls.mtproto.MTProtoBridgeBase.leave_current_group_call" href="#pytgcalls.mtproto.MTProtoBridgeBase.leave_current_group_call">leave_current_group_call</a></code></li>
 <li><code><a title="pytgcalls.mtproto.MTProtoBridgeBase.my_peer" href="#pytgcalls.mtproto.MTProtoBridgeBase.my_peer">my_peer</a></code></li>
 <li><code><a title="pytgcalls.mtproto.MTProtoBridgeBase.my_ssrc" href="#pytgcalls.mtproto.MTProtoBridgeBase.my_ssrc">my_ssrc</a></code></li>
+<li><code><a title="pytgcalls.mtproto.MTProtoBridgeBase.re_register_update_handlers" href="#pytgcalls.mtproto.MTProtoBridgeBase.re_register_update_handlers">re_register_update_handlers</a></code></li>
 <li><code><a title="pytgcalls.mtproto.MTProtoBridgeBase.register_group_call_native_callback" href="#pytgcalls.mtproto.MTProtoBridgeBase.register_group_call_native_callback">register_group_call_native_callback</a></code></li>
 <li><code><a title="pytgcalls.mtproto.MTProtoBridgeBase.register_update_handlers" href="#pytgcalls.mtproto.MTProtoBridgeBase.register_update_handlers">register_update_handlers</a></code></li>
 <li><code><a title="pytgcalls.mtproto.MTProtoBridgeBase.reset" href="#pytgcalls.mtproto.MTProtoBridgeBase.reset">reset</a></code></li>
@@ -616,7 +614,7 @@ data-gaCategoryParameter="pytgcalls.mtproto">
 </main>
 <footer id="footer">
 <p>© Copyright 2020-2021 <a target="_blank" href="https://github.com/MarshalX">Il`ya (Marshal)</a></>
-<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
 </footer>
 </body>
 </html>

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-<meta name="generator" content="pdoc 0.9.2" />
+<meta name="generator" content="pdoc 0.10.0" />
 <title>pytgcalls API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
@@ -58,9 +58,10 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 import logging
 import warnings
 
+from pytgcalls.exception import PytgcallsError
 from pytgcalls.group_call_factory import GroupCallFactory
 from pytgcalls.implementation.group_call_file import GroupCallFileAction
-from pytgcalls.implementation.group_call_native import GroupCallNativeAction
+from pytgcalls.implementation.group_call import GroupCallAction
 
 # backward compatibility below. Dont use it in new projects
 
@@ -80,7 +81,7 @@ def backward_compatibility_helper(group_call_type, client, *args, **kwargs):
     try:
         import pyrogram
     except ImportError:
-        raise RuntimeError(
+        raise PytgcallsError(
             &#39;To use this backward compatibility you need to install Pyrogram. &#39;
             &#39;Run this command: pip3 install -U pytgcalls[pyrogram]&#39;
         )
@@ -113,13 +114,13 @@ def GroupCallRaw(client, *args, **kwargs):
 __all__ = [
     &#39;GroupCallFactory&#39;,
     &#39;GroupCallFileAction&#39;,
-    &#39;GroupCallNativeAction&#39;,
+    &#39;GroupCallAction&#39;,
     # below backward compatibility
     &#39;GroupCall&#39;,
     &#39;GroupCallDevice&#39;,
     &#39;GroupCallRaw&#39;,
 ]
-__version__ = &#39;1.0.0&#39;
+__version__ = &#39;2.0.0&#39;
 __pdoc__ = {
     # files
     &#39;utils&#39;: False,
@@ -133,6 +134,10 @@ __pdoc__ = {
 <section>
 <h2 class="section-title" id="header-submodules">Sub-modules</h2>
 <dl>
+<dt><code class="name"><a title="pytgcalls.exception" href="exception.html">pytgcalls.exception</a></code></dt>
+<dd>
+<div class="desc"></div>
+</dd>
 <dt><code class="name"><a title="pytgcalls.group_call_factory" href="group_call_factory.html">pytgcalls.group_call_factory</a></code></dt>
 <dd>
 <div class="desc"></div>
@@ -210,9 +215,34 @@ __pdoc__ = {
 <section>
 <h2 class="section-title" id="header-classes">Classes</h2>
 <dl>
+<dt id="pytgcalls.GroupCallAction"><code class="flex name class">
+<span>class <span class="ident">GroupCallAction</span></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class GroupCallAction:
+    NETWORK_STATUS_CHANGED = Action()
+    &#39;&#39;&#39;When a status of network will be changed.&#39;&#39;&#39;</code></pre>
+</details>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="pytgcalls.implementation.group_call_file.GroupCallFileAction" href="implementation/group_call_file.html#pytgcalls.implementation.group_call_file.GroupCallFileAction">GroupCallFileAction</a></li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="pytgcalls.GroupCallAction.NETWORK_STATUS_CHANGED"><code class="name">var <span class="ident">NETWORK_STATUS_CHANGED</span></code></dt>
+<dd>
+<div class="desc"><p>When a status of network will be changed.</p></div>
+</dd>
+</dl>
+</dd>
 <dt id="pytgcalls.GroupCallFactory"><code class="flex name class">
 <span>class <span class="ident">GroupCallFactory</span></span>
-<span>(</span><span>client, mtproto_backend=MTProtoClientType.PYROGRAM, enable_logs_to_console=False, path_to_log_file=None)</span>
+<span>(</span><span>client, mtproto_backend=MTProtoClientType.PYROGRAM, enable_logs_to_console=False, path_to_log_file=None, outgoing_audio_bitrate_kbit=128)</span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -231,7 +261,12 @@ __pdoc__ = {
     }
 
     def __init__(
-        self, client, mtproto_backend=MTProtoClientType.PYROGRAM, enable_logs_to_console=False, path_to_log_file=None
+        self,
+        client,
+        mtproto_backend=MTProtoClientType.PYROGRAM,
+        enable_logs_to_console=False,
+        path_to_log_file=None,
+        outgoing_audio_bitrate_kbit=128,
     ):
         self.client = client
 
@@ -246,10 +281,11 @@ __pdoc__ = {
 
             self.__mtproto_bride_class = TelethonBridge
         else:
-            raise RuntimeError(&#39;Unknown MTProto client type&#39;)
+            raise PytgcallsError(&#39;Unknown MTProto client type&#39;)
 
         self.enable_logs_to_console = enable_logs_to_console
         self.path_to_log_file = path_to_log_file
+        self.outgoing_audio_bitrate_kbit = outgoing_audio_bitrate_kbit
 
     def get_mtproto_bridge(self):
         return self.__mtproto_bride_class(self.client)
@@ -259,6 +295,7 @@ __pdoc__ = {
             mtproto_bridge=self.get_mtproto_bridge(),
             enable_logs_to_console=self.enable_logs_to_console,
             path_to_log_file=self.path_to_log_file,
+            outgoing_audio_bitrate_kbit=self.outgoing_audio_bitrate_kbit,
             **kwargs,
         )
 
@@ -272,6 +309,7 @@ __pdoc__ = {
             play_on_repeat,
             self.enable_logs_to_console,
             self.path_to_log_file,
+            self.outgoing_audio_bitrate_kbit,
         )
 
     def get_device_group_call(
@@ -283,6 +321,7 @@ __pdoc__ = {
             audio_output_device,
             self.enable_logs_to_console,
             self.path_to_log_file,
+            self.outgoing_audio_bitrate_kbit,
         )
 
     def get_raw_group_call(
@@ -296,6 +335,7 @@ __pdoc__ = {
             on_recorded_data,
             self.enable_logs_to_console,
             self.path_to_log_file,
+            self.outgoing_audio_bitrate_kbit,
         )</code></pre>
 </details>
 <h3>Class variables</h3>
@@ -329,12 +369,13 @@ __pdoc__ = {
         mtproto_bridge=self.get_mtproto_bridge(),
         enable_logs_to_console=self.enable_logs_to_console,
         path_to_log_file=self.path_to_log_file,
+        outgoing_audio_bitrate_kbit=self.outgoing_audio_bitrate_kbit,
         **kwargs,
     )</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.GroupCallFactory.get_device_group_call"><code class="name flex">
-<span>def <span class="ident">get_device_group_call</span></span>(<span>self, audio_input_device: Union[str, NoneType] = None, audio_output_device: Union[str, NoneType] = None) ‑> <a title="pytgcalls.implementation.group_call_device.GroupCallDevice" href="implementation/group_call_device.html#pytgcalls.implementation.group_call_device.GroupCallDevice">GroupCallDevice</a></span>
+<span>def <span class="ident">get_device_group_call</span></span>(<span>self, audio_input_device: Optional[str] = None, audio_output_device: Optional[str] = None) ‑> <a title="pytgcalls.implementation.group_call_device.GroupCallDevice" href="implementation/group_call_device.html#pytgcalls.implementation.group_call_device.GroupCallDevice">GroupCallDevice</a></span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -351,11 +392,12 @@ __pdoc__ = {
         audio_output_device,
         self.enable_logs_to_console,
         self.path_to_log_file,
+        self.outgoing_audio_bitrate_kbit,
     )</code></pre>
 </details>
 </dd>
 <dt id="pytgcalls.GroupCallFactory.get_file_group_call"><code class="name flex">
-<span>def <span class="ident">get_file_group_call</span></span>(<span>self, input_filename: Union[str, NoneType] = None, output_filename: Union[str, NoneType] = None, play_on_repeat=True) ‑> <a title="pytgcalls.implementation.group_call_file.GroupCallFile" href="implementation/group_call_file.html#pytgcalls.implementation.group_call_file.GroupCallFile">GroupCallFile</a></span>
+<span>def <span class="ident">get_file_group_call</span></span>(<span>self, input_filename: Optional[str] = None, output_filename: Optional[str] = None, play_on_repeat=True) ‑> <a title="pytgcalls.implementation.group_call_file.GroupCallFile" href="implementation/group_call_file.html#pytgcalls.implementation.group_call_file.GroupCallFile">GroupCallFile</a></span>
 </code></dt>
 <dd>
 <div class="desc"></div>
@@ -373,6 +415,7 @@ __pdoc__ = {
         play_on_repeat,
         self.enable_logs_to_console,
         self.path_to_log_file,
+        self.outgoing_audio_bitrate_kbit,
     )</code></pre>
 </details>
 </dd>
@@ -409,6 +452,7 @@ __pdoc__ = {
         on_recorded_data,
         self.enable_logs_to_console,
         self.path_to_log_file,
+        self.outgoing_audio_bitrate_kbit,
     )</code></pre>
 </details>
 </dd>
@@ -423,13 +467,13 @@ __pdoc__ = {
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">class GroupCallFileAction(GroupCallNativeAction):
+<pre><code class="python">class GroupCallFileAction(GroupCallAction):
     PLAYOUT_ENDED = Action()
     &#39;&#39;&#39;When a input file is ended.&#39;&#39;&#39;</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
-<li><a title="pytgcalls.implementation.group_call_native.GroupCallNativeAction" href="implementation/group_call_native.html#pytgcalls.implementation.group_call_native.GroupCallNativeAction">GroupCallNativeAction</a></li>
+<li><a title="pytgcalls.implementation.group_call.GroupCallAction" href="implementation/group_call.html#pytgcalls.implementation.group_call.GroupCallAction">GroupCallAction</a></li>
 </ul>
 <h3>Class variables</h3>
 <dl>
@@ -437,38 +481,13 @@ __pdoc__ = {
 <dd>
 <p class="inheritance">
 <em>Inherited from:</em>
-<code><a title="pytgcalls.implementation.group_call_native.GroupCallNativeAction" href="implementation/group_call_native.html#pytgcalls.implementation.group_call_native.GroupCallNativeAction">GroupCallNativeAction</a></code>.<code><a title="pytgcalls.implementation.group_call_native.GroupCallNativeAction.NETWORK_STATUS_CHANGED" href="implementation/group_call_native.html#pytgcalls.implementation.group_call_native.GroupCallNativeAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code>
+<code><a title="pytgcalls.implementation.group_call.GroupCallAction" href="implementation/group_call.html#pytgcalls.implementation.group_call.GroupCallAction">GroupCallAction</a></code>.<code><a title="pytgcalls.implementation.group_call.GroupCallAction.NETWORK_STATUS_CHANGED" href="implementation/group_call.html#pytgcalls.implementation.group_call.GroupCallAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code>
 </p>
 <div class="desc inherited"><p>When a status of network will be changed.</p></div>
 </dd>
 <dt id="pytgcalls.GroupCallFileAction.PLAYOUT_ENDED"><code class="name">var <span class="ident">PLAYOUT_ENDED</span></code></dt>
 <dd>
 <div class="desc"><p>When a input file is ended.</p></div>
-</dd>
-</dl>
-</dd>
-<dt id="pytgcalls.GroupCallNativeAction"><code class="flex name class">
-<span>class <span class="ident">GroupCallNativeAction</span></span>
-</code></dt>
-<dd>
-<div class="desc"></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">class GroupCallNativeAction:
-    NETWORK_STATUS_CHANGED = Action()
-    &#39;&#39;&#39;When a status of network will be changed.&#39;&#39;&#39;</code></pre>
-</details>
-<h3>Subclasses</h3>
-<ul class="hlist">
-<li><a title="pytgcalls.implementation.group_call_file.GroupCallFileAction" href="implementation/group_call_file.html#pytgcalls.implementation.group_call_file.GroupCallFileAction">GroupCallFileAction</a></li>
-</ul>
-<h3>Class variables</h3>
-<dl>
-<dt id="pytgcalls.GroupCallNativeAction.NETWORK_STATUS_CHANGED"><code class="name">var <span class="ident">NETWORK_STATUS_CHANGED</span></code></dt>
-<dd>
-<div class="desc"><p>When a status of network will be changed.</p></div>
 </dd>
 </dl>
 </dd>
@@ -508,6 +527,7 @@ data-gaCategoryParameter="pytgcalls">
 <ul id="index">
 <li><h3><a href="#header-submodules">Sub-modules</a></h3>
 <ul>
+<li><code><a title="pytgcalls.exception" href="exception.html">pytgcalls.exception</a></code></li>
 <li><code><a title="pytgcalls.group_call_factory" href="group_call_factory.html">pytgcalls.group_call_factory</a></code></li>
 <li><code><a title="pytgcalls.group_call_type" href="group_call_type.html">pytgcalls.group_call_type</a></code></li>
 <li><code><a title="pytgcalls.implementation" href="implementation/index.html">pytgcalls.implementation</a></code></li>
@@ -525,6 +545,12 @@ data-gaCategoryParameter="pytgcalls">
 <li><h3><a href="#header-classes">Classes</a></h3>
 <ul>
 <li>
+<h4><code><a title="pytgcalls.GroupCallAction" href="#pytgcalls.GroupCallAction">GroupCallAction</a></code></h4>
+<ul class="">
+<li><code><a title="pytgcalls.GroupCallAction.NETWORK_STATUS_CHANGED" href="#pytgcalls.GroupCallAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code></li>
+</ul>
+</li>
+<li>
 <h4><code><a title="pytgcalls.GroupCallFactory" href="#pytgcalls.GroupCallFactory">GroupCallFactory</a></code></h4>
 <ul class="">
 <li><code><a title="pytgcalls.GroupCallFactory.GROUP_CALL_CLASS_TO_TYPE" href="#pytgcalls.GroupCallFactory.GROUP_CALL_CLASS_TO_TYPE">GROUP_CALL_CLASS_TO_TYPE</a></code></li>
@@ -540,14 +566,8 @@ data-gaCategoryParameter="pytgcalls">
 <li>
 <h4><code><a title="pytgcalls.GroupCallFileAction" href="#pytgcalls.GroupCallFileAction">GroupCallFileAction</a></code></h4>
 <ul class="">
-<li><code><a title="pytgcalls.GroupCallFileAction.NETWORK_STATUS_CHANGED" href="implementation/group_call_native.html#pytgcalls.GroupCallFileAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code></li>
+<li><code><a title="pytgcalls.GroupCallFileAction.NETWORK_STATUS_CHANGED" href="implementation/group_call.html#pytgcalls.GroupCallFileAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code></li>
 <li><code><a title="pytgcalls.GroupCallFileAction.PLAYOUT_ENDED" href="#pytgcalls.GroupCallFileAction.PLAYOUT_ENDED">PLAYOUT_ENDED</a></code></li>
-</ul>
-</li>
-<li>
-<h4><code><a title="pytgcalls.GroupCallNativeAction" href="#pytgcalls.GroupCallNativeAction">GroupCallNativeAction</a></code></h4>
-<ul class="">
-<li><code><a title="pytgcalls.GroupCallNativeAction.NETWORK_STATUS_CHANGED" href="#pytgcalls.GroupCallNativeAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code></li>
 </ul>
 </li>
 </ul>
@@ -557,7 +577,7 @@ data-gaCategoryParameter="pytgcalls">
 </main>
 <footer id="footer">
 <p>© Copyright 2020-2021 <a target="_blank" href="https://github.com/MarshalX">Il`ya (Marshal)</a></>
-<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
 </footer>
 </body>
 </html>

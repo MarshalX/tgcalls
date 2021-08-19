@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
-<meta name="generator" content="pdoc 0.9.2" />
+<meta name="generator" content="pdoc 0.10.0" />
 <title>pytgcalls.mtproto.pyrogram_bridge API documentation</title>
 <meta name="description" content="" />
 <link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
@@ -56,7 +56,7 @@ body.gsc-overflow-hidden #sidebar {overflow: visible;}
 #  along with tgcalls. If not, see &lt;http://www.gnu.org/licenses/&gt;.
 
 from asyncio import AbstractEventLoop
-from typing import List
+from typing import Callable
 
 from pyrogram.errors import (
     BadRequest as PyrogramBadRequest,
@@ -67,6 +67,7 @@ from pyrogram.raw import functions, types
 from pyrogram.raw.types import GroupCallDiscarded as PyrogramGroupCallDiscarded, InputPeerChannel, InputPeerChat
 from pyrogram.utils import get_peer_id
 
+from pytgcalls import PytgcallsError
 from pytgcalls.mtproto.data import GroupCallDiscardedWrapper, GroupCallWrapper, GroupCallParticipantWrapper
 from pytgcalls.mtproto.data.update import UpdateGroupCallWrapper, UpdateGroupCallParticipantsWrapper
 from pytgcalls.mtproto.exceptions import BadRequest, GroupcallSsrcDuplicateMuch
@@ -100,7 +101,17 @@ class PyrogramBridge(MTProtoBridgeBase):
         await self._update_to_handler[type(update)](update)
 
     async def _process_group_call_participants_update(self, update):
-        participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in update.participants]
+        participants = [
+            GroupCallParticipantWrapper(
+                p.source,
+                p.left,
+                p.peer,
+                p.muted,
+                p.can_self_unmute,
+                p.is_self,
+            )
+            for p in update.participants
+        ]
         wrapped_update = UpdateGroupCallParticipantsWrapper(participants)
 
         await self.group_call_participants_update_callback(wrapped_update)
@@ -130,13 +141,6 @@ class PyrogramBridge(MTProtoBridgeBase):
             in_group_call = False
 
         return in_group_call
-
-    async def get_group_call_participants(self) -&gt; List[&#39;GroupCallParticipantWrapper&#39;]:
-        pyrogram_participants = (
-            await (self.client.send(functions.phone.GetGroupCall(call=self.full_chat.call)))
-        ).participants
-        wrapped_participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in pyrogram_participants]
-        return wrapped_participants
 
     async def leave_current_group_call(self):
         if not self.full_chat or not self.full_chat.call or not self.my_ssrc:
@@ -187,7 +191,7 @@ class PyrogramBridge(MTProtoBridgeBase):
             ).full_chat
 
         if self.full_chat is None:
-            raise RuntimeError(f&#39;Can\&#39;t get full chat by {group}&#39;)
+            raise PytgcallsError(f&#39;Can\&#39;t get full chat by {group}&#39;)
 
         self.group_call = self.full_chat.call
 
@@ -225,7 +229,7 @@ class PyrogramBridge(MTProtoBridgeBase):
             functions.messages.SetTyping(peer=self.chat_peer, action=types.SpeakingInGroupCallAction())
         )
 
-    async def join_group_call(self, invite_hash: str, params: str, muted: bool):
+    async def join_group_call(self, invite_hash: str, params: str, muted: bool, pre_update_processing: Callable):
         try:
             response = await self.client.send(
                 functions.phone.JoinGroupCall(
@@ -236,6 +240,8 @@ class PyrogramBridge(MTProtoBridgeBase):
                     muted=muted,
                 )
             )
+
+            pre_update_processing()
 
             await self.client.handle_updates(response)
         except PyrogramGroupcallSsrcDuplicateMuch as e:
@@ -288,7 +294,17 @@ inheritance.</p></div>
         await self._update_to_handler[type(update)](update)
 
     async def _process_group_call_participants_update(self, update):
-        participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in update.participants]
+        participants = [
+            GroupCallParticipantWrapper(
+                p.source,
+                p.left,
+                p.peer,
+                p.muted,
+                p.can_self_unmute,
+                p.is_self,
+            )
+            for p in update.participants
+        ]
         wrapped_update = UpdateGroupCallParticipantsWrapper(participants)
 
         await self.group_call_participants_update_callback(wrapped_update)
@@ -318,13 +334,6 @@ inheritance.</p></div>
             in_group_call = False
 
         return in_group_call
-
-    async def get_group_call_participants(self) -&gt; List[&#39;GroupCallParticipantWrapper&#39;]:
-        pyrogram_participants = (
-            await (self.client.send(functions.phone.GetGroupCall(call=self.full_chat.call)))
-        ).participants
-        wrapped_participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in pyrogram_participants]
-        return wrapped_participants
 
     async def leave_current_group_call(self):
         if not self.full_chat or not self.full_chat.call or not self.my_ssrc:
@@ -375,7 +384,7 @@ inheritance.</p></div>
             ).full_chat
 
         if self.full_chat is None:
-            raise RuntimeError(f&#39;Can\&#39;t get full chat by {group}&#39;)
+            raise PytgcallsError(f&#39;Can\&#39;t get full chat by {group}&#39;)
 
         self.group_call = self.full_chat.call
 
@@ -413,7 +422,7 @@ inheritance.</p></div>
             functions.messages.SetTyping(peer=self.chat_peer, action=types.SpeakingInGroupCallAction())
         )
 
-    async def join_group_call(self, invite_hash: str, params: str, muted: bool):
+    async def join_group_call(self, invite_hash: str, params: str, muted: bool, pre_update_processing: Callable):
         try:
             response = await self.client.send(
                 functions.phone.JoinGroupCall(
@@ -424,6 +433,8 @@ inheritance.</p></div>
                     muted=muted,
                 )
             )
+
+            pre_update_processing()
 
             await self.client.handle_updates(response)
         except PyrogramGroupcallSsrcDuplicateMuch as e:
@@ -606,7 +617,7 @@ inheritance.</p></div>
         ).full_chat
 
     if self.full_chat is None:
-        raise RuntimeError(f&#39;Can\&#39;t get full chat by {group}&#39;)
+        raise PytgcallsError(f&#39;Can\&#39;t get full chat by {group}&#39;)
 
     self.group_call = self.full_chat.call
 
@@ -649,29 +660,8 @@ inheritance.</p></div>
     return self.client.loop</code></pre>
 </details>
 </dd>
-<dt id="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.get_group_call_participants"><code class="name flex">
-<span>async def <span class="ident">get_group_call_participants</span></span>(<span>self) ‑> List[pytgcalls.mtproto.data.group_call_participant_wrapper.GroupCallParticipantWrapper]</span>
-</code></dt>
-<dd>
-<p class="inheritance">
-<em>Inherited from:</em>
-<code><a title="pytgcalls.mtproto.base_bridge.MTProtoBridgeBase" href="base_bridge.html#pytgcalls.mtproto.base_bridge.MTProtoBridgeBase">MTProtoBridgeBase</a></code>.<code><a title="pytgcalls.mtproto.base_bridge.MTProtoBridgeBase.get_group_call_participants" href="base_bridge.html#pytgcalls.mtproto.base_bridge.MTProtoBridgeBase.get_group_call_participants">get_group_call_participants</a></code>
-</p>
-<div class="desc inherited"><p>call phone.GetGroupCall method, return wrapped participants</p></div>
-<details class="source">
-<summary>
-<span>Expand source code</span>
-</summary>
-<pre><code class="python">async def get_group_call_participants(self) -&gt; List[&#39;GroupCallParticipantWrapper&#39;]:
-    pyrogram_participants = (
-        await (self.client.send(functions.phone.GetGroupCall(call=self.full_chat.call)))
-    ).participants
-    wrapped_participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in pyrogram_participants]
-    return wrapped_participants</code></pre>
-</details>
-</dd>
 <dt id="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.join_group_call"><code class="name flex">
-<span>async def <span class="ident">join_group_call</span></span>(<span>self, invite_hash: str, params: str, muted: bool)</span>
+<span>async def <span class="ident">join_group_call</span></span>(<span>self, invite_hash: str, params: str, muted: bool, pre_update_processing: Callable)</span>
 </code></dt>
 <dd>
 <p class="inheritance">
@@ -683,7 +673,7 @@ inheritance.</p></div>
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">async def join_group_call(self, invite_hash: str, params: str, muted: bool):
+<pre><code class="python">async def join_group_call(self, invite_hash: str, params: str, muted: bool, pre_update_processing: Callable):
     try:
         response = await self.client.send(
             functions.phone.JoinGroupCall(
@@ -694,6 +684,8 @@ inheritance.</p></div>
                 muted=muted,
             )
         )
+
+        pre_update_processing()
 
         await self.client.handle_updates(response)
     except PyrogramGroupcallSsrcDuplicateMuch as e:
@@ -722,6 +714,16 @@ inheritance.</p></div>
     )
     await self.client.handle_updates(response)</code></pre>
 </details>
+</dd>
+<dt id="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.re_register_update_handlers"><code class="name flex">
+<span>def <span class="ident">re_register_update_handlers</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.mtproto.base_bridge.MTProtoBridgeBase" href="base_bridge.html#pytgcalls.mtproto.base_bridge.MTProtoBridgeBase">MTProtoBridgeBase</a></code>.<code><a title="pytgcalls.mtproto.base_bridge.MTProtoBridgeBase.re_register_update_handlers" href="base_bridge.html#pytgcalls.mtproto.base_bridge.MTProtoBridgeBase.re_register_update_handlers">re_register_update_handlers</a></code>
+</p>
+<div class="desc inherited"><p>Delete and add pytgcalls handler in MTProto client.</p></div>
 </dd>
 <dt id="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.register_update_handlers"><code class="name flex">
 <span>def <span class="ident">register_update_handlers</span></span>(<span>self)</span>
@@ -866,7 +868,6 @@ data-gaCategoryParameter="pytgcalls.mtproto.pyrogram_bridge">
 <li><code><a title="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.get_and_set_group_call" href="#pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.get_and_set_group_call">get_and_set_group_call</a></code></li>
 <li><code><a title="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.get_and_set_self_peer" href="#pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.get_and_set_self_peer">get_and_set_self_peer</a></code></li>
 <li><code><a title="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.get_event_loop" href="#pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.get_event_loop">get_event_loop</a></code></li>
-<li><code><a title="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.get_group_call_participants" href="#pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.get_group_call_participants">get_group_call_participants</a></code></li>
 <li><code><a title="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.group_call" href="base_bridge.html#pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.group_call">group_call</a></code></li>
 <li><code><a title="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.group_call_participants_update_callback" href="base_bridge.html#pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.group_call_participants_update_callback">group_call_participants_update_callback</a></code></li>
 <li><code><a title="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.group_call_update_callback" href="base_bridge.html#pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.group_call_update_callback">group_call_update_callback</a></code></li>
@@ -875,6 +876,7 @@ data-gaCategoryParameter="pytgcalls.mtproto.pyrogram_bridge">
 <li><code><a title="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.leave_current_group_call" href="#pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.leave_current_group_call">leave_current_group_call</a></code></li>
 <li><code><a title="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.my_peer" href="base_bridge.html#pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.my_peer">my_peer</a></code></li>
 <li><code><a title="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.my_ssrc" href="base_bridge.html#pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.my_ssrc">my_ssrc</a></code></li>
+<li><code><a title="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.re_register_update_handlers" href="base_bridge.html#pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.re_register_update_handlers">re_register_update_handlers</a></code></li>
 <li><code><a title="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.register_update_handlers" href="#pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.register_update_handlers">register_update_handlers</a></code></li>
 <li><code><a title="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.resolve_and_set_join_as" href="#pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.resolve_and_set_join_as">resolve_and_set_join_as</a></code></li>
 <li><code><a title="pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.send_speaking_group_call_action" href="#pytgcalls.mtproto.pyrogram_bridge.PyrogramBridge.send_speaking_group_call_action">send_speaking_group_call_action</a></code></li>
@@ -888,7 +890,7 @@ data-gaCategoryParameter="pytgcalls.mtproto.pyrogram_bridge">
 </main>
 <footer id="footer">
 <p>© Copyright 2020-2021 <a target="_blank" href="https://github.com/MarshalX">Il`ya (Marshal)</a></>
-<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.2</a>.</p>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
 </footer>
 </body>
 </html>

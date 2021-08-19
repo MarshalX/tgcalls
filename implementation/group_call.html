@@ -1,0 +1,1409 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.10.0" />
+<title>pytgcalls.implementation.group_call API documentation</title>
+<meta name="description" content="" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<link rel="preconnect" href="https://www.google.com">
+<script async src="https://cse.google.com/cse.js?cx=017837193012385208679:pey8ky8gdqw"></script>
+<style>
+.gsc-control-cse {padding:0 !important;margin-top:1em}
+body.gsc-overflow-hidden #sidebar {overflow: visible;}
+</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+<meta property="og:type" content="object" />
+<meta property="og:title" content="pytgcalls documentation" />
+<meta property="og:description" content="Voice chats, private incoming and outgoing calls in Telegram for Developers" />
+<meta property="og:image" content="https://github.com/MarshalX/tgcalls/raw/main/.github/images/pytgcalls_square.png" />
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>pytgcalls.implementation.group_call</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">#  tgcalls - a Python binding for C++ library by Telegram
+#  pytgcalls - a library connecting the Python binding with MTProto
+#  Copyright (C) 2020-2021 Il`ya (Marshal) &lt;https://github.com/MarshalX&gt;
+#
+#  This file is part of tgcalls and pytgcalls.
+#
+#  tgcalls and pytgcalls is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU Lesser General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  tgcalls and pytgcalls is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Lesser General Public License for more details.
+#
+#  You should have received a copy of the GNU Lesser General Public License v3
+#  along with tgcalls. If not, see &lt;http://www.gnu.org/licenses/&gt;.
+
+import asyncio
+import logging
+from abc import ABC
+from typing import Callable, Optional
+
+import tgcalls
+
+from pytgcalls.dispatcher import Action, DispatcherMixin
+from pytgcalls.exception import GroupCallNotFoundError, NotConnectedError
+from pytgcalls.implementation import GroupCallNative
+from pytgcalls.mtproto.data import GroupCallDiscardedWrapper
+from pytgcalls.mtproto.data.update import UpdateGroupCallParticipantsWrapper, UpdateGroupCallWrapper
+from pytgcalls.mtproto.exceptions import GroupcallSsrcDuplicateMuch
+from pytgcalls.utils import uint_ssrc
+
+logger = logging.getLogger(__name__)
+
+
+class GroupCallAction:
+    NETWORK_STATUS_CHANGED = Action()
+    &#39;&#39;&#39;When a status of network will be changed.&#39;&#39;&#39;
+
+
+class GroupCallDispatcherMixin(DispatcherMixin):
+    def on_network_status_changed(self, func: Callable) -&gt; Callable:
+        &#34;&#34;&#34;When a status of network will be changed.
+
+        Args:
+            func (`Callable`): A functions that accept group_call and is_connected args.
+
+        Returns:
+            `Callable`: passed to args callback function.
+        &#34;&#34;&#34;
+
+        return self.add_handler(func, GroupCallAction.NETWORK_STATUS_CHANGED)
+
+
+class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
+    SEND_ACTION_UPDATE_EACH = 0.45
+    &#39;&#39;&#39;How often to send speaking action to chat&#39;&#39;&#39;
+
+    __ASYNCIO_TIMEOUT = 10
+
+    def __init__(
+        self,
+        mtproto_bridge,
+        enable_logs_to_console: bool,
+        path_to_log_file: str,
+        outgoing_audio_bitrate_kbit: int,
+    ):
+        GroupCallNative.__init__(
+            self,
+            self.__emit_join_payload_callback,
+            self.__network_state_updated_callback,
+            enable_logs_to_console,
+            path_to_log_file,
+            outgoing_audio_bitrate_kbit,
+        )
+        GroupCallDispatcherMixin.__init__(self, GroupCallAction)
+
+        self.mtproto = mtproto_bridge
+        self.mtproto.register_group_call_native_callback(
+            self._group_call_participants_update_callback, self._group_call_update_callback
+        )
+
+        self.invite_hash = None
+        &#39;&#39;&#39;Hash from invite link to join as speaker&#39;&#39;&#39;
+
+        self.enable_action = True
+        &#39;&#39;&#39;Is enable sending of speaking action&#39;&#39;&#39;
+
+        self.is_connected = False
+        &#39;&#39;&#39;Is connected to voice chat via tgcalls&#39;&#39;&#39;
+
+        self.__is_stop_requested = False
+        self.__emit_join_payload_event = None
+
+        self.__is_muted = True
+
+    async def _group_call_participants_update_callback(self, update: UpdateGroupCallParticipantsWrapper):
+        logger.debug(&#39;Group call participants update...&#39;)
+        logger.debug(update)
+
+        for participant in update.participants:
+            ssrc = uint_ssrc(participant.source)
+
+            # maybe (if needed) set unmute status on server side after allowing to speak by admin
+            # also mb there is need a some delay after getting update cuz server sometimes cant handle editing properly
+            if participant.is_self and participant.can_self_unmute:
+                if not self.__is_muted:
+                    await self.edit_group_call(muted=False)
+
+            if participant.peer == self.mtproto.join_as and ssrc != self.mtproto.my_ssrc:
+                logger.debug(f&#39;Not equal ssrc. Expected: {ssrc}. Actual: {self.mtproto.my_ssrc}.&#39;)
+                await self.reconnect()
+
+    async def _group_call_update_callback(self, update: UpdateGroupCallWrapper):
+        logger.debug(&#39;Group call update...&#39;)
+        logger.debug(update)
+
+        if isinstance(update.call, GroupCallDiscardedWrapper):
+            logger.debug(&#39;Group call discarded.&#39;)
+            await self.stop()
+        elif update.call.params:
+            self.__set_join_response_payload(update.call.params.data)
+
+    def __set_join_response_payload(self, payload):
+        logger.debug(&#39;Set join response payload...&#39;)
+
+        if self.__is_stop_requested:
+            logger.debug(&#39;Set payload rejected by a stop request.&#39;)
+            return
+
+        self._set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeRtc)
+        self._set_join_response_payload(payload)
+        logger.debug(&#39;Join response payload was set.&#39;)
+
+    def __emit_join_payload_callback(self, payload):
+        logger.debug(&#39;Emit join payload callback...&#39;)
+
+        if self.__is_stop_requested:
+            logger.debug(&#39;Join group call rejected by a stop request.&#39;)
+            return
+
+        if self.mtproto.group_call is None:
+            logger.debug(&#39;Group Call is None.&#39;)
+            return
+
+        async def _():
+            try:
+
+                def pre_update_processing():
+                    logger.debug(f&#39;Set my ssrc to {payload.audioSsrc}.&#39;)
+                    self.mtproto.set_my_ssrc(payload.audioSsrc)
+
+                await self.mtproto.join_group_call(
+                    self.invite_hash, payload.json, muted=True, pre_update_processing=pre_update_processing
+                )
+
+                if self.__emit_join_payload_event:
+                    self.__emit_join_payload_event.set()
+
+                logger.debug(
+                    f&#39;Successfully connected to VC with &#39;
+                    f&#39;ssrc={self.mtproto.my_ssrc} &#39;
+                    f&#39;as {type(self.mtproto.join_as).__name__}.&#39;
+                )
+            except GroupcallSsrcDuplicateMuch:
+                logger.debug(&#39;Duplicate SSRC.&#39;)
+                await self.reconnect()
+
+        asyncio.ensure_future(_(), loop=self.mtproto.get_event_loop())
+
+    def __network_state_updated_callback(self, state: bool):
+        logger.debug(&#39;Network state updated...&#39;)
+
+        if self.is_connected == state:
+            logger.debug(&#39;Network state is same. Do nothing.&#39;)
+            return
+
+        self.is_connected = state
+        if self.is_connected:
+            asyncio.ensure_future(self.set_is_mute(False), loop=self.mtproto.get_event_loop())
+            if self.enable_action:
+                self.__start_status_worker()
+
+        self.trigger_handlers(GroupCallAction.NETWORK_STATUS_CHANGED, self, state)
+
+        logger.debug(f&#39;New network state is {self.is_connected}.&#39;)
+
+    def __start_status_worker(self):
+        async def worker():
+            logger.debug(&#39;Start status (call action) worker...&#39;)
+            while self.is_connected:
+                await self.mtproto.send_speaking_group_call_action()
+                await asyncio.sleep(self.SEND_ACTION_UPDATE_EACH)
+
+        asyncio.ensure_future(worker(), loop=self.mtproto.get_event_loop())
+
+    async def start(self, group, join_as=None, invite_hash: Optional[str] = None, enable_action=True):
+        &#34;&#34;&#34;Start voice chat (join and play/record from initial values).
+
+        Note:
+            Disconnect from current voice chat and connect to the new one.
+            Multiple instances of `GroupCall` must be created for multiple voice chats at the same time.
+            Join as by default is personal account.
+
+        Args:
+            group (`InputPeerChannel` | `InputPeerChat` | `str` | `int`): Chat ID in any form.
+            join_as (`InputPeer` | `str` | `int`, optional): How to present yourself in participants list.
+            invite_hash (`str`, optional): Hash from speaker invite link.
+            enable_action (`bool`, optional): Is enables sending of speaking action.
+        &#34;&#34;&#34;
+        self.__is_stop_requested = False
+        self.enable_action = enable_action
+
+        group_call = await self.mtproto.get_and_set_group_call(group)
+        if group_call is None:
+            raise GroupCallNotFoundError(&#39;Chat without a voice chat&#39;)
+
+        # mb move in other place. save plain join_as arg and use it in JoinGroupCall
+        # but for now it works  as optimization of requests
+        # we resolve join_as only when try to connect
+        # it doesnt call resolve on reconnect
+        await self.mtproto.resolve_and_set_join_as(join_as)
+
+        self.invite_hash = invite_hash
+
+        self.mtproto.re_register_update_handlers()
+
+        # when trying to connect to another chat or with another join_as
+        if self.is_group_call_native_created():
+            await self.reconnect()
+        # the first start
+        else:
+            self._setup_and_start_group_call()
+
+    async def stop(self):
+        &#34;&#34;&#34;Properly stop tgcalls, remove MTProto handler, leave from server side.&#34;&#34;&#34;
+        if not self.is_group_call_native_created():
+            logger.debug(&#39;Group call is not started, so there\&#39;s nothing to stop.&#39;)
+            return
+
+        self.__is_stop_requested = True
+        logger.debug(&#39;Stop requested.&#39;)
+
+        self.mtproto.unregister_update_handlers()
+        # to bypass recreating of outgoing audio channel
+        self._set_is_mute(True)
+        self._set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
+
+        on_disconnect_event = asyncio.Event()
+
+        async def post_disconnect():
+            await self.leave_current_group_call()
+            self.mtproto.reset()
+            self.__is_stop_requested = False
+
+        async def on_disconnect(obj, is_connected):
+            if is_connected:
+                return
+
+            obj._stop_audio_device_module()
+
+            # need for normal waiting of stopping audio devices
+            # destroying of webrtc client during .stop not needed yet
+            # because we a working in the same native instance
+            # and can reuse tis client for another connections.
+            # In any case now its possible to reset group call ptr
+            # self.__native_instance.stopGroupCall()
+
+            await post_disconnect()
+
+            obj.remove_handler(on_disconnect, GroupCallAction.NETWORK_STATUS_CHANGED)
+            on_disconnect_event.set()
+
+        if self.is_connected:
+            self.add_handler(on_disconnect, GroupCallAction.NETWORK_STATUS_CHANGED)
+            await asyncio.wait_for(on_disconnect_event.wait(), timeout=self.__ASYNCIO_TIMEOUT)
+        else:
+            await post_disconnect()
+
+        logger.debug(&#39;GroupCall stopped properly.&#39;)
+
+    async def reconnect(self):
+        &#34;&#34;&#34;Connect to voice chat using the same native instance.&#34;&#34;&#34;
+        logger.debug(&#39;Reconnecting...&#39;)
+        if not self.mtproto.group_call:
+            raise NotConnectedError(&#34;You don&#39;t connected to voice chat.&#34;)
+
+        self._set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
+        self._emit_join_payload(self.__emit_join_payload_callback)
+
+        # during the .stop we stop audio device module. Need to restart
+        self.restart_recording()
+        self.restart_playout()
+
+        # cuz native instance doesnt block python
+        self.__emit_join_payload_event = asyncio.Event()
+        await asyncio.wait_for(self.__emit_join_payload_event.wait(), timeout=self.__ASYNCIO_TIMEOUT)
+
+    async def leave_current_group_call(self):
+        &#34;&#34;&#34;Leave group call from server side (MTProto part).&#34;&#34;&#34;
+        logger.debug(&#39;Try to leave the current group call...&#39;)
+        try:
+            await self.mtproto.leave_current_group_call()
+        except Exception as e:
+            logger.warning(&#34;Couldn&#39;t leave the group call. But no worries, you&#39;ll get removed from it in seconds.&#34;)
+            logger.debug(e)
+        else:
+            logger.debug(&#39;Completely left the current group call.&#39;)
+
+    async def edit_group_call(self, volume: int = None, muted=False):
+        &#34;&#34;&#34;Edit own settings of group call.
+
+        Note:
+            There is bug where you can try to pass `volume=100`.
+
+        Args:
+            volume (`int`): Volume.
+            muted (`bool`): Is muted.
+        &#34;&#34;&#34;
+
+        await self.edit_group_call_member(self.mtproto.join_as, volume, muted)
+
+    async def edit_group_call_member(self, peer, volume: int = None, muted=False):
+        &#34;&#34;&#34;Edit setting of user in voice chat (required voice chat management permission).
+
+        Note:
+            There is bug where you can try to pass `volume=100`.
+
+        Args:
+            peer (`InputPeer`): Participant of voice chat.
+            volume (`int`): Volume.
+            muted (`bool`): Is muted.
+        &#34;&#34;&#34;
+
+        volume = max(1, volume * 100) if volume is not None else None
+        await self.mtproto.edit_group_call_member(peer, volume, muted)
+
+    async def set_is_mute(self, is_muted: bool):
+        &#34;&#34;&#34;Set is mute.
+
+        Args:
+            is_muted (`bool`): Is muted.
+        &#34;&#34;&#34;
+
+        self.__is_muted = is_muted
+        self._set_is_mute(is_muted)
+
+        logger.debug(f&#39;Set is muted on server side. New value: {is_muted}.&#39;)
+        await self.edit_group_call(muted=is_muted)
+
+    async def set_my_volume(self, volume):
+        &#34;&#34;&#34;Set volume for current client.
+
+        Note:
+            Volume value only can be in 1-200 range. There is auto normalization.
+
+        Args:
+            volume (`int` | `str` | `float`): Volume.
+        &#34;&#34;&#34;
+        # Required &#34;Manage Voice Chats&#34; admin permission
+
+        volume = max(1, min(int(volume), 200))
+        logger.debug(f&#39;Set volume to: {volume}.&#39;)
+
+        await self.edit_group_call(volume)
+        self._set_volume(uint_ssrc(self.mtproto.my_ssrc), volume / 100)
+
+    # shortcuts for easy access in callbacks of events
+
+    @property
+    def client(self):
+        return self.mtproto.client
+
+    @property
+    def full_chat(self):
+        return self.mtproto.full_chat
+
+    @property
+    def chat_peer(self):
+        return self.mtproto.chat_peer
+
+    @property
+    def group_call(self):
+        return self.mtproto.group_call
+
+    @property
+    def my_ssrc(self):
+        return self.mtproto.my_ssrc
+
+    @property
+    def my_peer(self):
+        return self.mtproto.my_peer
+
+    @property
+    def join_as(self):
+        return self.mtproto.join_as</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="pytgcalls.implementation.group_call.GroupCall"><code class="flex name class">
+<span>class <span class="ident">GroupCall</span></span>
+<span>(</span><span>mtproto_bridge, enable_logs_to_console: bool, path_to_log_file: str, outgoing_audio_bitrate_kbit: int)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Helper class that provides a standard way to create an ABC using
+inheritance.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
+    SEND_ACTION_UPDATE_EACH = 0.45
+    &#39;&#39;&#39;How often to send speaking action to chat&#39;&#39;&#39;
+
+    __ASYNCIO_TIMEOUT = 10
+
+    def __init__(
+        self,
+        mtproto_bridge,
+        enable_logs_to_console: bool,
+        path_to_log_file: str,
+        outgoing_audio_bitrate_kbit: int,
+    ):
+        GroupCallNative.__init__(
+            self,
+            self.__emit_join_payload_callback,
+            self.__network_state_updated_callback,
+            enable_logs_to_console,
+            path_to_log_file,
+            outgoing_audio_bitrate_kbit,
+        )
+        GroupCallDispatcherMixin.__init__(self, GroupCallAction)
+
+        self.mtproto = mtproto_bridge
+        self.mtproto.register_group_call_native_callback(
+            self._group_call_participants_update_callback, self._group_call_update_callback
+        )
+
+        self.invite_hash = None
+        &#39;&#39;&#39;Hash from invite link to join as speaker&#39;&#39;&#39;
+
+        self.enable_action = True
+        &#39;&#39;&#39;Is enable sending of speaking action&#39;&#39;&#39;
+
+        self.is_connected = False
+        &#39;&#39;&#39;Is connected to voice chat via tgcalls&#39;&#39;&#39;
+
+        self.__is_stop_requested = False
+        self.__emit_join_payload_event = None
+
+        self.__is_muted = True
+
+    async def _group_call_participants_update_callback(self, update: UpdateGroupCallParticipantsWrapper):
+        logger.debug(&#39;Group call participants update...&#39;)
+        logger.debug(update)
+
+        for participant in update.participants:
+            ssrc = uint_ssrc(participant.source)
+
+            # maybe (if needed) set unmute status on server side after allowing to speak by admin
+            # also mb there is need a some delay after getting update cuz server sometimes cant handle editing properly
+            if participant.is_self and participant.can_self_unmute:
+                if not self.__is_muted:
+                    await self.edit_group_call(muted=False)
+
+            if participant.peer == self.mtproto.join_as and ssrc != self.mtproto.my_ssrc:
+                logger.debug(f&#39;Not equal ssrc. Expected: {ssrc}. Actual: {self.mtproto.my_ssrc}.&#39;)
+                await self.reconnect()
+
+    async def _group_call_update_callback(self, update: UpdateGroupCallWrapper):
+        logger.debug(&#39;Group call update...&#39;)
+        logger.debug(update)
+
+        if isinstance(update.call, GroupCallDiscardedWrapper):
+            logger.debug(&#39;Group call discarded.&#39;)
+            await self.stop()
+        elif update.call.params:
+            self.__set_join_response_payload(update.call.params.data)
+
+    def __set_join_response_payload(self, payload):
+        logger.debug(&#39;Set join response payload...&#39;)
+
+        if self.__is_stop_requested:
+            logger.debug(&#39;Set payload rejected by a stop request.&#39;)
+            return
+
+        self._set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeRtc)
+        self._set_join_response_payload(payload)
+        logger.debug(&#39;Join response payload was set.&#39;)
+
+    def __emit_join_payload_callback(self, payload):
+        logger.debug(&#39;Emit join payload callback...&#39;)
+
+        if self.__is_stop_requested:
+            logger.debug(&#39;Join group call rejected by a stop request.&#39;)
+            return
+
+        if self.mtproto.group_call is None:
+            logger.debug(&#39;Group Call is None.&#39;)
+            return
+
+        async def _():
+            try:
+
+                def pre_update_processing():
+                    logger.debug(f&#39;Set my ssrc to {payload.audioSsrc}.&#39;)
+                    self.mtproto.set_my_ssrc(payload.audioSsrc)
+
+                await self.mtproto.join_group_call(
+                    self.invite_hash, payload.json, muted=True, pre_update_processing=pre_update_processing
+                )
+
+                if self.__emit_join_payload_event:
+                    self.__emit_join_payload_event.set()
+
+                logger.debug(
+                    f&#39;Successfully connected to VC with &#39;
+                    f&#39;ssrc={self.mtproto.my_ssrc} &#39;
+                    f&#39;as {type(self.mtproto.join_as).__name__}.&#39;
+                )
+            except GroupcallSsrcDuplicateMuch:
+                logger.debug(&#39;Duplicate SSRC.&#39;)
+                await self.reconnect()
+
+        asyncio.ensure_future(_(), loop=self.mtproto.get_event_loop())
+
+    def __network_state_updated_callback(self, state: bool):
+        logger.debug(&#39;Network state updated...&#39;)
+
+        if self.is_connected == state:
+            logger.debug(&#39;Network state is same. Do nothing.&#39;)
+            return
+
+        self.is_connected = state
+        if self.is_connected:
+            asyncio.ensure_future(self.set_is_mute(False), loop=self.mtproto.get_event_loop())
+            if self.enable_action:
+                self.__start_status_worker()
+
+        self.trigger_handlers(GroupCallAction.NETWORK_STATUS_CHANGED, self, state)
+
+        logger.debug(f&#39;New network state is {self.is_connected}.&#39;)
+
+    def __start_status_worker(self):
+        async def worker():
+            logger.debug(&#39;Start status (call action) worker...&#39;)
+            while self.is_connected:
+                await self.mtproto.send_speaking_group_call_action()
+                await asyncio.sleep(self.SEND_ACTION_UPDATE_EACH)
+
+        asyncio.ensure_future(worker(), loop=self.mtproto.get_event_loop())
+
+    async def start(self, group, join_as=None, invite_hash: Optional[str] = None, enable_action=True):
+        &#34;&#34;&#34;Start voice chat (join and play/record from initial values).
+
+        Note:
+            Disconnect from current voice chat and connect to the new one.
+            Multiple instances of `GroupCall` must be created for multiple voice chats at the same time.
+            Join as by default is personal account.
+
+        Args:
+            group (`InputPeerChannel` | `InputPeerChat` | `str` | `int`): Chat ID in any form.
+            join_as (`InputPeer` | `str` | `int`, optional): How to present yourself in participants list.
+            invite_hash (`str`, optional): Hash from speaker invite link.
+            enable_action (`bool`, optional): Is enables sending of speaking action.
+        &#34;&#34;&#34;
+        self.__is_stop_requested = False
+        self.enable_action = enable_action
+
+        group_call = await self.mtproto.get_and_set_group_call(group)
+        if group_call is None:
+            raise GroupCallNotFoundError(&#39;Chat without a voice chat&#39;)
+
+        # mb move in other place. save plain join_as arg and use it in JoinGroupCall
+        # but for now it works  as optimization of requests
+        # we resolve join_as only when try to connect
+        # it doesnt call resolve on reconnect
+        await self.mtproto.resolve_and_set_join_as(join_as)
+
+        self.invite_hash = invite_hash
+
+        self.mtproto.re_register_update_handlers()
+
+        # when trying to connect to another chat or with another join_as
+        if self.is_group_call_native_created():
+            await self.reconnect()
+        # the first start
+        else:
+            self._setup_and_start_group_call()
+
+    async def stop(self):
+        &#34;&#34;&#34;Properly stop tgcalls, remove MTProto handler, leave from server side.&#34;&#34;&#34;
+        if not self.is_group_call_native_created():
+            logger.debug(&#39;Group call is not started, so there\&#39;s nothing to stop.&#39;)
+            return
+
+        self.__is_stop_requested = True
+        logger.debug(&#39;Stop requested.&#39;)
+
+        self.mtproto.unregister_update_handlers()
+        # to bypass recreating of outgoing audio channel
+        self._set_is_mute(True)
+        self._set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
+
+        on_disconnect_event = asyncio.Event()
+
+        async def post_disconnect():
+            await self.leave_current_group_call()
+            self.mtproto.reset()
+            self.__is_stop_requested = False
+
+        async def on_disconnect(obj, is_connected):
+            if is_connected:
+                return
+
+            obj._stop_audio_device_module()
+
+            # need for normal waiting of stopping audio devices
+            # destroying of webrtc client during .stop not needed yet
+            # because we a working in the same native instance
+            # and can reuse tis client for another connections.
+            # In any case now its possible to reset group call ptr
+            # self.__native_instance.stopGroupCall()
+
+            await post_disconnect()
+
+            obj.remove_handler(on_disconnect, GroupCallAction.NETWORK_STATUS_CHANGED)
+            on_disconnect_event.set()
+
+        if self.is_connected:
+            self.add_handler(on_disconnect, GroupCallAction.NETWORK_STATUS_CHANGED)
+            await asyncio.wait_for(on_disconnect_event.wait(), timeout=self.__ASYNCIO_TIMEOUT)
+        else:
+            await post_disconnect()
+
+        logger.debug(&#39;GroupCall stopped properly.&#39;)
+
+    async def reconnect(self):
+        &#34;&#34;&#34;Connect to voice chat using the same native instance.&#34;&#34;&#34;
+        logger.debug(&#39;Reconnecting...&#39;)
+        if not self.mtproto.group_call:
+            raise NotConnectedError(&#34;You don&#39;t connected to voice chat.&#34;)
+
+        self._set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
+        self._emit_join_payload(self.__emit_join_payload_callback)
+
+        # during the .stop we stop audio device module. Need to restart
+        self.restart_recording()
+        self.restart_playout()
+
+        # cuz native instance doesnt block python
+        self.__emit_join_payload_event = asyncio.Event()
+        await asyncio.wait_for(self.__emit_join_payload_event.wait(), timeout=self.__ASYNCIO_TIMEOUT)
+
+    async def leave_current_group_call(self):
+        &#34;&#34;&#34;Leave group call from server side (MTProto part).&#34;&#34;&#34;
+        logger.debug(&#39;Try to leave the current group call...&#39;)
+        try:
+            await self.mtproto.leave_current_group_call()
+        except Exception as e:
+            logger.warning(&#34;Couldn&#39;t leave the group call. But no worries, you&#39;ll get removed from it in seconds.&#34;)
+            logger.debug(e)
+        else:
+            logger.debug(&#39;Completely left the current group call.&#39;)
+
+    async def edit_group_call(self, volume: int = None, muted=False):
+        &#34;&#34;&#34;Edit own settings of group call.
+
+        Note:
+            There is bug where you can try to pass `volume=100`.
+
+        Args:
+            volume (`int`): Volume.
+            muted (`bool`): Is muted.
+        &#34;&#34;&#34;
+
+        await self.edit_group_call_member(self.mtproto.join_as, volume, muted)
+
+    async def edit_group_call_member(self, peer, volume: int = None, muted=False):
+        &#34;&#34;&#34;Edit setting of user in voice chat (required voice chat management permission).
+
+        Note:
+            There is bug where you can try to pass `volume=100`.
+
+        Args:
+            peer (`InputPeer`): Participant of voice chat.
+            volume (`int`): Volume.
+            muted (`bool`): Is muted.
+        &#34;&#34;&#34;
+
+        volume = max(1, volume * 100) if volume is not None else None
+        await self.mtproto.edit_group_call_member(peer, volume, muted)
+
+    async def set_is_mute(self, is_muted: bool):
+        &#34;&#34;&#34;Set is mute.
+
+        Args:
+            is_muted (`bool`): Is muted.
+        &#34;&#34;&#34;
+
+        self.__is_muted = is_muted
+        self._set_is_mute(is_muted)
+
+        logger.debug(f&#39;Set is muted on server side. New value: {is_muted}.&#39;)
+        await self.edit_group_call(muted=is_muted)
+
+    async def set_my_volume(self, volume):
+        &#34;&#34;&#34;Set volume for current client.
+
+        Note:
+            Volume value only can be in 1-200 range. There is auto normalization.
+
+        Args:
+            volume (`int` | `str` | `float`): Volume.
+        &#34;&#34;&#34;
+        # Required &#34;Manage Voice Chats&#34; admin permission
+
+        volume = max(1, min(int(volume), 200))
+        logger.debug(f&#39;Set volume to: {volume}.&#39;)
+
+        await self.edit_group_call(volume)
+        self._set_volume(uint_ssrc(self.mtproto.my_ssrc), volume / 100)
+
+    # shortcuts for easy access in callbacks of events
+
+    @property
+    def client(self):
+        return self.mtproto.client
+
+    @property
+    def full_chat(self):
+        return self.mtproto.full_chat
+
+    @property
+    def chat_peer(self):
+        return self.mtproto.chat_peer
+
+    @property
+    def group_call(self):
+        return self.mtproto.group_call
+
+    @property
+    def my_ssrc(self):
+        return self.mtproto.my_ssrc
+
+    @property
+    def my_peer(self):
+        return self.mtproto.my_peer
+
+    @property
+    def join_as(self):
+        return self.mtproto.join_as</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>abc.ABC</li>
+<li><a title="pytgcalls.implementation.group_call.GroupCallDispatcherMixin" href="#pytgcalls.implementation.group_call.GroupCallDispatcherMixin">GroupCallDispatcherMixin</a></li>
+<li>pytgcalls.dispatcher.dispatcher_mixin.DispatcherMixin</li>
+<li><a title="pytgcalls.implementation.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.implementation.group_call_native.GroupCallNative">GroupCallNative</a></li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="pytgcalls.implementation.group_call_device.GroupCallDevice" href="group_call_device.html#pytgcalls.implementation.group_call_device.GroupCallDevice">GroupCallDevice</a></li>
+<li><a title="pytgcalls.implementation.group_call_file.GroupCallFile" href="group_call_file.html#pytgcalls.implementation.group_call_file.GroupCallFile">GroupCallFile</a></li>
+<li><a title="pytgcalls.implementation.group_call_raw.GroupCallRaw" href="group_call_raw.html#pytgcalls.implementation.group_call_raw.GroupCallRaw">GroupCallRaw</a></li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="pytgcalls.implementation.group_call.GroupCall.SEND_ACTION_UPDATE_EACH"><code class="name">var <span class="ident">SEND_ACTION_UPDATE_EACH</span></code></dt>
+<dd>
+<div class="desc"><p>How often to send speaking action to chat</p></div>
+</dd>
+</dl>
+<h3>Instance variables</h3>
+<dl>
+<dt id="pytgcalls.implementation.group_call.GroupCall.chat_peer"><code class="name">var <span class="ident">chat_peer</span></code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def chat_peer(self):
+    return self.mtproto.chat_peer</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.client"><code class="name">var <span class="ident">client</span></code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def client(self):
+    return self.mtproto.client</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.enable_action"><code class="name">var <span class="ident">enable_action</span></code></dt>
+<dd>
+<div class="desc"><p>Is enable sending of speaking action</p></div>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.full_chat"><code class="name">var <span class="ident">full_chat</span></code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def full_chat(self):
+    return self.mtproto.full_chat</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.group_call"><code class="name">var <span class="ident">group_call</span></code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def group_call(self):
+    return self.mtproto.group_call</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.invite_hash"><code class="name">var <span class="ident">invite_hash</span></code></dt>
+<dd>
+<div class="desc"><p>Hash from invite link to join as speaker</p></div>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.is_connected"><code class="name">var <span class="ident">is_connected</span></code></dt>
+<dd>
+<div class="desc"><p>Is connected to voice chat via tgcalls</p></div>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.join_as"><code class="name">var <span class="ident">join_as</span></code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def join_as(self):
+    return self.mtproto.join_as</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.my_peer"><code class="name">var <span class="ident">my_peer</span></code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def my_peer(self):
+    return self.mtproto.my_peer</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.my_ssrc"><code class="name">var <span class="ident">my_ssrc</span></code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def my_ssrc(self):
+    return self.mtproto.my_ssrc</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="pytgcalls.implementation.group_call.GroupCall.edit_group_call"><code class="name flex">
+<span>async def <span class="ident">edit_group_call</span></span>(<span>self, volume: int = None, muted=False)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Edit own settings of group call.</p>
+<h2 id="note">Note</h2>
+<p>There is bug where you can try to pass <code>volume=100</code>.</p>
+<h2 id="args">Args</h2>
+<p>volume (<code>int</code>): Volume.
+muted (<code>bool</code>): Is muted.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def edit_group_call(self, volume: int = None, muted=False):
+    &#34;&#34;&#34;Edit own settings of group call.
+
+    Note:
+        There is bug where you can try to pass `volume=100`.
+
+    Args:
+        volume (`int`): Volume.
+        muted (`bool`): Is muted.
+    &#34;&#34;&#34;
+
+    await self.edit_group_call_member(self.mtproto.join_as, volume, muted)</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.edit_group_call_member"><code class="name flex">
+<span>async def <span class="ident">edit_group_call_member</span></span>(<span>self, peer, volume: int = None, muted=False)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Edit setting of user in voice chat (required voice chat management permission).</p>
+<h2 id="note">Note</h2>
+<p>There is bug where you can try to pass <code>volume=100</code>.</p>
+<h2 id="args">Args</h2>
+<p>peer (<code>InputPeer</code>): Participant of voice chat.
+volume (<code>int</code>): Volume.
+muted (<code>bool</code>): Is muted.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def edit_group_call_member(self, peer, volume: int = None, muted=False):
+    &#34;&#34;&#34;Edit setting of user in voice chat (required voice chat management permission).
+
+    Note:
+        There is bug where you can try to pass `volume=100`.
+
+    Args:
+        peer (`InputPeer`): Participant of voice chat.
+        volume (`int`): Volume.
+        muted (`bool`): Is muted.
+    &#34;&#34;&#34;
+
+    volume = max(1, volume * 100) if volume is not None else None
+    await self.mtproto.edit_group_call_member(peer, volume, muted)</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.leave_current_group_call"><code class="name flex">
+<span>async def <span class="ident">leave_current_group_call</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Leave group call from server side (MTProto part).</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def leave_current_group_call(self):
+    &#34;&#34;&#34;Leave group call from server side (MTProto part).&#34;&#34;&#34;
+    logger.debug(&#39;Try to leave the current group call...&#39;)
+    try:
+        await self.mtproto.leave_current_group_call()
+    except Exception as e:
+        logger.warning(&#34;Couldn&#39;t leave the group call. But no worries, you&#39;ll get removed from it in seconds.&#34;)
+        logger.debug(e)
+    else:
+        logger.debug(&#39;Completely left the current group call.&#39;)</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.on_network_status_changed"><code class="name flex">
+<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: Callable) ‑> Callable</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.implementation.group_call.GroupCallDispatcherMixin" href="#pytgcalls.implementation.group_call.GroupCallDispatcherMixin">GroupCallDispatcherMixin</a></code>.<code><a title="pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_network_status_changed" href="#pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_network_status_changed">on_network_status_changed</a></code>
+</p>
+<div class="desc inherited"><p>When a status of network will be changed …</p></div>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.print_available_playout_devices"><code class="name flex">
+<span>def <span class="ident">print_available_playout_devices</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.implementation.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.implementation.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.implementation.group_call_native.GroupCallNative.print_available_playout_devices" href="group_call_native.html#pytgcalls.implementation.group_call_native.GroupCallNative.print_available_playout_devices">print_available_playout_devices</a></code>
+</p>
+<div class="desc inherited"><p>Print name and guid of available playout audio devices in system. Just helper method …</p></div>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.print_available_recording_devices"><code class="name flex">
+<span>def <span class="ident">print_available_recording_devices</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.implementation.group_call_native.GroupCallNative" href="group_call_native.html#pytgcalls.implementation.group_call_native.GroupCallNative">GroupCallNative</a></code>.<code><a title="pytgcalls.implementation.group_call_native.GroupCallNative.print_available_recording_devices" href="group_call_native.html#pytgcalls.implementation.group_call_native.GroupCallNative.print_available_recording_devices">print_available_recording_devices</a></code>
+</p>
+<div class="desc inherited"><p>Print name and guid of available recording audio devices in system. Just helper method …</p></div>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.reconnect"><code class="name flex">
+<span>async def <span class="ident">reconnect</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Connect to voice chat using the same native instance.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def reconnect(self):
+    &#34;&#34;&#34;Connect to voice chat using the same native instance.&#34;&#34;&#34;
+    logger.debug(&#39;Reconnecting...&#39;)
+    if not self.mtproto.group_call:
+        raise NotConnectedError(&#34;You don&#39;t connected to voice chat.&#34;)
+
+    self._set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
+    self._emit_join_payload(self.__emit_join_payload_callback)
+
+    # during the .stop we stop audio device module. Need to restart
+    self.restart_recording()
+    self.restart_playout()
+
+    # cuz native instance doesnt block python
+    self.__emit_join_payload_event = asyncio.Event()
+    await asyncio.wait_for(self.__emit_join_payload_event.wait(), timeout=self.__ASYNCIO_TIMEOUT)</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.set_is_mute"><code class="name flex">
+<span>async def <span class="ident">set_is_mute</span></span>(<span>self, is_muted: bool)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Set is mute.</p>
+<h2 id="args">Args</h2>
+<p>is_muted (<code>bool</code>): Is muted.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def set_is_mute(self, is_muted: bool):
+    &#34;&#34;&#34;Set is mute.
+
+    Args:
+        is_muted (`bool`): Is muted.
+    &#34;&#34;&#34;
+
+    self.__is_muted = is_muted
+    self._set_is_mute(is_muted)
+
+    logger.debug(f&#39;Set is muted on server side. New value: {is_muted}.&#39;)
+    await self.edit_group_call(muted=is_muted)</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.set_my_volume"><code class="name flex">
+<span>async def <span class="ident">set_my_volume</span></span>(<span>self, volume)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Set volume for current client.</p>
+<h2 id="note">Note</h2>
+<p>Volume value only can be in 1-200 range. There is auto normalization.</p>
+<h2 id="args">Args</h2>
+<p>volume (<code>int</code> | <code>str</code> | <code>float</code>): Volume.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def set_my_volume(self, volume):
+    &#34;&#34;&#34;Set volume for current client.
+
+    Note:
+        Volume value only can be in 1-200 range. There is auto normalization.
+
+    Args:
+        volume (`int` | `str` | `float`): Volume.
+    &#34;&#34;&#34;
+    # Required &#34;Manage Voice Chats&#34; admin permission
+
+    volume = max(1, min(int(volume), 200))
+    logger.debug(f&#39;Set volume to: {volume}.&#39;)
+
+    await self.edit_group_call(volume)
+    self._set_volume(uint_ssrc(self.mtproto.my_ssrc), volume / 100)</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.start"><code class="name flex">
+<span>async def <span class="ident">start</span></span>(<span>self, group, join_as=None, invite_hash: Optional[str] = None, enable_action=True)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Start voice chat (join and play/record from initial values).</p>
+<h2 id="note">Note</h2>
+<p>Disconnect from current voice chat and connect to the new one.
+Multiple instances of <code><a title="pytgcalls.implementation.group_call.GroupCall" href="#pytgcalls.implementation.group_call.GroupCall">GroupCall</a></code> must be created for multiple voice chats at the same time.
+Join as by default is personal account.</p>
+<h2 id="args">Args</h2>
+<p>group (<code>InputPeerChannel</code> | <code>InputPeerChat</code> | <code>str</code> | <code>int</code>): Chat ID in any form.
+join_as (<code>InputPeer</code> | <code>str</code> | <code>int</code>, optional): How to present yourself in participants list.
+invite_hash (<code>str</code>, optional): Hash from speaker invite link.
+enable_action (<code>bool</code>, optional): Is enables sending of speaking action.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def start(self, group, join_as=None, invite_hash: Optional[str] = None, enable_action=True):
+    &#34;&#34;&#34;Start voice chat (join and play/record from initial values).
+
+    Note:
+        Disconnect from current voice chat and connect to the new one.
+        Multiple instances of `GroupCall` must be created for multiple voice chats at the same time.
+        Join as by default is personal account.
+
+    Args:
+        group (`InputPeerChannel` | `InputPeerChat` | `str` | `int`): Chat ID in any form.
+        join_as (`InputPeer` | `str` | `int`, optional): How to present yourself in participants list.
+        invite_hash (`str`, optional): Hash from speaker invite link.
+        enable_action (`bool`, optional): Is enables sending of speaking action.
+    &#34;&#34;&#34;
+    self.__is_stop_requested = False
+    self.enable_action = enable_action
+
+    group_call = await self.mtproto.get_and_set_group_call(group)
+    if group_call is None:
+        raise GroupCallNotFoundError(&#39;Chat without a voice chat&#39;)
+
+    # mb move in other place. save plain join_as arg and use it in JoinGroupCall
+    # but for now it works  as optimization of requests
+    # we resolve join_as only when try to connect
+    # it doesnt call resolve on reconnect
+    await self.mtproto.resolve_and_set_join_as(join_as)
+
+    self.invite_hash = invite_hash
+
+    self.mtproto.re_register_update_handlers()
+
+    # when trying to connect to another chat or with another join_as
+    if self.is_group_call_native_created():
+        await self.reconnect()
+    # the first start
+    else:
+        self._setup_and_start_group_call()</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.stop"><code class="name flex">
+<span>async def <span class="ident">stop</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Properly stop tgcalls, remove MTProto handler, leave from server side.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">async def stop(self):
+    &#34;&#34;&#34;Properly stop tgcalls, remove MTProto handler, leave from server side.&#34;&#34;&#34;
+    if not self.is_group_call_native_created():
+        logger.debug(&#39;Group call is not started, so there\&#39;s nothing to stop.&#39;)
+        return
+
+    self.__is_stop_requested = True
+    logger.debug(&#39;Stop requested.&#39;)
+
+    self.mtproto.unregister_update_handlers()
+    # to bypass recreating of outgoing audio channel
+    self._set_is_mute(True)
+    self._set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
+
+    on_disconnect_event = asyncio.Event()
+
+    async def post_disconnect():
+        await self.leave_current_group_call()
+        self.mtproto.reset()
+        self.__is_stop_requested = False
+
+    async def on_disconnect(obj, is_connected):
+        if is_connected:
+            return
+
+        obj._stop_audio_device_module()
+
+        # need for normal waiting of stopping audio devices
+        # destroying of webrtc client during .stop not needed yet
+        # because we a working in the same native instance
+        # and can reuse tis client for another connections.
+        # In any case now its possible to reset group call ptr
+        # self.__native_instance.stopGroupCall()
+
+        await post_disconnect()
+
+        obj.remove_handler(on_disconnect, GroupCallAction.NETWORK_STATUS_CHANGED)
+        on_disconnect_event.set()
+
+    if self.is_connected:
+        self.add_handler(on_disconnect, GroupCallAction.NETWORK_STATUS_CHANGED)
+        await asyncio.wait_for(on_disconnect_event.wait(), timeout=self.__ASYNCIO_TIMEOUT)
+    else:
+        await post_disconnect()
+
+    logger.debug(&#39;GroupCall stopped properly.&#39;)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCallAction"><code class="flex name class">
+<span>class <span class="ident">GroupCallAction</span></span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class GroupCallAction:
+    NETWORK_STATUS_CHANGED = Action()
+    &#39;&#39;&#39;When a status of network will be changed.&#39;&#39;&#39;</code></pre>
+</details>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="pytgcalls.implementation.group_call_file.GroupCallFileAction" href="group_call_file.html#pytgcalls.implementation.group_call_file.GroupCallFileAction">GroupCallFileAction</a></li>
+</ul>
+<h3>Class variables</h3>
+<dl>
+<dt id="pytgcalls.implementation.group_call.GroupCallAction.NETWORK_STATUS_CHANGED"><code class="name">var <span class="ident">NETWORK_STATUS_CHANGED</span></code></dt>
+<dd>
+<div class="desc"><p>When a status of network will be changed.</p></div>
+</dd>
+</dl>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCallDispatcherMixin"><code class="flex name class">
+<span>class <span class="ident">GroupCallDispatcherMixin</span></span>
+<span>(</span><span>actions)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class GroupCallDispatcherMixin(DispatcherMixin):
+    def on_network_status_changed(self, func: Callable) -&gt; Callable:
+        &#34;&#34;&#34;When a status of network will be changed.
+
+        Args:
+            func (`Callable`): A functions that accept group_call and is_connected args.
+
+        Returns:
+            `Callable`: passed to args callback function.
+        &#34;&#34;&#34;
+
+        return self.add_handler(func, GroupCallAction.NETWORK_STATUS_CHANGED)</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>pytgcalls.dispatcher.dispatcher_mixin.DispatcherMixin</li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="pytgcalls.implementation.group_call.GroupCall" href="#pytgcalls.implementation.group_call.GroupCall">GroupCall</a></li>
+<li><a title="pytgcalls.implementation.group_call_file.GroupCallFileDispatcherMixin" href="group_call_file.html#pytgcalls.implementation.group_call_file.GroupCallFileDispatcherMixin">GroupCallFileDispatcherMixin</a></li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_network_status_changed"><code class="name flex">
+<span>def <span class="ident">on_network_status_changed</span></span>(<span>self, func: Callable) ‑> Callable</span>
+</code></dt>
+<dd>
+<div class="desc"><p>When a status of network will be changed.</p>
+<h2 id="args">Args</h2>
+<p>func (<code>Callable</code>): A functions that accept group_call and is_connected args.</p>
+<h2 id="returns">Returns</h2>
+<p><code>Callable</code>: passed to args callback function.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def on_network_status_changed(self, func: Callable) -&gt; Callable:
+    &#34;&#34;&#34;When a status of network will be changed.
+
+    Args:
+        func (`Callable`): A functions that accept group_call and is_connected args.
+
+    Returns:
+        `Callable`: passed to args callback function.
+    &#34;&#34;&#34;
+
+    return self.add_handler(func, GroupCallAction.NETWORK_STATUS_CHANGED)</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<p align="center">
+<a href="/">
+<img src="https://github.com/MarshalX/tgcalls/raw/main/.github/images/pytgcalls.png" alt="pytgcalls">
+</a>
+<br>
+<a target="_blank" href="https://github.com/MarshalX/tgcalls">
+GitHub
+</a>
+•
+<a target="_blank" href="https://github.com/MarshalX/tgcalls/tree/main/examples">
+Examples
+</a>
+•
+<a target="_blank" href="https://pypi.org/project/pytgcalls/">
+PyPi
+</a>
+•
+<a target="_blank" href="https://github.com/MarshalX/tgcalls/tree/main/pytgcalls">
+Sources
+</a>
+</p>
+<div class="gcse-search" style="height: 70px"
+data-as_oq="site:tgcalls.org"
+data-gaCategoryParameter="pytgcalls.implementation.group_call">
+</div>
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="pytgcalls.implementation" href="index.html">pytgcalls.implementation</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="pytgcalls.implementation.group_call.GroupCall" href="#pytgcalls.implementation.group_call.GroupCall">GroupCall</a></code></h4>
+<ul class="">
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.SEND_ACTION_UPDATE_EACH" href="#pytgcalls.implementation.group_call.GroupCall.SEND_ACTION_UPDATE_EACH">SEND_ACTION_UPDATE_EACH</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.chat_peer" href="#pytgcalls.implementation.group_call.GroupCall.chat_peer">chat_peer</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.client" href="#pytgcalls.implementation.group_call.GroupCall.client">client</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.edit_group_call" href="#pytgcalls.implementation.group_call.GroupCall.edit_group_call">edit_group_call</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.edit_group_call_member" href="#pytgcalls.implementation.group_call.GroupCall.edit_group_call_member">edit_group_call_member</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.enable_action" href="#pytgcalls.implementation.group_call.GroupCall.enable_action">enable_action</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.full_chat" href="#pytgcalls.implementation.group_call.GroupCall.full_chat">full_chat</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.group_call" href="#pytgcalls.implementation.group_call.GroupCall.group_call">group_call</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.invite_hash" href="#pytgcalls.implementation.group_call.GroupCall.invite_hash">invite_hash</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.is_connected" href="#pytgcalls.implementation.group_call.GroupCall.is_connected">is_connected</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.join_as" href="#pytgcalls.implementation.group_call.GroupCall.join_as">join_as</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.leave_current_group_call" href="#pytgcalls.implementation.group_call.GroupCall.leave_current_group_call">leave_current_group_call</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.my_peer" href="#pytgcalls.implementation.group_call.GroupCall.my_peer">my_peer</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.my_ssrc" href="#pytgcalls.implementation.group_call.GroupCall.my_ssrc">my_ssrc</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.on_network_status_changed" href="#pytgcalls.implementation.group_call.GroupCall.on_network_status_changed">on_network_status_changed</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.print_available_playout_devices" href="group_call_native.html#pytgcalls.implementation.group_call.GroupCall.print_available_playout_devices">print_available_playout_devices</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.print_available_recording_devices" href="group_call_native.html#pytgcalls.implementation.group_call.GroupCall.print_available_recording_devices">print_available_recording_devices</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.reconnect" href="#pytgcalls.implementation.group_call.GroupCall.reconnect">reconnect</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.set_is_mute" href="#pytgcalls.implementation.group_call.GroupCall.set_is_mute">set_is_mute</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.set_my_volume" href="#pytgcalls.implementation.group_call.GroupCall.set_my_volume">set_my_volume</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.start" href="#pytgcalls.implementation.group_call.GroupCall.start">start</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.stop" href="#pytgcalls.implementation.group_call.GroupCall.stop">stop</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="pytgcalls.implementation.group_call.GroupCallAction" href="#pytgcalls.implementation.group_call.GroupCallAction">GroupCallAction</a></code></h4>
+<ul class="">
+<li><code><a title="pytgcalls.implementation.group_call.GroupCallAction.NETWORK_STATUS_CHANGED" href="#pytgcalls.implementation.group_call.GroupCallAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="pytgcalls.implementation.group_call.GroupCallDispatcherMixin" href="#pytgcalls.implementation.group_call.GroupCallDispatcherMixin">GroupCallDispatcherMixin</a></code></h4>
+<ul class="">
+<li><code><a title="pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_network_status_changed" href="#pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_network_status_changed">on_network_status_changed</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>© Copyright 2020-2021 <a target="_blank" href="https://github.com/MarshalX">Il`ya (Marshal)</a></>
+<p>Generated by <a href="https://pdoc3.github.io/pdoc" title="pdoc: Python API documentation generator"><cite>pdoc</cite> 0.10.0</a>.</p>
+</footer>
+</body>
+</html>
