@@ -23,6 +23,8 @@ from typing import Callable, List
 
 from typing import TYPE_CHECKING
 
+from ..exception import PytgcallsError
+
 if TYPE_CHECKING:
     from . import GroupCallNative
 
@@ -41,7 +43,7 @@ class Dispatcher:
     def add_handler(self, callback: Callable, action: str) -> Callable:
         logger.debug(f'Add handler to {action} action...')
         if not asyncio.iscoroutinefunction(callback):
-            raise RuntimeError('Sync callback does not supported')
+            raise PytgcallsError('Sync callback does not supported')
 
         try:
             handlers = self.__action_to_handlers[action]
@@ -51,7 +53,7 @@ class Dispatcher:
 
             handlers.append(callback)
         except KeyError:
-            raise RuntimeError('Invalid action')
+            raise PytgcallsError('Invalid action')
 
         logger.debug('Handler added.')
         return callback
@@ -65,7 +67,7 @@ class Dispatcher:
                     del handlers[i]
                     return True
         except KeyError:
-            raise RuntimeError('Invalid action')
+            raise PytgcallsError('Invalid action')
 
         return False
 
@@ -77,7 +79,7 @@ class Dispatcher:
             logger.debug(f'Get {action} handlers...')
             return self.__action_to_handlers[action]
         except KeyError:
-            raise RuntimeError('Invalid action')
+            raise PytgcallsError('Invalid action')
 
     def trigger_handlers(self, action: str, instance: 'GroupCallNative', *args, **kwargs):
         logger.debug(f'Trigger {action} handlers...')

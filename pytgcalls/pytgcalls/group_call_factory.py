@@ -21,6 +21,7 @@ import importlib
 from importlib.util import find_spec
 from typing import Callable, Optional, Union
 
+from pytgcalls.exception import PytgcallsBaseException, PytgcallsError
 from pytgcalls.group_call_type import GroupCallType
 from pytgcalls.mtproto_client_type import MTProtoClientType
 from pytgcalls.implementation.group_call_file import GroupCallFile
@@ -32,7 +33,7 @@ def hot_load_mtproto_lib_or_exception(module):
     if find_spec(module):
         importlib.import_module(module)
     else:
-        raise RuntimeError(
+        raise PytgcallsBaseException(
             f'To use this MTProto client type you need to install {module.capitalize()}. '
             f'Run this command: pip3 install -U pytgcalls[{module}]'
         )
@@ -69,7 +70,7 @@ class GroupCallFactory:
 
             self.__mtproto_bride_class = TelethonBridge
         else:
-            raise RuntimeError('Unknown MTProto client type')
+            raise PytgcallsError('Unknown MTProto client type')
 
         self.enable_logs_to_console = enable_logs_to_console
         self.path_to_log_file = path_to_log_file

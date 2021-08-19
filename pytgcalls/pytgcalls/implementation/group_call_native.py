@@ -22,6 +22,7 @@ import warnings
 from typing import Optional, List
 
 import tgcalls
+from pytgcalls.exception import CallBeforeStartError
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ def if_native_instance_created(func):
         if self.is_group_call_native_created():
             return func(self, *args, **kwargs)
         else:
-            raise RuntimeError("You can't use this method before calling .start()")
+            raise CallBeforeStartError("You can't use this method before calling .start()")
 
     return wrapper
 
@@ -119,12 +120,24 @@ class GroupCallNative:
 
     @if_native_instance_created
     def get_playout_devices(self) -> List['tgcalls.AudioDevice']:
-        logger.debug('Get native playout devices')
+        """Get available playout audio devices in the system.
+
+        Note:
+            `tgcalls.AudioDevice` have 2 attributes: name, guid.
+        """
+
+        logger.debug('Get native playout devices.')
         return self.__native_instance.getPlayoutDevices()
 
     @if_native_instance_created
     def get_recording_devices(self) -> List['tgcalls.AudioDevice']:
-        logger.debug('Get native recording devices')
+        """Get available recording audio devices in the system.
+
+        Note:
+            `tgcalls.AudioDevice` have 2 attributes: name, guid.
+        """
+
+        logger.debug('Get native recording devices.')
         return self.__native_instance.getRecordingDevices()
 
     @if_native_instance_created

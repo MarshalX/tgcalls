@@ -25,6 +25,7 @@ from typing import Callable, Optional
 import tgcalls
 
 from pytgcalls.dispatcher import Action, DispatcherMixin
+from pytgcalls.exception import GroupCallNotFoundError, NotConnectedError
 from pytgcalls.implementation import GroupCallNative
 from pytgcalls.mtproto.data import GroupCallDiscardedWrapper
 from pytgcalls.mtproto.data.update import UpdateGroupCallParticipantsWrapper, UpdateGroupCallWrapper
@@ -141,14 +142,20 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
             return
 
         if self.mtproto.group_call is None:
+            logger.debug('Group Call is None.')
             return
 
         async def _():
             try:
-                await self.mtproto.join_group_call(self.invite_hash, payload.json, muted=True)
 
-                # TODO move before handle updates from join GC
-                self.mtproto.set_my_ssrc(payload.audioSsrc)
+                def pre_update_processing():
+                    logger.debug(f'Set my ssrc to {payload.audioSsrc}.')
+                    self.mtproto.set_my_ssrc(payload.audioSsrc)
+
+                await self.mtproto.join_group_call(
+                    self.invite_hash, payload.json, muted=True, pre_update_processing=pre_update_processing
+                )
+
                 if self.__emit_join_payload_event:
                     self.__emit_join_payload_event.set()
 
@@ -208,7 +215,7 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
 
         group_call = await self.mtproto.get_and_set_group_call(group)
         if group_call is None:
-            raise RuntimeError('Chat without a voice chat')
+            raise GroupCallNotFoundError('Chat without a voice chat')
 
         # mb move in other place. save plain join_as arg and use it in JoinGroupCall
         # but for now it works  as optimization of requests
@@ -246,6 +253,7 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         async def post_disconnect():
             await self.leave_current_group_call()
             self.mtproto.reset()
+            self.__is_stop_requested = False
 
         async def on_disconnect(obj, is_connected):
             if is_connected:
@@ -276,6 +284,8 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
     async def reconnect(self):
         """Connect to voice chat using the same native instance."""
         logger.debug('Reconnecting...')
+        if not self.mtproto.group_call:
+            raise NotConnectedError("You don't connected to voice chat.")
 
         self._set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
         self._emit_join_payload(self.__emit_join_payload_callback)
@@ -294,7 +304,7 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         try:
             await self.mtproto.leave_current_group_call()
         except Exception as e:
-            logger.warning('Couldn\'t leave the group call. But no worries, you\'ll get removed from it in seconds.')
+            logger.warning("Couldn't leave the group call. But no worries, you'll get removed from it in seconds.")
             logger.debug(e)
         else:
             logger.debug('Completely left the current group call.')
@@ -357,7 +367,7 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         await self.edit_group_call(volume)
         self._set_volume(uint_ssrc(self.mtproto.my_ssrc), volume / 100)
 
-    # backward compatibility below
+    # shortcuts for easy access in callbacks of events
 
     @property
     def client(self):
