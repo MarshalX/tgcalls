@@ -63,7 +63,7 @@ from typing import Callable, Optional
 import tgcalls
 
 from pytgcalls.dispatcher import Action, DispatcherMixin
-from pytgcalls.exception import GroupCallNotFoundError, NotConnectedError
+from pytgcalls.exceptions import GroupCallNotFoundError, NotConnectedError
 from pytgcalls.implementation import GroupCallNative
 from pytgcalls.mtproto.data import GroupCallDiscardedWrapper
 from pytgcalls.mtproto.data.update import UpdateGroupCallParticipantsWrapper, UpdateGroupCallWrapper
