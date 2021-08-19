@@ -19,10 +19,10 @@
 
 from typing import Optional
 
-from pytgcalls.implementation import GroupCallNative
+from pytgcalls.implementation import GroupCall
 
 
-class GroupCallDevice(GroupCallNative):
+class GroupCallDevice(GroupCall):
     def __init__(
         self,
         mtproto_bridge,
@@ -30,13 +30,12 @@ class GroupCallDevice(GroupCallNative):
         audio_output_device: Optional[str] = None,
         enable_logs_to_console=False,
         path_to_log_file=None,
+        outgoing_audio_bitrate_kbit=128,
     ):
-        super().__init__(mtproto_bridge, enable_logs_to_console, path_to_log_file)
+        super().__init__(mtproto_bridge, enable_logs_to_console, path_to_log_file, outgoing_audio_bitrate_kbit)
 
         self.__is_playout_paused = False
         self.__is_recording_paused = False
-
-        self.__raw_audio_device_descriptor = None
 
         self.__audio_input_device = audio_input_device or ''
         self.__audio_output_device = audio_output_device or ''
@@ -49,7 +48,7 @@ class GroupCallDevice(GroupCallNative):
         """Get audio input device name or GUID
 
         Note:
-            To get system recording device list you can use `print_available_recording_devices()` method.
+            To get system recording device list you can use `get_recording_devices()` method.
         """
 
         return self.__audio_input_device
@@ -63,7 +62,7 @@ class GroupCallDevice(GroupCallNative):
         """Get audio output device name or GUID
 
         Note:
-            To get system playout device list you can use `print_available_playout_devices()` method.
+            To get system playout device list you can use `get_playout_devices()` method.
         """
 
         return self.__audio_output_device

@@ -16,5 +16,5 @@ public:
     std::function<bool()> _isRecordingPaused = nullptr;
 
     void _setRecordedBuffer(int8_t*, size_t) const;
-    int8_t* _getPlayoutBuffer(size_t) const;
+    std::string* _getPlayoutBuffer(size_t) const;
 };

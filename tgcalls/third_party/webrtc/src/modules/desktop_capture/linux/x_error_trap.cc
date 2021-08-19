@@ -12,6 +12,7 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include <atomic>
 
 #if defined(TOOLKIT_GTK)
 #include <gdk/gdk.h>
@@ -23,12 +24,12 @@ namespace {
 
 #if !defined(TOOLKIT_GTK)
 
-// TODO(sergeyu): This code is not thread safe. Fix it. Bug 2202.
-static bool g_xserver_error_trap_enabled = false;
-static int g_last_xserver_error_code = 0;
+std::atomic<int> g_xserver_error_trap_level/* = 0*/;
+std::atomic<int> g_last_xserver_error_code/* = 0*/;
+XErrorHandler g_original_error_handler_/* = nullptr*/;
 
 int XServerErrorHandler(Display* display, XErrorEvent* error_event) {
-  assert(g_xserver_error_trap_enabled);
+  assert(g_xserver_error_trap_level > 0);
   g_last_xserver_error_code = error_event->error_code;
   return 0;
 }
@@ -42,22 +43,25 @@ XErrorTrap::XErrorTrap(Display* display)
 #if defined(TOOLKIT_GTK)
   gdk_error_trap_push();
 #else   // !defined(TOOLKIT_GTK)
-  assert(!g_xserver_error_trap_enabled);
-  original_error_handler_ = XSetErrorHandler(&XServerErrorHandler);
-  g_xserver_error_trap_enabled = true;
-  g_last_xserver_error_code = 0;
+  if (++g_xserver_error_trap_level == 1) {
+    g_last_xserver_error_code = 0;
+    g_original_error_handler_ = XSetErrorHandler(&XServerErrorHandler);
+  }
 #endif  // !defined(TOOLKIT_GTK)
 }
 
 int XErrorTrap::GetLastErrorAndDisable() {
+  assert(enabled_);
   enabled_ = false;
 #if defined(TOOLKIT_GTK)
   return gdk_error_trap_push();
 #else   // !defined(TOOLKIT_GTK)
-  assert(g_xserver_error_trap_enabled);
-  XSetErrorHandler(original_error_handler_);
-  g_xserver_error_trap_enabled = false;
-  return g_last_xserver_error_code;
+  const auto result = g_last_xserver_error_code.load();
+  if (--g_xserver_error_trap_level == 0) {
+    XSetErrorHandler(g_original_error_handler_);
+    g_original_error_handler_ = nullptr;
+  }
+  return result;
 #endif  // !defined(TOOLKIT_GTK)
 }
 

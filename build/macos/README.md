@@ -25,7 +25,7 @@ cd patches
 git checkout e052c49
 cd ..
 
-git clone -b v4.0.2 https://github.com/mozilla/mozjpeg.git
+git clone -b v4.0.1-rc2 https://github.com/mozilla/mozjpeg.git
 cd mozjpeg
 cmake -B build . \
     -DCMAKE_BUILD_TYPE=Release \
@@ -58,7 +58,7 @@ cd ..
 
 git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
 cd ffmpeg
-git checkout release/4.2
+git checkout release/4.4
 PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig:/usr/lib/pkgconfig:/usr/X11/lib/pkgconfig
 cp ../patches/macos_yasm_wrap.sh ./
 

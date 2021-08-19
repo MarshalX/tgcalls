@@ -20,10 +20,10 @@
 from typing import Callable
 
 import tgcalls
-from pytgcalls.implementation import GroupCallNative
+from pytgcalls.implementation import GroupCall
 
 
-class GroupCallRaw(GroupCallNative):
+class GroupCallRaw(GroupCall):
     def __init__(
         self,
         mtproto_bridge,
@@ -31,8 +31,9 @@ class GroupCallRaw(GroupCallNative):
         on_recorded_data: Callable[['GroupCallRaw', bytes, int], None] = None,
         enable_logs_to_console=False,
         path_to_log_file=None,
+        outgoing_audio_bitrate_kbit=128,
     ):
-        super().__init__(mtproto_bridge, enable_logs_to_console, path_to_log_file)
+        super().__init__(mtproto_bridge, enable_logs_to_console, path_to_log_file, outgoing_audio_bitrate_kbit)
 
         self.__is_playout_paused = False
         self.__is_recording_paused = False

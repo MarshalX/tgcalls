@@ -18,7 +18,7 @@
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
 from asyncio import AbstractEventLoop
-from typing import List
+from typing import Callable
 
 from telethon.errors import (
     BadRequestError as TelethonBadRequestError,
@@ -38,9 +38,9 @@ from telethon.tl.types import (
     InputPeerChannel,
 )
 
+from pytgcalls import PytgcallsError
 from pytgcalls.mtproto import MTProtoBridgeBase
 from pytgcalls.mtproto.data import GroupCallDiscardedWrapper, GroupCallParticipantWrapper, GroupCallWrapper
-
 from pytgcalls.mtproto.data.update import UpdateGroupCallParticipantsWrapper, UpdateGroupCallWrapper
 from pytgcalls.mtproto.exceptions import BadRequest, GroupcallSsrcDuplicateMuch
 from pytgcalls.utils import int_ssrc
@@ -69,7 +69,17 @@ class TelethonBridge(MTProtoBridgeBase):
         raise StopPropagation
 
     async def _process_group_call_participants_update(self, update):
-        participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in update.participants]
+        participants = [
+            GroupCallParticipantWrapper(
+                p.source,
+                p.left,
+                p.peer,
+                p.muted,
+                p.can_self_unmute,
+                p.is_self,
+            )
+            for p in update.participants
+        ]
         wrapped_update = UpdateGroupCallParticipantsWrapper(participants)
 
         await self.group_call_participants_update_callback(wrapped_update)
@@ -107,13 +117,6 @@ class TelethonBridge(MTProtoBridgeBase):
                 raise BadRequest(e)
 
         return int_ssrc(self.my_ssrc) in ssrcs_in_group_call
-
-    async def get_group_call_participants(self) -> List['GroupCallParticipantWrapper']:
-        telethon_participants = (
-            await (self.client(functions.phone.GetGroupCallRequest(call=self.full_chat.call)))
-        ).participants
-        wrapped_participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in telethon_participants]
-        return wrapped_participants
 
     async def leave_current_group_call(self):
         if not self.full_chat or not self.full_chat.call or not self.my_ssrc:
@@ -154,7 +157,7 @@ class TelethonBridge(MTProtoBridgeBase):
             self.full_chat = (await self.client(functions.messages.GetFullChatRequest(group))).full_chat
 
         if self.full_chat is None:
-            raise RuntimeError(f'Can\'t get full chat by {group}')
+            raise PytgcallsError(f'Can\'t get full chat by {group}')
 
         self.group_call = self.full_chat.call
 
@@ -177,7 +180,7 @@ class TelethonBridge(MTProtoBridgeBase):
     async def send_speaking_group_call_action(self):
         await self.client(functions.messages.SetTypingRequest(peer=self.chat_peer, action=SpeakingInGroupCallAction()))
 
-    async def join_group_call(self, invite_hash: str, params: str, muted: bool):
+    async def join_group_call(self, invite_hash: str, params: str, muted: bool, pre_update_processing: Callable):
         try:
             response = await self.client(
                 functions.phone.JoinGroupCallRequest(
@@ -188,6 +191,8 @@ class TelethonBridge(MTProtoBridgeBase):
                     muted=muted,
                 )
             )
+
+            pre_update_processing()
 
             # it is here cuz we need to associate params for connection with group call
             for update in response.updates:

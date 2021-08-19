@@ -5,26 +5,45 @@
 //  Created by Mikhail Filimonov on 28.12.2020.
 //  Copyright © 2020 Mikhail Filimonov. All rights reserved.
 //
+#ifndef TGCALLS_DESKTOP_CAPTURE_SOURCE_MANAGER_H__
+#define TGCALLS_DESKTOP_CAPTURE_SOURCE_MANAGER_H__
 
-#import <Foundation/Foundation.h>
-#import <AppKit/AppKit.h>
+#include "tgcalls/desktop_capturer/DesktopCaptureSource.h"
+#include "tgcalls/desktop_capturer/DesktopCaptureSourceHelper.h"
 
-#import "DesktopCaptureSource.h"
-NS_ASSUME_NONNULL_BEGIN
+#include <map>
+#include <vector>
 
+namespace webrtc {
+class DesktopCapturer;
+class DesktopCaptureOptions;
+} // namespace webrtc
 
+namespace tgcalls {
 
-@interface DesktopCaptureSourceManager : NSObject
+enum class DesktopCaptureType {
+	Screen,
+	Window,
+};
 
--(instancetype)init_s;
--(instancetype)init_w;
--(NSArray<DesktopCaptureSource *> *)list;
+class DesktopCaptureSourceManager {
+public:
+	explicit DesktopCaptureSourceManager(DesktopCaptureType type);
+	~DesktopCaptureSourceManager();
 
--(NSView *)createForScope:(DesktopCaptureSourceScope *)scope;
+	std::vector<DesktopCaptureSource> sources();
 
--(void)start:(DesktopCaptureSourceScope *)scope;
--(void)stop:(DesktopCaptureSourceScope *)scope;
+private:
+	static webrtc::DesktopCaptureOptions OptionsForType(
+		DesktopCaptureType type);
+	static std::unique_ptr<webrtc::DesktopCapturer> CreateForType(
+		DesktopCaptureType type);
 
-@end
+	std::unique_ptr<webrtc::DesktopCapturer> _capturer;
+	DesktopCaptureType _type = DesktopCaptureType::Screen;
 
-NS_ASSUME_NONNULL_END
+};
+
+} // namespace tgcalls
+
+#endif // TGCALLS_DESKTOP_CAPTURE_SOURCE_MANAGER_H__

@@ -21,6 +21,7 @@
 
 #include "absl/types/optional.h"
 #include "api/rtc_event_log/rtc_event_log.h"
+#include "api/sequence_checker.h"
 #include "api/transport/network_control.h"
 #include "audio/audio_receive_stream.h"
 #include "audio/audio_send_stream.h"
@@ -51,7 +52,6 @@
 #include "rtc_base/location.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/strings/string_builder.h"
-#include "rtc_base/synchronization/sequence_checker.h"
 #include "rtc_base/system/no_unique_address.h"
 #include "rtc_base/task_utils/pending_task_safety_flag.h"
 #include "rtc_base/thread_annotations.h"
@@ -167,6 +167,34 @@ TaskQueueBase* GetCurrentTaskQueueOrThread() {
   return current;
 }
 
+// Called from the destructor of Call to report the collected send histograms.
+void UpdateSendHistograms(Timestamp now,
+                          Timestamp first_sent_packet,
+                          AvgCounter& estimated_send_bitrate_kbps_counter,
+                          AvgCounter& pacer_bitrate_kbps_counter) {
+  TimeDelta elapsed = now - first_sent_packet;
+  if (elapsed.seconds() < metrics::kMinRunTimeInSeconds)
+    return;
+
+  const int kMinRequiredPeriodicSamples = 5;
+  AggregatedStats send_bitrate_stats =
+      estimated_send_bitrate_kbps_counter.ProcessAndGetStats();
+  if (send_bitrate_stats.num_samples > kMinRequiredPeriodicSamples) {
+    RTC_HISTOGRAM_COUNTS_100000("WebRTC.Call.EstimatedSendBitrateInKbps",
+                                send_bitrate_stats.average);
+    RTC_LOG(LS_INFO) << "WebRTC.Call.EstimatedSendBitrateInKbps, "
+                     << send_bitrate_stats.ToString();
+  }
+  AggregatedStats pacer_bitrate_stats =
+      pacer_bitrate_kbps_counter.ProcessAndGetStats();
+  if (pacer_bitrate_stats.num_samples > kMinRequiredPeriodicSamples) {
+    RTC_HISTOGRAM_COUNTS_100000("WebRTC.Call.PacerBitrateInKbps",
+                                pacer_bitrate_stats.average);
+    RTC_LOG(LS_INFO) << "WebRTC.Call.PacerBitrateInKbps, "
+                     << pacer_bitrate_stats.ToString();
+  }
+}
+
 }  // namespace
 
 namespace internal {
@@ -268,6 +296,10 @@ class Call final : public webrtc::Call,
   DeliveryStatus DeliverPacket(MediaType media_type,
                                rtc::CopyOnWriteBuffer packet,
                                int64_t packet_time_us) override;
+  void DeliverPacketAsync(MediaType media_type,
+                          rtc::CopyOnWriteBuffer packet,
+                          int64_t packet_time_us,
+                          PacketCallback callback) override;
 
   // Implements RecoveredPacketReceiver.
   void OnRecoveredPacket(const uint8_t* packet, size_t length) override;
@@ -304,10 +336,7 @@ class Call final : public webrtc::Call,
                                  MediaType media_type)
       RTC_SHARED_LOCKS_REQUIRED(worker_thread_);
 
-  void UpdateSendHistograms(Timestamp first_sent_packet)
-      RTC_EXCLUSIVE_LOCKS_REQUIRED(worker_thread_);
   void UpdateReceiveHistograms();
-  void UpdateHistograms();
   void UpdateAggregateNetworkState();
 
   // Ensure that necessary process threads are started, and any required
@@ -321,6 +350,7 @@ class Call final : public webrtc::Call,
   Clock* const clock_;
   TaskQueueFactory* const task_queue_factory_;
   TaskQueueBase* const worker_thread_;
+  TaskQueueBase* const network_thread_;
 
   const int num_cpu_cores_;
   const rtc::scoped_refptr<SharedModuleThread> module_process_thread_;
@@ -330,15 +360,18 @@ class Call final : public webrtc::Call,
 
   NetworkState audio_network_state_;
   NetworkState video_network_state_;
+  // TODO(bugs.webrtc.org/11993): Move aggregate_network_up_ over to the
+  // network thread.
   bool aggregate_network_up_ RTC_GUARDED_BY(worker_thread_);
 
   // Audio, Video, and FlexFEC receive streams are owned by the client that
   // creates them.
+  // TODO(bugs.webrtc.org/11993): Move audio_receive_streams_,
+  // video_receive_streams_ and sync_stream_mapping_ over to the network thread.
   std::set<AudioReceiveStream*> audio_receive_streams_
       RTC_GUARDED_BY(worker_thread_);
   std::set<VideoReceiveStream2*> video_receive_streams_
       RTC_GUARDED_BY(worker_thread_);
-
   std::map<std::string, AudioReceiveStream*> sync_stream_mapping_
       RTC_GUARDED_BY(worker_thread_);
 
@@ -373,6 +406,9 @@ class Call final : public webrtc::Call,
     // send side BWE are negotiated.
     const bool use_send_side_bwe;
   };
+
+  // TODO(bugs.webrtc.org/11993): Move receive_rtp_config_ over to the
+  // network thread.
   std::map<uint32_t, ReceiveRtpConfig> receive_rtp_config_
       RTC_GUARDED_BY(worker_thread_);
 
@@ -597,6 +633,10 @@ Call::Call(Clock* clock,
     : clock_(clock),
       task_queue_factory_(task_queue_factory),
       worker_thread_(GetCurrentTaskQueueOrThread()),
+      // If |network_task_queue_| was set to nullptr, network related calls
+      // must be made on |worker_thread_| (i.e. they're one and the same).
+      network_thread_(config.network_task_queue_ ? config.network_task_queue_
+                                                 : worker_thread_),
       num_cpu_cores_(CpuInfo::DetectNumberOfCores()),
       module_process_thread_(std::move(module_process_thread)),
       call_stats_(new CallStats(clock_, worker_thread_)),
@@ -623,6 +663,7 @@ Call::Call(Clock* clock,
       transport_send_(std::move(transport_send)) {
   RTC_DCHECK(config.event_log != nullptr);
   RTC_DCHECK(config.trials != nullptr);
+  RTC_DCHECK(network_thread_);
   RTC_DCHECK(worker_thread_->IsCurrent());
 
   // Do not remove this call; it is here to convince the compiler that the
@@ -651,17 +692,23 @@ Call::~Call() {
   module_process_thread_->process_thread()->DeRegisterModule(&receive_side_cc_);
   call_stats_->DeregisterStatsObserver(&receive_side_cc_);
 
-  absl::optional<Timestamp> first_sent_packet_ms =
+  absl::optional<Timestamp> first_sent_packet_time =
       transport_send_->GetFirstPacketTime();
+
+  Timestamp now = clock_->CurrentTime();
 
   // Only update histograms after process threads have been shut down, so that
   // they won't try to concurrently update stats.
-  if (first_sent_packet_ms) {
-    UpdateSendHistograms(*first_sent_packet_ms);
+  if (first_sent_packet_time) {
+    UpdateSendHistograms(now, *first_sent_packet_time,
+                         estimated_send_bitrate_kbps_counter_,
+                         pacer_bitrate_kbps_counter_);
   }
 
   UpdateReceiveHistograms();
-  UpdateHistograms();
+
+  RTC_HISTOGRAM_COUNTS_100000("WebRTC.Call.LifetimeInSeconds",
+                              (now.ms() - start_ms_) / 1000);
 }
 
 void Call::EnsureStarted() {
@@ -669,6 +716,8 @@ void Call::EnsureStarted() {
     return;
   }
   is_started_ = true;
+
+  call_stats_->EnsureStarted();
 
   // This call seems to kick off a number of things, so probably better left
   // off being kicked off on request rather than in the ctor.
@@ -681,37 +730,6 @@ void Call::EnsureStarted() {
 void Call::SetClientBitratePreferences(const BitrateSettings& preferences) {
   RTC_DCHECK_RUN_ON(worker_thread_);
   GetTransportControllerSend()->SetClientBitratePreferences(preferences);
-}
-
-void Call::UpdateHistograms() {
-  RTC_HISTOGRAM_COUNTS_100000(
-      "WebRTC.Call.LifetimeInSeconds",
-      (clock_->TimeInMilliseconds() - start_ms_) / 1000);
-}
-
-// Called from the dtor.
-void Call::UpdateSendHistograms(Timestamp first_sent_packet) {
-  int64_t elapsed_sec =
-      (clock_->TimeInMilliseconds() - first_sent_packet.ms()) / 1000;
-  if (elapsed_sec < metrics::kMinRunTimeInSeconds)
-    return;
-  const int kMinRequiredPeriodicSamples = 5;
-  AggregatedStats send_bitrate_stats =
-      estimated_send_bitrate_kbps_counter_.ProcessAndGetStats();
-  if (send_bitrate_stats.num_samples > kMinRequiredPeriodicSamples) {
-    RTC_HISTOGRAM_COUNTS_100000("WebRTC.Call.EstimatedSendBitrateInKbps",
-                                send_bitrate_stats.average);
-    RTC_LOG(LS_INFO) << "WebRTC.Call.EstimatedSendBitrateInKbps, "
-                     << send_bitrate_stats.ToString();
-  }
-  AggregatedStats pacer_bitrate_stats =
-      pacer_bitrate_kbps_counter_.ProcessAndGetStats();
-  if (pacer_bitrate_stats.num_samples > kMinRequiredPeriodicSamples) {
-    RTC_HISTOGRAM_COUNTS_100000("WebRTC.Call.PacerBitrateInKbps",
-                                pacer_bitrate_stats.average);
-    RTC_LOG(LS_INFO) << "WebRTC.Call.PacerBitrateInKbps, "
-                     << pacer_bitrate_stats.ToString();
-  }
 }
 
 void Call::UpdateReceiveHistograms() {
@@ -761,7 +779,6 @@ void Call::UpdateReceiveHistograms() {
 }
 
 PacketReceiver* Call::Receiver() {
-  RTC_DCHECK_RUN_ON(worker_thread_);
   return this;
 }
 
@@ -791,6 +808,8 @@ webrtc::AudioSendStream* Call::CreateAudioSendStream(
              audio_send_ssrcs_.end());
   audio_send_ssrcs_[config.rtp.ssrc] = send_stream;
 
+  // TODO(bugs.webrtc.org/11993): call AssociateSendStream and
+  // UpdateAggregateNetworkState asynchronously on the network thread.
   for (AudioReceiveStream* stream : audio_receive_streams_) {
     if (stream->config().rtp.local_ssrc == config.rtp.ssrc) {
       stream->AssociateSendStream(send_stream);
@@ -798,6 +817,7 @@ webrtc::AudioSendStream* Call::CreateAudioSendStream(
   }
 
   UpdateAggregateNetworkState();
+
   return send_stream;
 }
 
@@ -816,6 +836,8 @@ void Call::DestroyAudioSendStream(webrtc::AudioSendStream* send_stream) {
   size_t num_deleted = audio_send_ssrcs_.erase(ssrc);
   RTC_DCHECK_EQ(1, num_deleted);
 
+  // TODO(bugs.webrtc.org/11993): call AssociateSendStream and
+  // UpdateAggregateNetworkState asynchronously on the network thread.
   for (AudioReceiveStream* stream : audio_receive_streams_) {
     if (stream->config().rtp.local_ssrc == ssrc) {
       stream->AssociateSendStream(nullptr);
@@ -823,6 +845,7 @@ void Call::DestroyAudioSendStream(webrtc::AudioSendStream* send_stream) {
   }
 
   UpdateAggregateNetworkState();
+
   delete send_stream;
 }
 
@@ -833,11 +856,19 @@ webrtc::AudioReceiveStream* Call::CreateAudioReceiveStream(
   EnsureStarted();
   event_log_->Log(std::make_unique<RtcEventAudioReceiveStreamConfig>(
       CreateRtcLogStreamConfig(config)));
+
+  // TODO(bugs.webrtc.org/11993): Move the registration between |receive_stream|
+  // and |audio_receiver_controller_| out of AudioReceiveStream construction and
+  // set it up asynchronously on the network thread (the registration and
+  // |audio_receiver_controller_| need to live on the network thread).
   AudioReceiveStream* receive_stream = new AudioReceiveStream(
       clock_, &audio_receiver_controller_, transport_send_ptr_->packet_router(),
       module_process_thread_->process_thread(), config_.neteq_factory, config,
       config_.audio_state, event_log_);
 
+  // TODO(bugs.webrtc.org/11993): Update the below on the network thread.
+  // We could possibly set up the audio_receiver_controller_ association up
+  // as part of the async setup.
   receive_rtp_config_.emplace(config.rtp.remote_ssrc, ReceiveRtpConfig(config));
   audio_receive_streams_.insert(receive_stream);
 
@@ -864,8 +895,12 @@ void Call::DestroyAudioReceiveStream(
   uint32_t ssrc = config.rtp.remote_ssrc;
   receive_side_cc_.GetRemoteBitrateEstimator(UseSendSideBwe(config))
       ->RemoveStream(ssrc);
+
+  // TODO(bugs.webrtc.org/11993): Access the map, rtp config, call ConfigureSync
+  // and UpdateAggregateNetworkState on the network thread.
   audio_receive_streams_.erase(audio_receive_stream);
   const std::string& sync_group = audio_receive_stream->config().sync_group;
+
   const auto it = sync_stream_mapping_.find(sync_group);
   if (it != sync_stream_mapping_.end() && it->second == audio_receive_stream) {
     sync_stream_mapping_.erase(it);
@@ -874,6 +909,9 @@ void Call::DestroyAudioReceiveStream(
   receive_rtp_config_.erase(ssrc);
 
   UpdateAggregateNetworkState();
+  // TODO(bugs.webrtc.org/11993): Consider if deleting |audio_receive_stream|
+  // on the network thread would be better or if we'd need to tear down the
+  // state in two phases.
   delete audio_receive_stream;
 }
 
@@ -986,13 +1024,15 @@ webrtc::VideoReceiveStream* Call::CreateVideoReceiveStream(
 
   EnsureStarted();
 
-  TaskQueueBase* current = GetCurrentTaskQueueOrThread();
-  RTC_CHECK(current);
+  // TODO(bugs.webrtc.org/11993): Move the registration between |receive_stream|
+  // and |video_receiver_controller_| out of VideoReceiveStream2 construction
+  // and set it up asynchronously on the network thread (the registration and
+  // |video_receiver_controller_| need to live on the network thread).
   VideoReceiveStream2* receive_stream = new VideoReceiveStream2(
-      task_queue_factory_, current, &video_receiver_controller_, num_cpu_cores_,
-      transport_send_ptr_->packet_router(), std::move(configuration),
-      module_process_thread_->process_thread(), call_stats_.get(), clock_,
-      new VCMTiming(clock_));
+      task_queue_factory_, worker_thread_, &video_receiver_controller_,
+      num_cpu_cores_, transport_send_ptr_->packet_router(),
+      std::move(configuration), module_process_thread_->process_thread(),
+      call_stats_.get(), clock_, new VCMTiming(clock_));
 
   const webrtc::VideoReceiveStream::Config& config = receive_stream->config();
   if (config.rtp.rtx_ssrc) {
@@ -1125,34 +1165,54 @@ const WebRtcKeyValueConfig& Call::trials() const {
 }
 
 void Call::SignalChannelNetworkState(MediaType media, NetworkState state) {
-  RTC_DCHECK_RUN_ON(worker_thread_);
-  switch (media) {
-    case MediaType::AUDIO:
-      audio_network_state_ = state;
-      break;
-    case MediaType::VIDEO:
-      video_network_state_ = state;
-      break;
-    case MediaType::ANY:
-    case MediaType::DATA:
-      RTC_NOTREACHED();
-      break;
-  }
+  RTC_DCHECK_RUN_ON(network_thread_);
+  RTC_DCHECK(media == MediaType::AUDIO || media == MediaType::VIDEO);
 
-  UpdateAggregateNetworkState();
-  for (VideoReceiveStream2* video_receive_stream : video_receive_streams_) {
-    video_receive_stream->SignalNetworkState(video_network_state_);
+  auto closure = [this, media, state]() {
+    // TODO(bugs.webrtc.org/11993): Move this over to the network thread.
+    RTC_DCHECK_RUN_ON(worker_thread_);
+    if (media == MediaType::AUDIO) {
+      audio_network_state_ = state;
+    } else {
+      RTC_DCHECK_EQ(media, MediaType::VIDEO);
+      video_network_state_ = state;
+    }
+
+    // TODO(tommi): Is it necessary to always do this, including if there
+    // was no change in state?
+    UpdateAggregateNetworkState();
+
+    // TODO(tommi): Is it right to do this if media == AUDIO?
+    for (VideoReceiveStream2* video_receive_stream : video_receive_streams_) {
+      video_receive_stream->SignalNetworkState(video_network_state_);
+    }
+  };
+
+  if (network_thread_ == worker_thread_) {
+    closure();
+  } else {
+    // TODO(bugs.webrtc.org/11993): Remove workaround when we no longer need to
+    // post to the worker thread.
+    worker_thread_->PostTask(ToQueuedTask(task_safety_, std::move(closure)));
   }
 }
 
 void Call::OnAudioTransportOverheadChanged(int transport_overhead_per_packet) {
-  RTC_DCHECK_RUN_ON(worker_thread_);
-  for (auto& kv : audio_send_ssrcs_) {
-    kv.second->SetTransportOverhead(transport_overhead_per_packet);
-  }
+  RTC_DCHECK_RUN_ON(network_thread_);
+  worker_thread_->PostTask(
+      ToQueuedTask(task_safety_, [this, transport_overhead_per_packet]() {
+        // TODO(bugs.webrtc.org/11993): Move this over to the network thread.
+        RTC_DCHECK_RUN_ON(worker_thread_);
+        for (auto& kv : audio_send_ssrcs_) {
+          kv.second->SetTransportOverhead(transport_overhead_per_packet);
+        }
+      }));
 }
 
 void Call::UpdateAggregateNetworkState() {
+  // TODO(bugs.webrtc.org/11993): Move this over to the network thread.
+  // RTC_DCHECK_RUN_ON(network_thread_);
+
   RTC_DCHECK_RUN_ON(worker_thread_);
 
   bool have_audio =
@@ -1232,6 +1292,7 @@ void Call::OnAllocationLimitsChanged(BitrateAllocationLimits limits) {
 }
 
 void Call::ConfigureSync(const std::string& sync_group) {
+  // TODO(bugs.webrtc.org/11993): Expect to be called on the network thread.
   // Set sync only if there was no previous one.
   if (sync_group.empty())
     return;
@@ -1418,7 +1479,34 @@ PacketReceiver::DeliveryStatus Call::DeliverPacket(
   return DeliverRtp(media_type, std::move(packet), packet_time_us);
 }
 
+void Call::DeliverPacketAsync(MediaType media_type,
+                              rtc::CopyOnWriteBuffer packet,
+                              int64_t packet_time_us,
+                              PacketCallback callback) {
+  RTC_DCHECK_RUN_ON(network_thread_);
+
+  TaskQueueBase* network_thread = rtc::Thread::Current();
+  RTC_DCHECK(network_thread);
+
+  worker_thread_->PostTask(ToQueuedTask(
+      task_safety_, [this, network_thread, media_type, p = std::move(packet),
+                     packet_time_us, cb = std::move(callback)] {
+        RTC_DCHECK_RUN_ON(worker_thread_);
+        DeliveryStatus status = DeliverPacket(media_type, p, packet_time_us);
+        if (cb) {
+          network_thread->PostTask(
+              ToQueuedTask([cb = std::move(cb), status, media_type,
+                            p = std::move(p), packet_time_us]() {
+                cb(status, media_type, std::move(p), packet_time_us);
+              }));
+        }
+      }));
+}
+
 void Call::OnRecoveredPacket(const uint8_t* packet, size_t length) {
+  // TODO(bugs.webrtc.org/11993): Expect to be called on the network thread.
+  // This method is called synchronously via |OnRtpPacket()| (see DeliverRtp)
+  // on the same thread.
   RTC_DCHECK_RUN_ON(worker_thread_);
   RtpPacketReceived parsed_packet;
   if (!parsed_packet.Parse(packet, length))

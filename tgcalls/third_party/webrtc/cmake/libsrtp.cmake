@@ -1,4 +1,4 @@
-add_library(libsrtp OBJECT)
+add_library(libsrtp OBJECT EXCLUDE_FROM_ALL)
 init_target(libsrtp)
 add_library(tg_owt::libsrtp ALIAS libsrtp)
 

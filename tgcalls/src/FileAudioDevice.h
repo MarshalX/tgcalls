@@ -36,7 +36,7 @@ public:
   // The input file should be a readable 48k stereo raw file, and the output
   // file should point to a writable location. The output format will also be
   // 48k stereo raw audio.
-  explicit FileAudioDevice(FileAudioDeviceDescriptor*);
+  explicit FileAudioDevice(std::shared_ptr<FileAudioDeviceDescriptor>);
 
   ~FileAudioDevice() override;
 
@@ -198,5 +198,5 @@ private:
   webrtc::FileWrapper _outputFile;
   webrtc::FileWrapper _inputFile;
 
-  FileAudioDeviceDescriptor *_fileAudioDeviceDescriptor;
+  std::shared_ptr<FileAudioDeviceDescriptor> _fileAudioDeviceDescriptor;
 };

@@ -18,12 +18,16 @@ PRIVATE
     api/video_frame_buffer/RTCNativeMutableI420Buffer.mm
     api/video_codec/RTCVideoCodecConstants.h
     api/video_codec/RTCVideoCodecConstants.mm
+    api/video_codec/RTCVideoDecoderAV1.h
+    api/video_codec/RTCVideoDecoderAV1.mm
     api/video_codec/RTCVideoDecoderVP8.h
     api/video_codec/RTCVideoDecoderVP8.mm
-    api/video_codec/RTCVideoEncoderVP8.h
-    api/video_codec/RTCVideoEncoderVP8.mm
     api/video_codec/RTCVideoDecoderVP9.h
     api/video_codec/RTCVideoDecoderVP9.mm
+    api/video_codec/RTCVideoEncoderAV1.h
+    api/video_codec/RTCVideoEncoderAV1.mm
+    api/video_codec/RTCVideoEncoderVP8.h
+    api/video_codec/RTCVideoEncoderVP8.mm
     api/video_codec/RTCVideoEncoderVP9.h
     api/video_codec/RTCVideoEncoderVP9.mm
     api/video_codec/RTCWrappedNativeVideoDecoder.h

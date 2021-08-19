@@ -9,6 +9,7 @@
 
 #include "../Instance.h"
 #include "GroupInstanceImpl.h"
+#include "../platform/PlatformInterface.h"
 
 namespace tgcalls {
 
@@ -25,25 +26,29 @@ public:
     
     void setConnectionMode(GroupConnectionMode connectionMode, bool keepBroadcastIfWasEnabled);
 
-    void emitJoinPayload(std::function<void(GroupJoinPayload)> completion);
-    void setJoinResponsePayload(GroupJoinResponsePayload payload, std::vector<tgcalls::GroupParticipantDescription> &&participants);
-    void addParticipants(std::vector<GroupParticipantDescription> &&participants);
+    void emitJoinPayload(std::function<void(GroupJoinPayload const &)> completion);
+    void setJoinResponsePayload(std::string const &payload);
     void removeSsrcs(std::vector<uint32_t> ssrcs);
+    void removeIncomingVideoSource(uint32_t ssrc);
 
     void setIsMuted(bool isMuted);
-    void setVideoCapture(std::shared_ptr<VideoCaptureInterface> videoCapture, std::function<void(GroupJoinPayload)> completion);
+    void setIsNoiseSuppressionEnabled(bool isNoiseSuppressionEnabled);
+    void setVideoCapture(std::shared_ptr<VideoCaptureInterface> videoCapture);
+    void setVideoSource(std::function<webrtc::VideoTrackSourceInterface*()> getVideoSource);
     void setAudioOutputDevice(std::string id);
     void setAudioInputDevice(std::string id);
+    void addExternalAudioSamples(std::vector<uint8_t> &&samples);
+
+    void addIncomingVideoOutput(std::string const &endpointId, std::weak_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> sink);
     
-    void addIncomingVideoOutput(uint32_t ssrc, std::weak_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> sink);
-
     void setVolume(uint32_t ssrc, double volume);
-    void setFullSizeVideoSsrc(uint32_t ssrc);
+    void setRequestedVideoChannels(std::vector<VideoChannelDescription> &&requestedVideoChannels);
 
+    void performWithAudioDeviceModule(std::function<void(rtc::scoped_refptr<WrappedAudioDeviceModule>)> callback);
+
+  private:
     std::shared_ptr<Threads> _threads;
     std::unique_ptr<ThreadLocalObject<GroupInstanceCustomInternal>> _internal;
-
-private:
     std::unique_ptr<LogSinkImpl> _logSink;
 
 };

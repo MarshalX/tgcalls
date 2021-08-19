@@ -56,7 +56,7 @@ class RtpTransportInternal : public sigslot::has_slots<> {
   // for RTP packets because they would be forwarded to the BaseChannel through
   // the RtpDemuxer callback.
   sigslot::signal2<rtc::CopyOnWriteBuffer*, int64_t> SignalRtcpPacketReceived;
-
+  
   sigslot::signal3<rtc::CopyOnWriteBuffer*, int64_t, bool> SignalRtpPacketReceived;
 
   // Called whenever the network route of the P2P layer transport changes.

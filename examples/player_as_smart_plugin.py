@@ -95,13 +95,13 @@ async def stop_playout(*_):
 @Client.on_message(main_filter & cmd_filter('mute'))
 @init_client_and_delete_message
 async def mute(*_):
-    group_call.set_is_mute(True)
+    await group_call.set_is_mute(True)
 
 
 @Client.on_message(main_filter & cmd_filter('unmute'))
 @init_client_and_delete_message
 async def unmute(*_):
-    group_call.set_is_mute(False)
+    await group_call.set_is_mute(False)
 
 
 @Client.on_message(main_filter & cmd_filter('pause'))

@@ -1,4 +1,4 @@
-add_library(libusrsctp OBJECT)
+add_library(libusrsctp OBJECT EXCLUDE_FROM_ALL)
 init_target(libusrsctp)
 add_library(tg_owt::libusrsctp ALIAS libusrsctp)
 

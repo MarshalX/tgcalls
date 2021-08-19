@@ -282,8 +282,8 @@ TEST_F(SctpTransportTest, MessageInterleavedWithNotification) {
   meta.rcv_tsn = 42;
   meta.rcv_cumtsn = 42;
   chunk.SetData("meow?", 5);
-  EXPECT_EQ(1, transport1->InjectDataOrNotificationFromSctpForTesting(
-                   chunk.data(), chunk.size(), meta, 0));
+  transport1->InjectDataOrNotificationFromSctpForTesting(chunk.data(),
+                                                         chunk.size(), meta, 0);
 
   // Inject a notification in between chunks.
   union sctp_notification notification;
@@ -292,15 +292,15 @@ TEST_F(SctpTransportTest, MessageInterleavedWithNotification) {
   notification.sn_header.sn_type = SCTP_PEER_ADDR_CHANGE;
   notification.sn_header.sn_flags = 0;
   notification.sn_header.sn_length = sizeof(notification);
-  EXPECT_EQ(1, transport1->InjectDataOrNotificationFromSctpForTesting(
-                   &notification, sizeof(notification), {0}, MSG_NOTIFICATION));
+  transport1->InjectDataOrNotificationFromSctpForTesting(
+      &notification, sizeof(notification), {0}, MSG_NOTIFICATION);
 
   // Inject chunk 2/2
   meta.rcv_tsn = 42;
   meta.rcv_cumtsn = 43;
   chunk.SetData(" rawr!", 6);
-  EXPECT_EQ(1, transport1->InjectDataOrNotificationFromSctpForTesting(
-                   chunk.data(), chunk.size(), meta, MSG_EOR));
+  transport1->InjectDataOrNotificationFromSctpForTesting(
+      chunk.data(), chunk.size(), meta, MSG_EOR);
 
   // Expect the message to contain both chunks.
   EXPECT_TRUE_WAIT(ReceivedData(&recv1, 1, "meow? rawr!"), kDefaultTimeout);
@@ -518,6 +518,47 @@ TEST_P(SctpTransportTestWithOrdered, SendLargeBufferedOutgoingMessage) {
   EXPECT_EQ(2u, receiver2()->num_messages_received());
 }
 
+// Tests that a large message gets buffered and later sent by the SctpTransport
+// when the sctp library only accepts the message partially during a stream
+// reset.
+TEST_P(SctpTransportTestWithOrdered,
+       SendLargeBufferedOutgoingMessageDuringReset) {
+  bool ordered = GetParam();
+  SetupConnectedTransportsWithTwoStreams();
+  SctpTransportObserver transport2_observer(transport2());
+
+  // Wait for initial SCTP association to be formed.
+  EXPECT_EQ_WAIT(1, transport1_ready_to_send_count(), kDefaultTimeout);
+  // Make the fake transport unwritable so that messages pile up for the SCTP
+  // socket.
+  fake_dtls1()->SetWritable(false);
+  SendDataResult result;
+
+  // Fill almost all of sctp library's send buffer.
+  ASSERT_TRUE(SendData(transport1(), /*sid=*/1,
+                       std::string(kSctpSendBufferSize / 2, 'a'), &result,
+                       ordered));
+
+  std::string buffered_message(kSctpSendBufferSize, 'b');
+  // SctpTransport accepts this message by buffering the second half.
+  ASSERT_TRUE(
+      SendData(transport1(), /*sid=*/1, buffered_message, &result, ordered));
+  // Queue a stream reset
+  transport1()->ResetStream(/*sid=*/1);
+
+  // Make the transport writable again and expect a "SignalReadyToSendData" at
+  // some point after sending the buffered message.
+  fake_dtls1()->SetWritable(true);
+  EXPECT_EQ_WAIT(2, transport1_ready_to_send_count(), kDefaultTimeout);
+
+  // Queued message should be received by the receiver before receiving the
+  // reset
+  EXPECT_TRUE_WAIT(ReceivedData(receiver2(), 1, buffered_message),
+                   kDefaultTimeout);
+  EXPECT_EQ(2u, receiver2()->num_messages_received());
+  EXPECT_TRUE_WAIT(transport2_observer.WasStreamClosed(1), kDefaultTimeout);
+}
+
 TEST_P(SctpTransportTestWithOrdered, SendData) {
   bool ordered = GetParam();
   SetupConnectedTransportsWithTwoStreams();
@@ -589,7 +630,7 @@ TEST_P(SctpTransportTestWithOrdered, SignalReadyToSendDataAfterBlocked) {
   params.sid = 1;
   params.ordered = GetParam();
   rtc::CopyOnWriteBuffer buf(1024);
-  memset(buf.data<uint8_t>(), 0, 1024);
+  memset(buf.MutableData(), 0, 1024);
   SendDataResult result;
   size_t message_count = 0;
   for (; message_count < kMaxMessages; ++message_count) {

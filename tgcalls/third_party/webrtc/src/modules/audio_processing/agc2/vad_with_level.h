@@ -31,17 +31,23 @@ class VadLevelAnalyzer {
   class VoiceActivityDetector {
    public:
     virtual ~VoiceActivityDetector() = default;
+    // Resets the internal state.
+    virtual void Reset() = 0;
     // Analyzes an audio frame and returns the speech probability.
     virtual float ComputeProbability(AudioFrameView<const float> frame) = 0;
   };
 
-  // Ctor. Uses the default VAD.
+  // Ctor. Uses the default VAD with the default settings.
   VadLevelAnalyzer();
-  VadLevelAnalyzer(float vad_probability_attack,
+  // Ctor. `vad_reset_period_ms` indicates the period in milliseconds to call
+  // `VadLevelAnalyzer::Reset()`; it must be equal to or greater than the
+  // duration of two frames. Uses `cpu_features` to instantiate the default VAD.
+  VadLevelAnalyzer(int vad_reset_period_ms,
                    const AvailableCpuFeatures& cpu_features);
   // Ctor. Uses a custom `vad`.
-  VadLevelAnalyzer(float vad_probability_attack,
+  VadLevelAnalyzer(int vad_reset_period_ms,
                    std::unique_ptr<VoiceActivityDetector> vad);
+
   VadLevelAnalyzer(const VadLevelAnalyzer&) = delete;
   VadLevelAnalyzer& operator=(const VadLevelAnalyzer&) = delete;
   ~VadLevelAnalyzer();
@@ -51,8 +57,8 @@ class VadLevelAnalyzer {
 
  private:
   std::unique_ptr<VoiceActivityDetector> vad_;
-  const float vad_probability_attack_;
-  float vad_probability_ = 0.f;
+  const int vad_reset_period_frames_;
+  int time_to_vad_reset_;
 };
 
 }  // namespace webrtc

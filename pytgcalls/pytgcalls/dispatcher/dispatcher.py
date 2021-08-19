@@ -23,6 +23,8 @@ from typing import Callable, List
 
 from typing import TYPE_CHECKING
 
+from ..exception import PytgcallsError
+
 if TYPE_CHECKING:
     from . import GroupCallNative
 
@@ -39,25 +41,25 @@ class Dispatcher:
         return {action: [] for action in dir(self.actions) if not action.startswith('_')}
 
     def add_handler(self, callback: Callable, action: str) -> Callable:
-        logger.debug(f'Add handler to {action} action..')
+        logger.debug(f'Add handler to {action} action...')
         if not asyncio.iscoroutinefunction(callback):
-            raise RuntimeError('Sync callback does not supported')
+            raise PytgcallsError('Sync callback does not supported')
 
         try:
             handlers = self.__action_to_handlers[action]
             if callback in handlers:
-                logger.debug('Handler already exists.')
+                logger.debug('Handler is already set.')
                 return callback
 
             handlers.append(callback)
         except KeyError:
-            raise RuntimeError('Invalid action')
+            raise PytgcallsError('Invalid action')
 
         logger.debug('Handler added.')
         return callback
 
     def remove_handler(self, callback: Callable, action: str) -> bool:
-        logger.debug(f'Remove handler of {action} action..')
+        logger.debug(f'Remove handler of {action} action...')
         try:
             handlers = self.__action_to_handlers[action]
             for i in range(len(handlers)):
@@ -65,7 +67,7 @@ class Dispatcher:
                     del handlers[i]
                     return True
         except KeyError:
-            raise RuntimeError('Invalid action')
+            raise PytgcallsError('Invalid action')
 
         return False
 
@@ -74,14 +76,14 @@ class Dispatcher:
 
     def get_handlers(self, action: str) -> List[Callable]:
         try:
-            logger.debug(f'Get handlers of {action}')
+            logger.debug(f'Get {action} handlers...')
             return self.__action_to_handlers[action]
         except KeyError:
-            raise RuntimeError('Invalid action')
+            raise PytgcallsError('Invalid action')
 
     def trigger_handlers(self, action: str, instance: 'GroupCallNative', *args, **kwargs):
-        logger.debug(f'Trigger handlers of {action}')
+        logger.debug(f'Trigger {action} handlers...')
 
         for handler in self.get_handlers(action):
-            logger.debug(f'Trigger {handler.__name__}')
-            asyncio.ensure_future(handler(instance, *args, **kwargs), loop=instance.mtproto_bridge.get_event_loop())
+            logger.debug(f'Trigger {handler.__name__}...')
+            asyncio.ensure_future(handler(instance, *args, **kwargs), loop=instance.mtproto.get_event_loop())

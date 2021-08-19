@@ -5,33 +5,52 @@
 //  Created by Mikhail Filimonov on 28.12.2020.
 //  Copyright © 2020 Mikhail Filimonov. All rights reserved.
 //
+#ifndef TGCALLS_DESKTOP_CAPTURE_SOURCE_HELPER_H__
+#define TGCALLS_DESKTOP_CAPTURE_SOURCE_HELPER_H__
 
-#import <Foundation/Foundation.h>
-#import "api/video/video_sink_interface.h"
-#import "api/media_stream_interface.h"
-#import "rtc_base/time_utils.h"
+#include "tgcalls/desktop_capturer/DesktopCaptureSource.h"
 
-#import "api/video/video_sink_interface.h"
-#import "api/media_stream_interface.h"
+#include <memory>
+#include <functional>
 
-#import "sdk/objc/native/src/objc_video_track_source.h"
-#import "sdk/objc/native/src/objc_frame_buffer.h"
-#import "api/video_track_source_proxy.h"
-#import "DesktopCaptureSource.h"
+namespace webrtc {
+class VideoFrame;
+} // namespace webrtc
 
-NS_ASSUME_NONNULL_BEGIN
+namespace rtc {
+template <typename T>
+class VideoSinkInterface;
+} // namespace rtc
 
+namespace tgcalls {
 
+DesktopCaptureSource DesktopCaptureSourceForKey(
+	const std::string &uniqueKey);
+bool ShouldBeDesktopCapture(const std::string &uniqueKey);
 
+class DesktopCaptureSourceHelper {
+public:
+	DesktopCaptureSourceHelper(
+		DesktopCaptureSource source,
+		DesktopCaptureSourceData data);
+	~DesktopCaptureSourceHelper();
 
-@interface DesktopCaptureSourceHelper : NSObject
+	void setOutput(
+		std::shared_ptr<
+			rtc::VideoSinkInterface<webrtc::VideoFrame>> sink) const;
+	void setSecondaryOutput(
+		std::shared_ptr<
+		rtc::VideoSinkInterface<webrtc::VideoFrame>> sink) const;
+	void start() const;
+	void stop() const;
+    void setOnFatalError(std::function<void ()>) const;
+    void setOnPause(std::function<void (bool)>) const;
+private:
+	struct Renderer;
+	std::shared_ptr<Renderer> _renderer;
 
--(instancetype)initWithWindow:(DesktopCaptureSource *)window data: (DesktopCaptureSourceData *)data;
+};
 
--(void)setOutput:(std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>>)sink;
--(void)setSecondaryOutput:(std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>>)sink;
--(void)start;
--(void)stop;
-@end
+} // namespace tgcalls
 
-NS_ASSUME_NONNULL_END
+#endif // TGCALLS_DESKTOP_CAPTURE_SOURCE_HELPER_H__

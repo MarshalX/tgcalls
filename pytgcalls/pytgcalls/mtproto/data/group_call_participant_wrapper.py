@@ -21,7 +21,10 @@ from pytgcalls.mtproto.data import WrapperBase
 
 
 class GroupCallParticipantWrapper(WrapperBase):
-    def __init__(self, source: int, left: bool, peer):
+    def __init__(self, source: int, left: bool, peer, muted: bool, can_self_unmute: bool, is_self: bool):
         self.source = source
         self.left = left
         self.peer = peer
+        self.muted = muted
+        self.can_self_unmute = can_self_unmute
+        self.is_self = is_self

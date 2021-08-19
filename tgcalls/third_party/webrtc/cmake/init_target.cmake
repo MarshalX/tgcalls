@@ -4,6 +4,12 @@
 # For license and copyright information please follow this link:
 # https://github.com/desktop-app/legal/blob/master/LEGAL
 
+function(init_target_folder target_name folder_name)
+    if (NOT "${folder_name}" STREQUAL "")
+        set_target_properties(${target_name} PROPERTIES FOLDER ${folder_name})
+    endif()
+endfunction()
+
 function(init_target target_name) # init_target(my_target folder_name)
     if (APPLE)
         target_compile_features(${target_name} PUBLIC cxx_std_14)
@@ -30,6 +36,7 @@ function(init_target target_name) # init_target(my_target folder_name)
     target_compile_definitions(${target_name}
     PRIVATE
         HAVE_SCTP
+        ABSL_ALLOCATOR_NOTHROW=1
     )
     if (WIN32)
         target_compile_definitions(${target_name}
@@ -38,7 +45,6 @@ function(init_target target_name) # init_target(my_target folder_name)
             HAVE_WINSOCK2_H
             NOMINMAX
             HAVE_SSE2
-            ABSL_ALLOCATOR_NOTHROW=1
         )
 
         target_compile_options(${target_name}

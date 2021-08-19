@@ -23,7 +23,6 @@
 #include "rtc_base/numerics/sequence_number_util.h"
 
 namespace webrtc {
-namespace video_coding {
 
 class RtpSeqNumOnlyRefFinder {
  public:
@@ -66,7 +65,6 @@ class RtpSeqNumOnlyRefFinder {
   SeqNumUnwrapper<uint16_t> rtp_seq_num_unwrapper_;
 };
 
-}  // namespace video_coding
 }  // namespace webrtc
 
 #endif  // MODULES_VIDEO_CODING_RTP_SEQ_NUM_ONLY_REF_FINDER_H_

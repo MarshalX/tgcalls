@@ -196,6 +196,8 @@ bool RtpDataMediaChannel::RemoveRecvStream(uint32_t ssrc) {
 
 // Not implemented.
 void RtpDataMediaChannel::ResetUnsignaledRecvStream() {}
+void RtpDataMediaChannel::OnDemuxerCriteriaUpdatePending() {}
+void RtpDataMediaChannel::OnDemuxerCriteriaUpdateComplete() {}
 
 void RtpDataMediaChannel::OnPacketReceived(rtc::CopyOnWriteBuffer packet,
                                            int64_t /* packet_time_us */) {
@@ -312,7 +314,7 @@ bool RtpDataMediaChannel::SendData(const SendDataParams& params,
                                              &header.timestamp);
 
   rtc::CopyOnWriteBuffer packet(kMinRtpPacketLen, packet_len);
-  if (!SetRtpHeader(packet.data(), packet.size(), header)) {
+  if (!SetRtpHeader(packet.MutableData(), packet.size(), header)) {
     return false;
   }
   packet.AppendData(kReservedSpace);

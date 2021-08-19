@@ -19,6 +19,7 @@
 #include "rtc_base/atomic_ops.h"
 #include "rtc_base/event.h"
 #include "rtc_base/gunit.h"
+#include "rtc_base/internal/default_socket_server.h"
 #include "rtc_base/null_socket_server.h"
 #include "rtc_base/physical_socket_server.h"
 #include "rtc_base/socket_address.h"
@@ -255,6 +256,47 @@ TEST(ThreadTest, DISABLED_Main) {
   EXPECT_EQ(55, sock_client.last);
 }
 
+TEST(ThreadTest, CountBlockingCalls) {
+  // When the test runs, this will print out:
+  //   (thread_unittest.cc:262): Blocking TestBody: total=2 (actual=1, could=1)
+  RTC_LOG_THREAD_BLOCK_COUNT();
+#if RTC_DCHECK_IS_ON
+  rtc::Thread* current = rtc::Thread::Current();
+  ASSERT_TRUE(current);
+  rtc::Thread::ScopedCountBlockingCalls blocked_calls(
+      [&](uint32_t actual_block, uint32_t could_block) {
+        EXPECT_EQ(1u, actual_block);
+        EXPECT_EQ(1u, could_block);
+      });
+
+  EXPECT_EQ(0u, blocked_calls.GetBlockingCallCount());
+  EXPECT_EQ(0u, blocked_calls.GetCouldBeBlockingCallCount());
+  EXPECT_EQ(0u, blocked_calls.GetTotalBlockedCallCount());
+
+  // Test invoking on the current thread. This should not count as an 'actual'
+  // invoke, but should still count as an invoke that could block since we
+  // that the call to Invoke serves a purpose in some configurations (and should
+  // not be used a general way to call methods on the same thread).
+  current->Invoke<void>(RTC_FROM_HERE, []() {});
+  EXPECT_EQ(0u, blocked_calls.GetBlockingCallCount());
+  EXPECT_EQ(1u, blocked_calls.GetCouldBeBlockingCallCount());
+  EXPECT_EQ(1u, blocked_calls.GetTotalBlockedCallCount());
+
+  // Create a new thread to invoke on.
+  auto thread = Thread::CreateWithSocketServer();
+  thread->Start();
+  EXPECT_EQ(42, thread->Invoke<int>(RTC_FROM_HERE, []() { return 42; }));
+  EXPECT_EQ(1u, blocked_calls.GetBlockingCallCount());
+  EXPECT_EQ(1u, blocked_calls.GetCouldBeBlockingCallCount());
+  EXPECT_EQ(2u, blocked_calls.GetTotalBlockedCallCount());
+  thread->Stop();
+  RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(2);
+#else
+  RTC_DCHECK_BLOCK_COUNT_NO_MORE_THAN(0);
+  RTC_LOG(LS_INFO) << "Test not active in this config";
+#endif
+}
+
 // Test that setting thread names doesn't cause a malfunction.
 // There's no easy way to verify the name was set properly at this time.
 TEST(ThreadTest, Names) {
@@ -432,7 +474,7 @@ TEST(ThreadTest, ThreeThreadsInvoke) {
   struct LocalFuncs {
     static void Set(LockedBool* out) { out->Set(true); }
     static void InvokeSet(Thread* thread, LockedBool* out) {
-      thread->Invoke<void>(RTC_FROM_HERE, Bind(&Set, out));
+      thread->Invoke<void>(RTC_FROM_HERE, [out] { Set(out); });
     }
 
     // Set |out| true and call InvokeSet on |thread|.
@@ -452,8 +494,9 @@ TEST(ThreadTest, ThreeThreadsInvoke) {
       LockedBool async_invoked(false);
 
       invoker->AsyncInvoke<void>(
-          RTC_FROM_HERE, thread1,
-          Bind(&SetAndInvokeSet, &async_invoked, thread2, out));
+          RTC_FROM_HERE, thread1, [&async_invoked, thread2, out] {
+            SetAndInvokeSet(&async_invoked, thread2, out);
+          });
 
       EXPECT_TRUE_WAIT(async_invoked.Get(), 2000);
     }
@@ -465,9 +508,12 @@ TEST(ThreadTest, ThreeThreadsInvoke) {
   // Start the sequence A --(invoke)--> B --(async invoke)--> C --(invoke)--> A.
   // Thread B returns when C receives the call and C should be blocked until A
   // starts to process messages.
-  thread_b->Invoke<void>(RTC_FROM_HERE,
-                         Bind(&LocalFuncs::AsyncInvokeSetAndWait, &invoker,
-                              thread_c.get(), thread_a, &thread_a_called));
+  Thread* thread_c_ptr = thread_c.get();
+  thread_b->Invoke<void>(
+      RTC_FROM_HERE, [&invoker, thread_c_ptr, thread_a, &thread_a_called] {
+        LocalFuncs::AsyncInvokeSetAndWait(&invoker, thread_c_ptr, thread_a,
+                                          &thread_a_called);
+      });
   EXPECT_FALSE(thread_a_called.Get());
 
   EXPECT_TRUE_WAIT(thread_a_called.Get(), 2000);
@@ -505,7 +551,7 @@ TEST(ThreadTest, SetNameOnSignalQueueDestroyed) {
 
 class ThreadQueueTest : public ::testing::Test, public Thread {
  public:
-  ThreadQueueTest() : Thread(SocketServer::CreateDefault(), true) {}
+  ThreadQueueTest() : Thread(CreateDefaultSocketServer(), true) {}
   bool IsLocked_Worker() {
     if (!CritForTest()->TryEnter()) {
       return true;
@@ -518,8 +564,8 @@ class ThreadQueueTest : public ::testing::Test, public Thread {
     // succeed, since our critical sections are reentrant.
     std::unique_ptr<Thread> worker(Thread::CreateWithSocketServer());
     worker->Start();
-    return worker->Invoke<bool>(
-        RTC_FROM_HERE, rtc::Bind(&ThreadQueueTest::IsLocked_Worker, this));
+    return worker->Invoke<bool>(RTC_FROM_HERE,
+                                [this] { return IsLocked_Worker(); });
   }
 };
 
@@ -555,7 +601,7 @@ static void DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(Thread* q) {
 }
 
 TEST_F(ThreadQueueTest, DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder) {
-  Thread q(SocketServer::CreateDefault(), true);
+  Thread q(CreateDefaultSocketServer(), true);
   DelayedPostsWithIdenticalTimesAreProcessedInFifoOrder(&q);
 
   NullSocketServer nullss;
@@ -839,11 +885,6 @@ TEST_F(AsyncInvokeTest, FlushWithIds) {
   EXPECT_TRUE(flag2.get());
 }
 
-void ThreadIsCurrent(Thread* thread, bool* result, Event* event) {
-  *result = thread->IsCurrent();
-  event->Set();
-}
-
 void WaitAndSetEvent(Event* wait_event, Event* set_event) {
   wait_event->Wait(Event::kForever);
   set_event->Set();
@@ -907,15 +948,6 @@ class DestructionFunctor {
   Event* event_;
   bool was_invoked_ = false;
 };
-
-TEST(ThreadPostTaskTest, InvokesWithBind) {
-  std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
-  background_thread->Start();
-
-  Event event;
-  background_thread->PostTask(RTC_FROM_HERE, Bind(&Event::Set, &event));
-  event.Wait(Event::kForever);
-}
 
 TEST(ThreadPostTaskTest, InvokesWithLambda) {
   std::unique_ptr<rtc::Thread> background_thread(rtc::Thread::Create());
@@ -1019,9 +1051,13 @@ TEST(ThreadPostTaskTest, InvokesOnBackgroundThread) {
 
   Event event;
   bool was_invoked_on_background_thread = false;
-  background_thread->PostTask(RTC_FROM_HERE,
-                              Bind(&ThreadIsCurrent, background_thread.get(),
-                                   &was_invoked_on_background_thread, &event));
+  Thread* background_thread_ptr = background_thread.get();
+  background_thread->PostTask(
+      RTC_FROM_HERE,
+      [background_thread_ptr, &was_invoked_on_background_thread, &event] {
+        was_invoked_on_background_thread = background_thread_ptr->IsCurrent();
+        event.Set();
+      });
   event.Wait(Event::kForever);
 
   EXPECT_TRUE(was_invoked_on_background_thread);
@@ -1035,9 +1071,10 @@ TEST(ThreadPostTaskTest, InvokesAsynchronously) {
   // thread. The second event ensures that the message is processed.
   Event event_set_by_test_thread;
   Event event_set_by_background_thread;
-  background_thread->PostTask(RTC_FROM_HERE,
-                              Bind(&WaitAndSetEvent, &event_set_by_test_thread,
-                                   &event_set_by_background_thread));
+  background_thread->PostTask(RTC_FROM_HERE, [&event_set_by_test_thread,
+                                              &event_set_by_background_thread] {
+    WaitAndSetEvent(&event_set_by_test_thread, &event_set_by_background_thread);
+  });
   event_set_by_test_thread.Set();
   event_set_by_background_thread.Wait(Event::kForever);
 }
@@ -1051,12 +1088,12 @@ TEST(ThreadPostTaskTest, InvokesInPostedOrder) {
   Event third;
   Event fourth;
 
-  background_thread->PostTask(RTC_FROM_HERE,
-                              Bind(&WaitAndSetEvent, &first, &second));
-  background_thread->PostTask(RTC_FROM_HERE,
-                              Bind(&WaitAndSetEvent, &second, &third));
-  background_thread->PostTask(RTC_FROM_HERE,
-                              Bind(&WaitAndSetEvent, &third, &fourth));
+  background_thread->PostTask(
+      RTC_FROM_HERE, [&first, &second] { WaitAndSetEvent(&first, &second); });
+  background_thread->PostTask(
+      RTC_FROM_HERE, [&second, &third] { WaitAndSetEvent(&second, &third); });
+  background_thread->PostTask(
+      RTC_FROM_HERE, [&third, &fourth] { WaitAndSetEvent(&third, &fourth); });
 
   // All tasks have been posted before the first one is unblocked.
   first.Set();
@@ -1074,8 +1111,10 @@ TEST(ThreadPostDelayedTaskTest, InvokesAsynchronously) {
   Event event_set_by_background_thread;
   background_thread->PostDelayedTask(
       RTC_FROM_HERE,
-      Bind(&WaitAndSetEvent, &event_set_by_test_thread,
-           &event_set_by_background_thread),
+      [&event_set_by_test_thread, &event_set_by_background_thread] {
+        WaitAndSetEvent(&event_set_by_test_thread,
+                        &event_set_by_background_thread);
+      },
       /*milliseconds=*/10);
   event_set_by_test_thread.Set();
   event_set_by_background_thread.Wait(Event::kForever);
@@ -1091,15 +1130,15 @@ TEST(ThreadPostDelayedTaskTest, InvokesInDelayOrder) {
   Event third;
   Event fourth;
 
-  background_thread->PostDelayedTask(RTC_FROM_HERE,
-                                     Bind(&WaitAndSetEvent, &third, &fourth),
-                                     /*milliseconds=*/11);
-  background_thread->PostDelayedTask(RTC_FROM_HERE,
-                                     Bind(&WaitAndSetEvent, &first, &second),
-                                     /*milliseconds=*/9);
-  background_thread->PostDelayedTask(RTC_FROM_HERE,
-                                     Bind(&WaitAndSetEvent, &second, &third),
-                                     /*milliseconds=*/10);
+  background_thread->PostDelayedTask(
+      RTC_FROM_HERE, [&third, &fourth] { WaitAndSetEvent(&third, &fourth); },
+      /*milliseconds=*/11);
+  background_thread->PostDelayedTask(
+      RTC_FROM_HERE, [&first, &second] { WaitAndSetEvent(&first, &second); },
+      /*milliseconds=*/9);
+  background_thread->PostDelayedTask(
+      RTC_FROM_HERE, [&second, &third] { WaitAndSetEvent(&second, &third); },
+      /*milliseconds=*/10);
 
   // All tasks have been posted before the first one is unblocked.
   first.Set();

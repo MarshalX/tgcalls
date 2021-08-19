@@ -18,7 +18,8 @@ std::unique_ptr<webrtc::VideoDecoderFactory> DesktopInterface::makeVideoDecoderF
 }
 
 rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> DesktopInterface::makeVideoSource(rtc::Thread *signalingThread, rtc::Thread *workerThread) {
-	const auto videoTrackSource = VideoCapturerTrackSource::Create();
+	const auto videoTrackSource = rtc::scoped_refptr<VideoCapturerTrackSource>(
+		new rtc::RefCountedObject<VideoCapturerTrackSource>());
 	return videoTrackSource
 		? webrtc::VideoTrackSourceProxy::Create(signalingThread, workerThread, videoTrackSource)
 		: nullptr;
@@ -33,7 +34,7 @@ void DesktopInterface::adaptVideoSource(rtc::scoped_refptr<webrtc::VideoTrackSou
 }
 
 std::unique_ptr<VideoCapturerInterface> DesktopInterface::makeVideoCapturer(rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> source, std::string deviceId, std::function<void(VideoState)> stateUpdated, std::function<void(PlatformCaptureInfo)> captureInfoUpdated, std::shared_ptr<PlatformContext> platformContext, std::pair<int, int> &outResolution) {
-	return std::make_unique<VideoCapturerInterfaceImpl>(source, deviceId, stateUpdated, outResolution);
+	return std::make_unique<VideoCapturerInterfaceImpl>(source, deviceId, stateUpdated, platformContext, outResolution);
 }
 
 std::unique_ptr<PlatformInterface> CreatePlatformInterface() {
