@@ -21,7 +21,7 @@ import importlib
 from importlib.util import find_spec
 from typing import Callable, Optional, Union
 
-from pytgcalls.exception import PytgcallsBaseException, PytgcallsError
+from pytgcalls.exceptions import PytgcallsBaseException, PytgcallsError
 from pytgcalls.group_call_type import GroupCallType
 from pytgcalls.mtproto_client_type import MTProtoClientType
 from pytgcalls.implementation.group_call_file import GroupCallFile

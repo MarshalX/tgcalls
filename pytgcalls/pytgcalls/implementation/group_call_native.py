@@ -22,7 +22,7 @@ import warnings
 from typing import Optional, List
 
 import tgcalls
-from pytgcalls.exception import CallBeforeStartError
+from pytgcalls.exceptions import CallBeforeStartError
 
 logger = logging.getLogger(__name__)
 

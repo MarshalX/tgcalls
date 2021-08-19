@@ -20,7 +20,7 @@
 import logging
 import warnings
 
-from pytgcalls.exception import PytgcallsError
+from pytgcalls.exceptions import PytgcallsError
 from pytgcalls.group_call_factory import GroupCallFactory
 from pytgcalls.implementation.group_call_file import GroupCallFileAction
 from pytgcalls.implementation.group_call import GroupCallAction

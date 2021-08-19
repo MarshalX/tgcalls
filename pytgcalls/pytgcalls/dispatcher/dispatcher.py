@@ -23,7 +23,7 @@ from typing import Callable, List
 
 from typing import TYPE_CHECKING
 
-from ..exception import PytgcallsError
+from ..exceptions import PytgcallsError
 
 if TYPE_CHECKING:
     from . import GroupCallNative
