@@ -95,7 +95,8 @@ app.run_until_disconnected()
 - File (`GroupCallFile`, [playout example](https://github.com/MarshalX/tgcalls/blob/main/examples/file_playout.py),
   [recording example](https://github.com/MarshalX/tgcalls/blob/main/examples/recorder_as_smart_plugin.py))
   — to use any audio files including named pipe (FIFO).
-- Device (`GroupCallDevice`, [example](https://github.com/MarshalX/tgcalls/blob/main/examples/device_playout.py)) — to use microphone, headphones, etc.
+- Device (`GroupCallDevice`, [example](https://github.com/MarshalX/tgcalls/blob/main/examples/device_playout.py)) — 
+to use system virtual devices. Please don't use it with real microphone, headphones, etc.
 - Raw (`GroupCallRaw`, [example of restreaming](https://github.com/MarshalX/tgcalls/blob/main/examples/restream_using_raw_data.py))
   — to send and receive data in `bytes` directly from Python.
 

@@ -44,7 +44,7 @@ setup(
     long_description=readme,
     long_description_content_type='text/markdown',
     packages=packages,
-    install_requires=['tgcalls == 2.0.0.dev3'],
+    install_requires=['tgcalls == 2.0.0'],
     extras_require={
         'pyrogram': ['pyrogram >= 1.2.0'],
         'telethon': ['telethon >= 1.23.0'],
