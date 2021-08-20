@@ -208,7 +208,7 @@ jobs:
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
           CIBW_ENVIRONMENT: 'ROOT_PATH="$GITHUB_WORKSPACE"'
-          CIBW_TEST_COMMAND: 'python3 -c "import tgcalls;tgcalls.ping()"'
+          CIBW_TEST_COMMAND: 'python -c "import tgcalls;tgcalls.ping()"'
           CIBW_BEFORE_BUILD: 'call vcvars32.bat'
         run: |
           pip install cibuildwheel
