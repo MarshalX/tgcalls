@@ -55,12 +55,12 @@ PRIVATE
     VideoCapturerInterface.h
 
     # Desktop capturer
-    desktop_capturer/DesktopCaptureSource.h
-    desktop_capturer/DesktopCaptureSource.cpp
-    desktop_capturer/DesktopCaptureSourceHelper.h
-    desktop_capturer/DesktopCaptureSourceHelper.cpp
-    desktop_capturer/DesktopCaptureSourceManager.h
-    desktop_capturer/DesktopCaptureSourceManager.cpp
+#    desktop_capturer/DesktopCaptureSource.h
+#    desktop_capturer/DesktopCaptureSource.cpp
+#    desktop_capturer/DesktopCaptureSourceHelper.h
+#    desktop_capturer/DesktopCaptureSourceHelper.cpp
+#    desktop_capturer/DesktopCaptureSourceManager.h
+#    desktop_capturer/DesktopCaptureSourceManager.cpp
 
     # Group calls
     group/GroupInstanceCustomImpl.cpp
