@@ -2,8 +2,6 @@
 
 #include <rtc_base/ssl_adapter.h>
 
-#include <utility>
-
 #include "NativeInstance.h"
 
 namespace py = pybind11;
@@ -40,16 +38,11 @@ void NativeInstance::createInstanceHolder(
     std::string initialInputDeviceId = "",
     std::string initialOutputDeviceId = ""
 ) {
-  tgcalls::FilePath logPath = tgcalls::FilePath();
-  logPath.data = _logPath;
-
   tgcalls::GroupInstanceDescriptor descriptor{
       .threads = tgcalls::StaticThreads::getThreads(),
-      .config = {
-          .need_log = true,
-          .logPath = logPath,
-          .logToStdErr = _logToStdErr
-      },
+      .config = tgcalls::GroupConfig{.need_log = true,
+          .logPath = {std::move(_logPath)},
+          .logToStdErr = _logToStdErr},
       .networkStateUpdated =
       [=](tgcalls::GroupNetworkState groupNetworkState) {
         _networkStateUpdated(groupNetworkState.isConnected);
@@ -239,18 +232,14 @@ void NativeInstance::startCall(vector<RtcServer> servers,
       .audioInputId = "VB-Cable",
       //            .audioInputId = "default (Built-in Input)",
       .audioOutputId = "default (Built-in Output)",
+      //            .audioInputId = "0",
+      //            .audioOutputId = "0",
       .inputVolume = 1.f,
-      .outputVolume = 1.f,
-  };
-
-  tgcalls::FilePath statsLogPath = tgcalls::FilePath();
-  statsLogPath.data = "/Users/marshal/projects/tgcalls/python-binding/pytgcalls/tgcalls-stat.txt";
-
-  tgcalls::FilePath logPathStruct = tgcalls::FilePath();
-  logPathStruct.data = std::move(logPath);
+      .outputVolume = 1.f};
 
   tgcalls::Descriptor descriptor = {
-      .config = {
+      .config =
+      tgcalls::Config{
           .initializationTimeout = 1000,
           .receiveTimeout = 1000,
           .dataSaving = tgcalls::DataSaving::Never,
@@ -261,8 +250,9 @@ void NativeInstance::startCall(vector<RtcServer> servers,
           .enableNS = true,
           .enableAGC = true,
           .enableVolumeControl = true,
-          .logPath = logPathStruct,
-          .statsLogPath = statsLogPath,
+          .logPath = {std::move(logPath)},
+          .statsLogPath = {"/Users/marshal/projects/tgcalls/python-binding/"
+                           "pytgcalls/tgcalls-stat.txt"},
           .maxApiLayer = 92,
           .enableHighBitrateVideo = false,
           .preferredVideoCodecs = std::vector<std::string>(),
