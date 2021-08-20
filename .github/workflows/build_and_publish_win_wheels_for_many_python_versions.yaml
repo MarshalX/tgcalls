@@ -51,8 +51,6 @@ jobs:
           p=`pwd | sed 's#^/[d]#d:#g' |sed 's#/#\\\\#g'`
           echo "LibrariesPath=$p" >> $GITHUB_ENV
 
-          git config core.protectNTFS false
-
       - name: Save msbuild version.
         run: |
           call vcvars32.bat
