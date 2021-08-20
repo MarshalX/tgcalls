@@ -28,7 +28,7 @@ DesktopCaptureSourceManager::~DesktopCaptureSourceManager() = default;
 webrtc::DesktopCaptureOptions DesktopCaptureSourceManager::OptionsForType(
     DesktopCaptureType type) {
     auto result = webrtc::DesktopCaptureOptions::CreateDefault();
-#ifdef WEBRTC_WIN
+#ifdef WEBRTC_WIN_TMP
     result.set_allow_directx_capturer(true);
     result.set_allow_use_magnification_api(false);
 #elif defined WEBRTC_MAC
