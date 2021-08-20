@@ -201,12 +201,13 @@ jobs:
 
       - name: Build wheels.
         if: env.BUILD_WHEELS == 'true'
+        working-directory: ${{ github.workspace }}
         env:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
           CIBW_ARCHS: "auto32"
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
-          CIBW_ENVIRONMENT: 'ROOT_PATH="d:\a\tgcalls\tgcalls"' # todo
+          CIBW_ENVIRONMENT: 'ROOT_PATH="$GITHUB_WORKSPACE"'
           CIBW_TEST_COMMAND: 'python3 -c "import tgcalls;tgcalls.ping()"'
           CIBW_BEFORE_BUILD: 'call vcvars32.bat'
         run: |
