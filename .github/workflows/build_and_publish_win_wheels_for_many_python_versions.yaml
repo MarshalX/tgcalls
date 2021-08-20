@@ -40,6 +40,7 @@ jobs:
 
       - name: Set up environment paths.
         shell: bash
+        working-directory: ${{ github.workspace }}
         run: |
           echo "C:\\Strawberry\\perl\\bin\\" >> $GITHUB_PATH
           echo "C:\\Program Files\\NASM\\" >> $GITHUB_PATH
