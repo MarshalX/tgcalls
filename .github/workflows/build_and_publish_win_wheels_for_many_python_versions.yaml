@@ -30,6 +30,7 @@ jobs:
     steps:
       - name: Get repository name.
         shell: bash
+        working-directory: ${{ github.workspace }}
         run: echo "REPO_NAME=${GITHUB_REPOSITORY##*/}" >> $GITHUB_ENV
 
       - uses: ilammy/msvc-dev-cmd@v1.9.0
