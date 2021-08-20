@@ -69,8 +69,8 @@ jobs:
 
       - name: Choco installs.
         run: |
-        choco install --allow-empty-checksums --no-progress -y yasm
-        choco install --no-progress -y nasm jom ninja
+          choco install --allow-empty-checksums --no-progress -y yasm
+          choco install --no-progress -y nasm jom ninja
 
       - name: NuGet sources.
         run: |
