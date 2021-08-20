@@ -212,7 +212,7 @@ bool GetWindowContentRect(HWND window, DesktopRect* result) {
     result->Extend(shrink, 0, shrink, 0);
     // Usually this should not happen, just in case we have received a strange
     // window, which has only left and right borders.
-    if (result->height() > shrink * 2) {
+    if (result->height() + shrink * 2 > 0) {
       result->Extend(0, shrink, 0, shrink);
     }
     RTC_DCHECK(!result->is_empty());

@@ -16,17 +16,19 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
+#include "absl/base/attributes.h"
 #include "api/crypto/crypto_options.h"
 #include "api/dtls_transport_interface.h"
 #include "api/scoped_refptr.h"
 #include "p2p/base/ice_transport_internal.h"
 #include "p2p/base/packet_transport_internal.h"
+#include "rtc_base/callback_list.h"
 #include "rtc_base/constructor_magic.h"
 #include "rtc_base/ssl_certificate.h"
 #include "rtc_base/ssl_fingerprint.h"
 #include "rtc_base/ssl_stream_adapter.h"
-#include "rtc_base/third_party/sigslot/sigslot.h"
 
 namespace cricket {
 
@@ -61,8 +63,6 @@ enum PacketFlags {
 class DtlsTransportInternal : public rtc::PacketTransportInternal {
  public:
   ~DtlsTransportInternal() override;
-
-  virtual const webrtc::CryptoOptions& crypto_options() const = 0;
 
   virtual DtlsTransportState dtls_state() const = 0;
 
@@ -107,21 +107,54 @@ class DtlsTransportInternal : public rtc::PacketTransportInternal {
                                     const uint8_t* digest,
                                     size_t digest_len) = 0;
 
-  virtual bool SetSslMaxProtocolVersion(rtc::SSLProtocolVersion version) = 0;
+  ABSL_DEPRECATED("Set the max version via construction.")
+  bool SetSslMaxProtocolVersion(rtc::SSLProtocolVersion version) {
+    return true;
+  }
 
   // Expose the underneath IceTransport.
   virtual IceTransportInternal* ice_transport() = 0;
 
-  sigslot::signal2<DtlsTransportInternal*, DtlsTransportState> SignalDtlsState;
+  // F: void(DtlsTransportInternal*, const DtlsTransportState)
+  template <typename F>
+  void SubscribeDtlsState(F&& callback) {
+    dtls_state_callback_list_.AddReceiver(std::forward<F>(callback));
+  }
+
+  template <typename F>
+  void SubscribeDtlsState(const void* id, F&& callback) {
+    dtls_state_callback_list_.AddReceiver(id, std::forward<F>(callback));
+  }
+  // Unsubscribe the subscription with given id.
+  void UnsubscribeDtlsState(const void* id) {
+    dtls_state_callback_list_.RemoveReceivers(id);
+  }
+
+  void SendDtlsState(DtlsTransportInternal* transport,
+                     DtlsTransportState state) {
+    dtls_state_callback_list_.Send(transport, state);
+  }
 
   // Emitted whenever the Dtls handshake failed on some transport channel.
-  sigslot::signal1<rtc::SSLHandshakeError> SignalDtlsHandshakeError;
+  // F: void(rtc::SSLHandshakeError)
+  template <typename F>
+  void SubscribeDtlsHandshakeError(F&& callback) {
+    dtls_handshake_error_callback_list_.AddReceiver(std::forward<F>(callback));
+  }
+
+  void SendDtlsHandshakeError(rtc::SSLHandshakeError error) {
+    dtls_handshake_error_callback_list_.Send(error);
+  }
 
  protected:
   DtlsTransportInternal();
 
  private:
   RTC_DISALLOW_COPY_AND_ASSIGN(DtlsTransportInternal);
+  webrtc::CallbackList<const rtc::SSLHandshakeError>
+      dtls_handshake_error_callback_list_;
+  webrtc::CallbackList<DtlsTransportInternal*, const DtlsTransportState>
+      dtls_state_callback_list_;
 };
 
 }  // namespace cricket

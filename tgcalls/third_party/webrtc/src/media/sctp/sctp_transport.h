@@ -96,10 +96,10 @@ class SctpTransport : public SctpTransportInternal,
   void set_debug_name_for_testing(const char* debug_name) override {
     debug_name_ = debug_name;
   }
-  int InjectDataOrNotificationFromSctpForTesting(void* data,
-                                                 size_t length,
-                                                 struct sctp_rcvinfo rcv,
-                                                 int flags);
+  void InjectDataOrNotificationFromSctpForTesting(const void* data,
+                                                  size_t length,
+                                                  struct sctp_rcvinfo rcv,
+                                                  int flags);
 
   // Exposed to allow Post call from c-callbacks.
   // TODO(deadbeef): Remove this or at least make it return a const pointer.
@@ -180,12 +180,12 @@ class SctpTransport : public SctpTransportInternal,
   // Called using |invoker_| to send packet on the network.
   void OnPacketFromSctpToNetwork(const rtc::CopyOnWriteBuffer& buffer);
 
-  // Called on the SCTP thread.
+  // Called on the network thread.
   // Flags are standard socket API flags (RFC 6458).
-  int OnDataOrNotificationFromSctp(void* data,
-                                   size_t length,
-                                   struct sctp_rcvinfo rcv,
-                                   int flags);
+  void OnDataOrNotificationFromSctp(const void* data,
+                                    size_t length,
+                                    struct sctp_rcvinfo rcv,
+                                    int flags);
   // Called using |invoker_| to decide what to do with the data.
   void OnDataFromSctpToTransport(const ReceiveDataParams& params,
                                  const rtc::CopyOnWriteBuffer& buffer);
@@ -281,6 +281,8 @@ class SctpTransport : public SctpTransportInternal,
   // various callbacks.
   uintptr_t id_ = 0;
 
+  friend class SctpTransportMap;
+
   RTC_DISALLOW_COPY_AND_ASSIGN(SctpTransport);
 };
 
@@ -298,6 +300,8 @@ class SctpTransportFactory : public webrtc::SctpTransportFactoryInterface {
  private:
   rtc::Thread* network_thread_;
 };
+
+class SctpTransportMap;
 
 }  // namespace cricket
 

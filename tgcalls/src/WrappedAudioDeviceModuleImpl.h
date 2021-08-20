@@ -18,20 +18,20 @@ public:
   static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> Create(
       AudioLayer,
       webrtc::TaskQueueFactory *,
-      FileAudioDeviceDescriptor *);
+      std::shared_ptr<FileAudioDeviceDescriptor>);
 
   static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> Create(
       AudioLayer,
       webrtc::TaskQueueFactory *,
-      RawAudioDeviceDescriptor *);
+      std::shared_ptr<RawAudioDeviceDescriptor>);
 
   static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> CreateForTest(
       AudioLayer,
       webrtc::TaskQueueFactory *,
-      FileAudioDeviceDescriptor *);
+      std::shared_ptr<FileAudioDeviceDescriptor>);
 
   static rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl> CreateForTest(
       AudioLayer,
       webrtc::TaskQueueFactory *,
-      RawAudioDeviceDescriptor *);
+      std::shared_ptr<RawAudioDeviceDescriptor>);
 };

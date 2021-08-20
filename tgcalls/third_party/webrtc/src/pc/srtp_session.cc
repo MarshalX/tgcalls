@@ -80,6 +80,10 @@ bool SrtpSession::ProtectRtp(void* p, int in_len, int max_len, int* out_len) {
     return false;
   }
 
+  // Note: the need_len differs from the libsrtp recommendatіon to ensure
+  // SRTP_MAX_TRAILER_LEN bytes of free space after the data. WebRTC
+  // never includes a MKI, therefore the amount of bytes added by the
+  // srtp_protect call is known in advance and depends on the cipher suite.
   int need_len = in_len + rtp_auth_tag_len_;  // NOLINT
   if (max_len < need_len) {
     RTC_LOG(LS_WARNING) << "Failed to protect SRTP packet: The buffer length "
@@ -122,6 +126,10 @@ bool SrtpSession::ProtectRtcp(void* p, int in_len, int max_len, int* out_len) {
     return false;
   }
 
+  // Note: the need_len differs from the libsrtp recommendatіon to ensure
+  // SRTP_MAX_TRAILER_LEN bytes of free space after the data. WebRTC
+  // never includes a MKI, therefore the amount of bytes added by the
+  // srtp_protect_rtp call is known in advance and depends on the cipher suite.
   int need_len = in_len + sizeof(uint32_t) + rtcp_auth_tag_len_;  // NOLINT
   if (max_len < need_len) {
     RTC_LOG(LS_WARNING) << "Failed to protect SRTCP packet: The buffer length "
@@ -261,22 +269,12 @@ bool SrtpSession::DoSetKey(int type,
 
   srtp_policy_t policy;
   memset(&policy, 0, sizeof(policy));
-  if (cs == rtc::SRTP_AES128_CM_SHA1_80) {
-    srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&policy.rtp);
-    srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&policy.rtcp);
-  } else if (cs == rtc::SRTP_AES128_CM_SHA1_32) {
-    // RTP HMAC is shortened to 32 bits, but RTCP remains 80 bits.
-    srtp_crypto_policy_set_aes_cm_128_hmac_sha1_32(&policy.rtp);
-    srtp_crypto_policy_set_aes_cm_128_hmac_sha1_80(&policy.rtcp);
-  } else if (cs == rtc::SRTP_AEAD_AES_128_GCM) {
-    srtp_crypto_policy_set_aes_gcm_128_16_auth(&policy.rtp);
-    srtp_crypto_policy_set_aes_gcm_128_16_auth(&policy.rtcp);
-  } else if (cs == rtc::SRTP_AEAD_AES_256_GCM) {
-    srtp_crypto_policy_set_aes_gcm_256_16_auth(&policy.rtp);
-    srtp_crypto_policy_set_aes_gcm_256_16_auth(&policy.rtcp);
-  } else {
-    RTC_LOG(LS_WARNING) << "Failed to " << (session_ ? "update" : "create")
-                        << " SRTP session: unsupported cipher_suite " << cs;
+  if (!(srtp_crypto_policy_set_from_profile_for_rtp(
+            &policy.rtp, (srtp_profile_t)cs) == srtp_err_status_ok &&
+        srtp_crypto_policy_set_from_profile_for_rtcp(
+            &policy.rtcp, (srtp_profile_t)cs) == srtp_err_status_ok)) {
+    RTC_LOG(LS_ERROR) << "Failed to " << (session_ ? "update" : "create")
+                      << " SRTP session: unsupported cipher_suite " << cs;
     return false;
   }
 
@@ -477,9 +475,10 @@ void SrtpSession::DumpPacket(const void* buf, int len, bool outbound) {
   int64_t seconds = (time_of_day / 1000) % 60;
   int64_t millis = time_of_day % 1000;
   RTC_LOG(LS_VERBOSE) << "\n" << (outbound ? "O" : "I") << " "
-    << std::setw(2) << hours << ":" << std::setw(2) << minutes << ":"
-    << std::setw(2) << seconds << "." << std::setw(3)
-    << std::setfill('0') << millis << " "
+    << std::setfill('0') << std::setw(2) << hours << ":"
+    << std::setfill('0') << std::setw(2) << minutes << ":"
+    << std::setfill('0') << std::setw(2) << seconds << "."
+    << std::setfill('0') << std::setw(3) << millis << " "
     << "000000 " << rtc::hex_encode_with_delimiter((const char *)buf, len, ' ')
     << " # RTP_DUMP";
 }

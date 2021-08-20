@@ -19,7 +19,6 @@
 #include "helpers.h"
 #include "modules/audio_device/fine_audio_buffer.h"
 #include "rtc_base/atomic_ops.h"
-#include "rtc_base/bind.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/thread.h"
@@ -508,9 +507,8 @@ void AudioDeviceIOS::HandleInterruptionBegin() {
     RTCLog(@"Stopping the audio unit due to interruption begin.");
     if (!audio_unit_->Stop()) {
       RTCLogError(@"Failed to stop the audio unit for interruption begin.");
-    } else {
-      PrepareForNewStart();
     }
+    PrepareForNewStart();
   }
   is_interrupted_ = true;
 }
@@ -813,8 +811,10 @@ void AudioDeviceIOS::UpdateAudioUnit(bool can_play_or_record) {
     RTCLog(@"Stopping audio unit for UpdateAudioUnit");
     if (!audio_unit_->Stop()) {
       RTCLogError(@"Failed to stop audio unit.");
+      PrepareForNewStart();
       return;
     }
+    PrepareForNewStart();
   }
 
   if (should_uninitialize_audio_unit) {
@@ -835,6 +835,24 @@ bool AudioDeviceIOS::ConfigureAudioSession() {
   [session lockForConfiguration];
   bool success = [session configureWebRTCSession:nil];
   [session unlockForConfiguration];
+  if (success) {
+    has_configured_session_ = true;
+    RTCLog(@"Configured audio session.");
+  } else {
+    RTCLog(@"Failed to configure audio session.");
+  }
+  return success;
+}
+
+bool AudioDeviceIOS::ConfigureAudioSessionLocked() {
+  RTC_DCHECK_RUN_ON(&thread_checker_);
+  RTCLog(@"Configuring audio session.");
+  if (has_configured_session_) {
+    RTCLogWarning(@"Audio session already configured.");
+    return false;
+  }
+  RTC_OBJC_TYPE(RTCAudioSession)* session = [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
+  bool success = [session configureWebRTCSession:nil];
   if (success) {
     has_configured_session_ = true;
     RTCLog(@"Configured audio session.");
@@ -887,7 +905,7 @@ bool AudioDeviceIOS::InitPlayOrRecord() {
   // If we are ready to play or record, and if the audio session can be
   // configured, then initialize the audio unit.
   if (session.canPlayOrRecord) {
-    if (!ConfigureAudioSession()) {
+    if (!ConfigureAudioSessionLocked()) {
       // One possible reason for failure is if an attempt was made to use the
       // audio session during or after a Media Services failure.
       // See AVAudioSessionErrorCodeMediaServicesFailed for details.

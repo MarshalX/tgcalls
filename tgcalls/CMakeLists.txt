@@ -1,7 +1,10 @@
 include(cmake/external_ffmpeg.cmake)
 include(cmake/lib_tgcalls.cmake)
 
+configure_file("${src_loc}/config.h.in" "${src_loc}/config.h")
+
 list(APPEND SOURCES
+    ${src_loc}/config.h
     ${src_loc}/tgcalls.cpp
     ${src_loc}/WrappedAudioDeviceModuleImpl.h
     ${src_loc}/WrappedAudioDeviceModuleImpl.cpp

@@ -53,8 +53,6 @@ struct MediaEngineDependencies {
   std::unique_ptr<webrtc::VideoEncoderFactory> video_encoder_factory;
   std::unique_ptr<webrtc::VideoDecoderFactory> video_decoder_factory;
 
-  std::function<void(uint32_t)> onUnknownAudioSsrc = nullptr;
-
   const webrtc::WebRtcKeyValueConfig* trials = nullptr;
 };
 

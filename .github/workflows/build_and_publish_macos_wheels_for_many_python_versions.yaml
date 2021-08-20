@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - pypi-dev
     paths:
       - '.github/workflows/build_and_publish_macos_wheels_for_many_python_versions.yaml'
       - 'tgcalls/third_party/webrtc/**'
@@ -28,8 +29,8 @@ jobs:
       PREFIX: "/usr/local/macos"
       BUILD_WHEELS: "true"
       UPLOAD_WHEELS: "true"
-      GLOBAL_CACHE_KEY: "1"
-      WEBRTC_CACHE_KEY: "1"
+      GLOBAL_CACHE_KEY: "4"
+      WEBRTC_CACHE_KEY: "2"
 
     steps:
       - name: Get repository name.
@@ -158,7 +159,7 @@ jobs:
 
           git clone https://github.com/FFmpeg/FFmpeg.git ffmpeg
           cd ffmpeg
-          git checkout release/4.2
+          git checkout release/4.4
           PKG_CONFIG_PATH=$PKG_CONFIG_PATH:/usr/local/lib/pkgconfig:/usr/lib/pkgconfig:/usr/X11/lib/pkgconfig
           cp ../patches/macos_yasm_wrap.sh ./
 
@@ -344,6 +345,7 @@ jobs:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
           CIBW_BUILD: cp3*-*
           CIBW_ENVIRONMENT: "ROOT_PATH=$(pwd)"
+          CIBW_TEST_COMMAND: python -c "import tgcalls; tgcalls.ping()"
         run: |
           pip install cibuildwheel
           cibuildwheel --output-dir dist tgcalls
@@ -355,12 +357,19 @@ jobs:
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
           CIBW_ENVIRONMENT: "ROOT_PATH=$(pwd)"
+          CIBW_TEST_COMMAND: python -c "import tgcalls; tgcalls.ping()"
         run: |
           pip install cibuildwheel
           cibuildwheel --output-dir dist tgcalls
 
+      - name: Upload artifacts.
+        uses: actions/upload-artifact@v2
+        with:
+          name: Wheels for macOS
+          path: dist/
+
       - name: Upload wheels to PyPi.
-        if: env.UPLOAD_WHEELS == 'true'
+        if: env.UPLOAD_WHEELS == 'true'  && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/pypi-dev')
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}

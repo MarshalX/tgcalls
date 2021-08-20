@@ -10,6 +10,8 @@ __pycache__/
 
 copy_build.sh
 
+config.h
+
 *.so
 
 *.session
@@ -25,3 +27,4 @@ TODO/
 *.raw
 *.flac
 *.txt
+*.log

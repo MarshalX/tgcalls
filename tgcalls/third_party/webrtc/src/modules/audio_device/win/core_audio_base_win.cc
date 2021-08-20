@@ -536,7 +536,7 @@ bool CoreAudioBase::Init() {
     return false;
   }
   RTC_DLOG(INFO) << "audio session state: " << SessionStateToString(state);
-  //RTC_DCHECK_EQ(state, AudioSessionStateInactive);
+  RTC_DCHECK_EQ(state, AudioSessionStateInactive);
 
   // Register the client to receive notifications of session events, including
   // changes in the stream state.
@@ -958,13 +958,12 @@ void CoreAudioBase::ThreadRun() {
     // Stop audio streaming since something has gone wrong in our main thread
     // loop. Note that, we are still in a "started" state, hence a Stop() call
     // is required to join the thread properly.
-    if (audio_client_) {
-        result = audio_client_->Stop();
-        if (FAILED(result.Error())) {
-            RTC_LOG(LS_ERROR) << "IAudioClient::Stop failed: "
-                << core_audio_utility::ErrorToString(result);
-        }
+    result = audio_client_->Stop();
+    if (FAILED(result.Error())) {
+      RTC_LOG(LS_ERROR) << "IAudioClient::Stop failed: "
+                        << core_audio_utility::ErrorToString(result);
     }
+
     // TODO(henrika): notify clients that something has gone wrong and that
     // this stream should be destroyed instead of reused in the future.
   }

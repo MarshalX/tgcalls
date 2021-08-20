@@ -29,6 +29,8 @@
 - (void)internalSetOnOrientationUpdated:(void (^ _Nullable)(int, CGFloat))onOrientationUpdated;
 - (void)internalSetOnIsMirroredUpdated:(void (^ _Nullable)(bool))onIsMirroredUpdated;
 
+- (void)setClone:(VideoMetalView * _Nullable)clone;
+
 @end
 
 #endif //WEBRTC_IOS

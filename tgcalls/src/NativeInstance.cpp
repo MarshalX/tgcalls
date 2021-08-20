@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <rtc_base/ssl_adapter.h>
 
 #include <utility>
@@ -6,16 +8,15 @@
 
 namespace py = pybind11;
 
-std::string license = "GNU Lesser General Public License v3 (LGPLv3)";
-std::string copyright =
-    "Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>";
 auto noticeDisplayed = false;
 
 NativeInstance::NativeInstance(bool logToStdErr, string logPath)
     : _logToStdErr(logToStdErr), _logPath(std::move(logPath)) {
   if (!noticeDisplayed) {
-    py::print("tgcalls BETA, " + copyright);
-    py::print("Licensed under the terms of the " + license + "\n\n");
+    auto ver = std::string(PROJECT_VER);
+    auto dev = std::count(ver.begin(), ver.end(), '.') == 3 ? " DEV" : "";
+    py::print("tgcalls v" + ver + dev + ", Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>");
+    py::print("Licensed under the terms of the GNU Lesser General Public License v3 (LGPLv3) \n\n");
 
     noticeDisplayed = true;
   }
@@ -23,22 +24,21 @@ NativeInstance::NativeInstance(bool logToStdErr, string logPath)
 //    tgcalls::Register<tgcalls::InstanceImpl>();
 }
 
-NativeInstance::~NativeInstance() {
-  _audioDeviceModule = nullptr;
-}
+NativeInstance::~NativeInstance() = default;
 
 void NativeInstance::setupGroupCall(
     std::function<void(tgcalls::GroupJoinPayload)> &emitJoinPayloadCallback,
     std::function<void(bool)> &networkStateUpdated,
-    std::function<void(std::vector<uint32_t> const &)>
-    &participantDescriptionsRequired) {
+    int outgoingAudioBitrateKbit) {
   _emitJoinPayloadCallback = emitJoinPayloadCallback;
   _networkStateUpdated = networkStateUpdated;
-  _participantDescriptionsRequired = participantDescriptionsRequired;
+  _outgoingAudioBitrateKbit = outgoingAudioBitrateKbit;
 }
 
 void NativeInstance::createInstanceHolder(
-    std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory *)> createAudioDeviceModule
+    std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory *)> createAudioDeviceModule,
+    std::string initialInputDeviceId = "",
+    std::string initialOutputDeviceId = ""
 ) {
   tgcalls::FilePath logPath = tgcalls::FilePath();
   logPath.data = _logPath;
@@ -55,12 +55,17 @@ void NativeInstance::createInstanceHolder(
         _networkStateUpdated(groupNetworkState.isConnected);
       },
       .audioLevelsUpdated =
-      [=](tgcalls::GroupLevelsUpdate const &update) {}, // TODO may be
+      [=](tgcalls::GroupLevelsUpdate const &update) {}, // its necessary for audio analyzing (VAD)
+      .initialInputDeviceId = std::move(initialInputDeviceId),
+      .initialOutputDeviceId = std::move(initialOutputDeviceId),
       .createAudioDeviceModule = std::move(createAudioDeviceModule),
-      .participantDescriptionsRequired =
-      [=](std::vector<uint32_t> const &ssrcs) {
-        _participantDescriptionsRequired(ssrcs);
-      },
+      .outgoingAudioBitrateKbit=_outgoingAudioBitrateKbit,
+      .disableOutgoingAudioProcessing=true,
+      // deprecated
+//      .participantDescriptionsRequired =
+//      [=](std::vector<uint32_t> const &ssrcs) {
+//        _participantDescriptionsRequired(ssrcs);
+//      },
       //        .requestBroadcastPart = [=](int64_t time, int64_t period,
       //        std::function<void(tgcalls::BroadcastPart &&)> done) {},
   };
@@ -74,45 +79,49 @@ void NativeInstance::createInstanceHolder(
   );
 }
 
-void NativeInstance::startGroupCall(FileAudioDeviceDescriptor &fileAudioDeviceDescriptor) {
+void NativeInstance::startGroupCall(std::shared_ptr<FileAudioDeviceDescriptor> fileAudioDeviceDescriptor) {
+  _fileAudioDeviceDescriptor = std::move(fileAudioDeviceDescriptor);
   createInstanceHolder(
       [&](webrtc::TaskQueueFactory *taskQueueFactory) -> rtc::scoped_refptr<webrtc::AudioDeviceModule> {
-        _audioDeviceModule = WrappedAudioDeviceModuleImpl::Create(
-            webrtc::AudioDeviceModule::kDummyAudio, taskQueueFactory, &fileAudioDeviceDescriptor
+        return WrappedAudioDeviceModuleImpl::Create(
+            webrtc::AudioDeviceModule::kDummyAudio, taskQueueFactory, std::move(_fileAudioDeviceDescriptor)
         );
-
-        return _audioDeviceModule;
       });
 }
 
-void NativeInstance::startGroupCall(RawAudioDeviceDescriptor &rawAudioDeviceDescriptor) {
+void NativeInstance::startGroupCall(std::shared_ptr<RawAudioDeviceDescriptor> rawAudioDeviceDescriptor) {
+  _rawAudioDeviceDescriptor = std::move(rawAudioDeviceDescriptor);
   createInstanceHolder(
       [&](webrtc::TaskQueueFactory *taskQueueFactory) -> rtc::scoped_refptr<webrtc::AudioDeviceModule> {
-        _audioDeviceModule = WrappedAudioDeviceModuleImpl::Create(
-            webrtc::AudioDeviceModule::kDummyAudio, taskQueueFactory, &rawAudioDeviceDescriptor
+        return WrappedAudioDeviceModuleImpl::Create(
+            webrtc::AudioDeviceModule::kDummyAudio, taskQueueFactory, std::move(_rawAudioDeviceDescriptor)
         );
-
-        return _audioDeviceModule;
       });
+}
+
+void NativeInstance::startGroupCall(std::string initialInputDeviceId = "", std::string initialOutputDeviceId = "") {
+  createInstanceHolder(
+      [&](webrtc::TaskQueueFactory *taskQueueFactory) -> rtc::scoped_refptr<webrtc::AudioDeviceModule> {
+        return webrtc::AudioDeviceModule::Create(
+            webrtc::AudioDeviceModule::kPlatformDefaultAudio, taskQueueFactory
+        );
+      }, std::move(initialInputDeviceId), std::move(initialOutputDeviceId));
 }
 
 void NativeInstance::stopGroupCall() const {
-  instanceHolder->groupNativeInstance.reset();
+  instanceHolder->groupNativeInstance = nullptr;
 }
 
-bool NativeInstance::isGroupCallStarted() const {
+bool NativeInstance::isGroupCallNativeCreated() const {
   return instanceHolder != nullptr && instanceHolder->groupNativeInstance != nullptr;
 }
 
-void NativeInstance::emitJoinPayload(std::function<void(tgcalls::GroupJoinPayload)> &f) const {
+void NativeInstance::emitJoinPayload(std::function<void(tgcalls::GroupJoinPayload)> const &f) const {
   instanceHolder->groupNativeInstance->emitJoinPayload(f);
 }
 
-void NativeInstance::setJoinResponsePayload(
-    tgcalls::GroupJoinResponsePayload payload,
-    std::vector<tgcalls::GroupParticipantDescription> &&participants) const {
-  instanceHolder->groupNativeInstance->setJoinResponsePayload(
-      std::move(payload), std::move(participants));
+void NativeInstance::setJoinResponsePayload(std::string const &payload) const {
+  instanceHolder->groupNativeInstance->setJoinResponsePayload(payload);
 }
 
 void NativeInstance::setIsMuted(bool isMuted) const {
@@ -130,40 +139,85 @@ void NativeInstance::setConnectionMode(
       connectionMode, keepBroadcastIfWasEnabled);
 }
 
-void NativeInstance::restartAudioInputDevice() const {
-  instanceHolder->groupNativeInstance->_internal->perform(
-      RTC_FROM_HERE,
-      [=](tgcalls::GroupInstanceCustomInternal *internal) {
-        if (!_audioDeviceModule) {
+void NativeInstance::stopAudioDeviceModule() const {
+  instanceHolder->groupNativeInstance->performWithAudioDeviceModule(
+      [&](const rtc::scoped_refptr<tgcalls::WrappedAudioDeviceModule>& audioDeviceModule) {
+        if (!audioDeviceModule) {
           return;
         }
 
-        const auto recording = _audioDeviceModule->Recording();
+        audioDeviceModule->StopRecording();
+        audioDeviceModule->StopPlayout();
+//        audioDeviceModule->Stop();
+      }
+  );
+}
+
+void NativeInstance::startAudioDeviceModule() const {
+  instanceHolder->groupNativeInstance->performWithAudioDeviceModule(
+      [&](const rtc::scoped_refptr<tgcalls::WrappedAudioDeviceModule>& audioDeviceModule) {
+        if (!audioDeviceModule) {
+          return;
+        }
+
+        if (!audioDeviceModule->Recording()) {
+          audioDeviceModule->StartRecording();
+        }
+        if (!audioDeviceModule->Playing()){
+          audioDeviceModule->StartPlayout();
+        }
+      }
+  );
+}
+
+void NativeInstance::restartAudioInputDevice() const {
+  instanceHolder->groupNativeInstance->performWithAudioDeviceModule(
+      [&](const rtc::scoped_refptr<tgcalls::WrappedAudioDeviceModule>& audioDeviceModule) {
+        if (!audioDeviceModule) {
+          return;
+        }
+
+        const auto recording = audioDeviceModule->Recording();
         if (recording) {
-          _audioDeviceModule->StopRecording();
+          audioDeviceModule->StopRecording();
         }
-        if (recording && _audioDeviceModule->InitRecording() == 0) {
-          _audioDeviceModule->StartRecording();
+        if (recording && audioDeviceModule->InitRecording() == 0) {
+          audioDeviceModule->StartRecording();
         }
-      });
+      }
+  );
 }
 
 void NativeInstance::restartAudioOutputDevice() const {
-  instanceHolder->groupNativeInstance->_internal->perform(
-      RTC_FROM_HERE,
-      [=](tgcalls::GroupInstanceCustomInternal *internal) {
-        if (!_audioDeviceModule) {
+  instanceHolder->groupNativeInstance->performWithAudioDeviceModule(
+      [&](const rtc::scoped_refptr<tgcalls::WrappedAudioDeviceModule>& audioDeviceModule) {
+        if (!audioDeviceModule) {
           return;
         }
 
-        if (_audioDeviceModule->Playing()) {
-          _audioDeviceModule->StopPlayout();
+        if (audioDeviceModule->Playing()) {
+          audioDeviceModule->StopPlayout();
         }
-        if (_audioDeviceModule->InitPlayout() == 0) {
-          _audioDeviceModule->StartPlayout();
+        if (audioDeviceModule->InitPlayout() == 0) {
+          audioDeviceModule->StartPlayout();
         }
-      });
+      }
+  );
 }
+
+std::vector<tgcalls::GroupInstanceInterface::AudioDevice> NativeInstance::getPlayoutDevices() const {
+  return instanceHolder->groupNativeInstance->getAudioDevices(
+      tgcalls::GroupInstanceInterface::AudioDevice::Type::Output
+  );
+}
+
+
+std::vector<tgcalls::GroupInstanceInterface::AudioDevice> NativeInstance::getRecordingDevices() const {
+  return instanceHolder->groupNativeInstance->getAudioDevices(
+      tgcalls::GroupInstanceInterface::AudioDevice::Type::Input
+  );
+}
+
 
 void NativeInstance::setAudioOutputDevice(std::string id) const {
   instanceHolder->groupNativeInstance->setAudioOutputDevice(std::move(id));
@@ -171,15 +225,6 @@ void NativeInstance::setAudioOutputDevice(std::string id) const {
 
 void NativeInstance::setAudioInputDevice(std::string id) const {
   instanceHolder->groupNativeInstance->setAudioInputDevice(std::move(id));
-}
-
-void NativeInstance::removeSsrcs(std::vector<uint32_t> ssrcs) const {
-  instanceHolder->groupNativeInstance->removeSsrcs(std::move(ssrcs));
-}
-
-void NativeInstance::addParticipants(
-    std::vector<tgcalls::GroupParticipantDescription> &&participants) const {
-  instanceHolder->groupNativeInstance->addParticipants(std::move(participants));
 }
 
 void NativeInstance::startCall(vector<RtcServer> servers,

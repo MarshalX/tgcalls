@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - dev
     paths:
       - '.github/workflows/build_and_push_manylinux_webrtc_entrypoint_images.yaml'
       - 'build/manylinux/Dockerfile'

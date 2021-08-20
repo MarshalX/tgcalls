@@ -62,6 +62,14 @@ TaskQueuePacedSender::~TaskQueuePacedSender() {
   });
 }
 
+void TaskQueuePacedSender::EnsureStarted() {
+  task_queue_.PostTask([this]() {
+    RTC_DCHECK_RUN_ON(&task_queue_);
+    is_started_ = true;
+    MaybeProcessPackets(Timestamp::MinusInfinity());
+  });
+}
+
 void TaskQueuePacedSender::CreateProbeCluster(DataRate bitrate,
                                               int cluster_id) {
   task_queue_.PostTask([this, bitrate, cluster_id]() {
@@ -136,6 +144,7 @@ void TaskQueuePacedSender::EnqueuePackets(
   task_queue_.PostTask([this, packets_ = std::move(packets)]() mutable {
     RTC_DCHECK_RUN_ON(&task_queue_);
     for (auto& packet : packets_) {
+      RTC_DCHECK_GE(packet->capture_time_ms(), 0);
       pacing_controller_.EnqueuePacket(std::move(packet));
     }
     MaybeProcessPackets(Timestamp::MinusInfinity());
@@ -196,7 +205,7 @@ void TaskQueuePacedSender::MaybeProcessPackets(
     Timestamp scheduled_process_time) {
   RTC_DCHECK_RUN_ON(&task_queue_);
 
-  if (is_shutdown_) {
+  if (is_shutdown_ || !is_started_) {
     return;
   }
 

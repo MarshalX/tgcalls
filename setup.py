@@ -1,7 +1,29 @@
 # -*- coding: utf-8 -*-
+
+#  tgcalls - a Python binding for C++ library by Telegram
+#  pytgcalls - a library connecting the Python binding with MTProto
+#  Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>
+#
+#  This file is part of tgcalls and pytgcalls.
+#
+#  tgcalls and pytgcalls is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU Lesser General Public License as published
+#  by the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  tgcalls and pytgcalls is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU Lesser General Public License for more details.
+#
+#  You should have received a copy of the GNU Lesser General Public License v3
+#  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
+
 import os
+import re
 import sys
 import subprocess
+from os import path
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
@@ -13,6 +35,8 @@ PLAT_TO_CMAKE = {
     'win-arm32': 'ARM',
     'win-arm64': 'ARM64',
 }
+
+base_path = path.abspath(path.dirname(__file__))
 
 
 # A CMakeExtension needs a sourcedir instead of a file list.
@@ -58,7 +82,6 @@ class CMakeBuild(build_ext):
         cmake_args = [
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={}'.format(extdir),
             '-DPYTHON_EXECUTABLE={}'.format(sys.executable),
-            '-DEXAMPLE_VERSION_INFO={}'.format(self.distribution.get_version()),
             '-DCMAKE_BUILD_TYPE={}'.format(cfg),  # not used on MSVC, but no harm
         ]
         build_args = []
@@ -113,27 +136,37 @@ class CMakeBuild(build_ext):
         )
 
 
-with open('README.md', 'r', encoding='utf-8') as f:
+with open(path.join(base_path, 'CMakeLists.txt'), 'r', encoding='utf-8') as f:
+    regex = re.compile(r'VERSION "([A-Za-z0-9.]+)"$', re.MULTILINE)
+    version = re.findall(regex, f.read())[0]
+
+    if version.count('.') == 3:
+        major, minor, path_, tweak = version.split('.')
+        version = f'{major}.{minor}.{path_}.dev{tweak}'
+
+with open(path.join(base_path, 'README.md'), 'r', encoding='utf-8') as f:
     readme = f.read()
 
 setup(
     name='tgcalls',
-    version='0.0.12',
+    version=version,
     author='Il`ya Semyonov',
     author_email='ilya@marshal.dev',
     license='LGPLv3',
     url='https://github.com/MarshalX/tgcalls',
     keywords='python, library, telegram, async, asynchronous, webrtc, lib, voice-chat, '
-             'voip, group-chat, video-call, calls, pyrogram, pytgcalls, tgcalls',
-    description='A python binding for tgcalls',
+    'voip, group-chat, video-call, calls, pyrogram, telethon, pytgcalls, tgcalls',
+    description='a Python binding for tgcalls C++ library',
     long_description=readme,
     long_description_content_type='text/markdown',
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Natural Language :: English',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
         'Operating System :: OS Independent',
+        'Operating System :: MacOS',
+        'Operating System :: Unix',
         'Topic :: Internet',
         'Topic :: Multimedia',
         'Topic :: Multimedia :: Video',
@@ -156,12 +189,13 @@ setup(
         "Programming Language :: Python :: Implementation",
         "Programming Language :: Python :: Implementation :: CPython",
     ],
+    python_requires="~=3.6",
     ext_modules=[CMakeExtension('tgcalls')],
     cmdclass={'build_ext': CMakeBuild},
     zip_safe=False,
     project_urls={
-        'Author': 'https://github.com/MarshalX',
         'Telegram Channel': 'https://t.me/tgcallslib',
         'Telegram Chat': 'https://t.me/tgcallschat',
+        'Author': 'https://github.com/MarshalX',
     }
 )

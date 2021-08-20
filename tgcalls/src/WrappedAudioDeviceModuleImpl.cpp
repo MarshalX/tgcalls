@@ -3,25 +3,25 @@
 rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl>
 WrappedAudioDeviceModuleImpl::Create(
     AudioLayer audio_layer, webrtc::TaskQueueFactory *task_queue_factory,
-    FileAudioDeviceDescriptor *fileAudioDeviceDescriptor) {
+    std::shared_ptr<FileAudioDeviceDescriptor> fileAudioDeviceDescriptor) {
   RTC_LOG(INFO) << __FUNCTION__;
   return WrappedAudioDeviceModuleImpl::CreateForTest(
-      audio_layer, task_queue_factory, fileAudioDeviceDescriptor);
+      audio_layer, task_queue_factory, std::move(fileAudioDeviceDescriptor));
 }
 
 rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl>
 WrappedAudioDeviceModuleImpl::Create(
     AudioLayer audio_layer, webrtc::TaskQueueFactory *task_queue_factory,
-    RawAudioDeviceDescriptor *rawAudioDeviceDescriptor) {
+    std::shared_ptr<RawAudioDeviceDescriptor> rawAudioDeviceDescriptor) {
   RTC_LOG(INFO) << __FUNCTION__;
   return WrappedAudioDeviceModuleImpl::CreateForTest(
-      audio_layer, task_queue_factory, rawAudioDeviceDescriptor);
+      audio_layer, task_queue_factory, std::move(rawAudioDeviceDescriptor));
 }
 
 rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl>
 WrappedAudioDeviceModuleImpl::CreateForTest(
     AudioLayer audio_layer, webrtc::TaskQueueFactory *task_queue_factory,
-    FileAudioDeviceDescriptor *fileAudioDeviceDescriptor) {
+    std::shared_ptr<FileAudioDeviceDescriptor> fileAudioDeviceDescriptor) {
   RTC_LOG(INFO) << __FUNCTION__;
 
   // Create the generic reference counted (platform independent) implementation.
@@ -34,7 +34,7 @@ WrappedAudioDeviceModuleImpl::CreateForTest(
     return nullptr;
   }
 
-  audioDevice->ResetAudioDevice(new FileAudioDevice(fileAudioDeviceDescriptor));
+  audioDevice->ResetAudioDevice(new FileAudioDevice(std::move(fileAudioDeviceDescriptor)));
 
   // Ensure that the generic audio buffer can communicate with the platform
   // specific parts.
@@ -48,7 +48,7 @@ WrappedAudioDeviceModuleImpl::CreateForTest(
 rtc::scoped_refptr<webrtc::AudioDeviceModuleImpl>
 WrappedAudioDeviceModuleImpl::CreateForTest(
     AudioLayer audio_layer, webrtc::TaskQueueFactory *task_queue_factory,
-    RawAudioDeviceDescriptor *rawAudioDeviceDescriptor) {
+    std::shared_ptr<RawAudioDeviceDescriptor> rawAudioDeviceDescriptor) {
   RTC_LOG(INFO) << __FUNCTION__;
 
   // Create the generic reference counted (platform independent) implementation.
@@ -61,7 +61,7 @@ WrappedAudioDeviceModuleImpl::CreateForTest(
     return nullptr;
   }
 
-  audioDevice->ResetAudioDevice(new RawAudioDevice(rawAudioDeviceDescriptor));
+  audioDevice->ResetAudioDevice(new RawAudioDevice(std::move(rawAudioDeviceDescriptor)));
 
   // Ensure that the generic audio buffer can communicate with the platform
   // specific parts.

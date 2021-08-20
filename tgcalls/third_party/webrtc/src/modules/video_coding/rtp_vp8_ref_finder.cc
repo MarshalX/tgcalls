@@ -15,7 +15,6 @@
 #include "rtc_base/logging.h"
 
 namespace webrtc {
-namespace video_coding {
 
 RtpFrameReferenceFinder::ReturnVector RtpVp8RefFinder::ManageFrame(
     std::unique_ptr<RtpFrameObject> frame) {
@@ -49,14 +48,15 @@ RtpVp8RefFinder::FrameDecision RtpVp8RefFinder::ManageFrameInternal(
   if (codec_header.temporalIdx >= kMaxTemporalLayers)
     return kDrop;
 
-  frame->id.picture_id = codec_header.pictureId & 0x7FFF;
+  frame->SetSpatialIndex(0);
+  frame->SetId(codec_header.pictureId & 0x7FFF);
 
   if (last_picture_id_ == -1)
-    last_picture_id_ = frame->id.picture_id;
+    last_picture_id_ = frame->Id();
 
   // Clean up info about not yet received frames that are too old.
   uint16_t old_picture_id =
-      Subtract<kFrameIdLength>(frame->id.picture_id, kMaxNotYetReceivedFrames);
+      Subtract<kFrameIdLength>(frame->Id(), kMaxNotYetReceivedFrames);
   auto clean_frames_to = not_yet_received_frames_.lower_bound(old_picture_id);
   not_yet_received_frames_.erase(not_yet_received_frames_.begin(),
                                  clean_frames_to);
@@ -66,12 +66,11 @@ RtpVp8RefFinder::FrameDecision RtpVp8RefFinder::ManageFrameInternal(
   }
   // Find if there has been a gap in fully received frames and save the picture
   // id of those frames in |not_yet_received_frames_|.
-  if (AheadOf<uint16_t, kFrameIdLength>(frame->id.picture_id,
-                                        last_picture_id_)) {
+  if (AheadOf<uint16_t, kFrameIdLength>(frame->Id(), last_picture_id_)) {
     do {
       last_picture_id_ = Add<kFrameIdLength>(last_picture_id_, 1);
       not_yet_received_frames_.insert(last_picture_id_);
-    } while (last_picture_id_ != frame->id.picture_id);
+    } while (last_picture_id_ != frame->Id());
   }
 
   int64_t unwrapped_tl0 = tl0_unwrapper_.Unwrap(codec_header.tl0PicIdx & 0xFF);
@@ -109,8 +108,7 @@ RtpVp8RefFinder::FrameDecision RtpVp8RefFinder::ManageFrameInternal(
 
     // Is this an old frame that has already been used to update the state? If
     // so, drop it.
-    if (AheadOrAt<uint16_t, kFrameIdLength>(last_pid_on_layer,
-                                            frame->id.picture_id)) {
+    if (AheadOrAt<uint16_t, kFrameIdLength>(last_pid_on_layer, frame->Id())) {
       return kDrop;
     }
 
@@ -127,8 +125,7 @@ RtpVp8RefFinder::FrameDecision RtpVp8RefFinder::ManageFrameInternal(
     // Is this an old frame that has already been used to update the state? If
     // so, drop it.
     if (last_pid_on_layer != -1 &&
-        AheadOrAt<uint16_t, kFrameIdLength>(last_pid_on_layer,
-                                            frame->id.picture_id)) {
+        AheadOrAt<uint16_t, kFrameIdLength>(last_pid_on_layer, frame->Id())) {
       return kDrop;
     }
 
@@ -149,7 +146,7 @@ RtpVp8RefFinder::FrameDecision RtpVp8RefFinder::ManageFrameInternal(
     // a layer sync frame has been received after this frame for the same
     // base layer frame, drop this frame.
     if (AheadOf<uint16_t, kFrameIdLength>(layer_info_it->second[layer],
-                                          frame->id.picture_id)) {
+                                          frame->Id())) {
       return kDrop;
     }
 
@@ -158,14 +155,14 @@ RtpVp8RefFinder::FrameDecision RtpVp8RefFinder::ManageFrameInternal(
     auto not_received_frame_it =
         not_yet_received_frames_.upper_bound(layer_info_it->second[layer]);
     if (not_received_frame_it != not_yet_received_frames_.end() &&
-        AheadOf<uint16_t, kFrameIdLength>(frame->id.picture_id,
+        AheadOf<uint16_t, kFrameIdLength>(frame->Id(),
                                           *not_received_frame_it)) {
       return kStash;
     }
 
-    if (!(AheadOf<uint16_t, kFrameIdLength>(frame->id.picture_id,
+    if (!(AheadOf<uint16_t, kFrameIdLength>(frame->Id(),
                                             layer_info_it->second[layer]))) {
-      RTC_LOG(LS_WARNING) << "Frame with picture id " << frame->id.picture_id
+      RTC_LOG(LS_WARNING) << "Frame with picture id " << frame->Id()
                           << " and packet range [" << frame->first_seq_num()
                           << ", " << frame->last_seq_num()
                           << "] already received, "
@@ -190,17 +187,17 @@ void RtpVp8RefFinder::UpdateLayerInfoVp8(RtpFrameObject* frame,
   while (layer_info_it != layer_info_.end()) {
     if (layer_info_it->second[temporal_idx] != -1 &&
         AheadOf<uint16_t, kFrameIdLength>(layer_info_it->second[temporal_idx],
-                                          frame->id.picture_id)) {
+                                          frame->Id())) {
       // The frame was not newer, then no subsequent layer info have to be
       // update.
       break;
     }
 
-    layer_info_it->second[temporal_idx] = frame->id.picture_id;
+    layer_info_it->second[temporal_idx] = frame->Id();
     ++unwrapped_tl0;
     layer_info_it = layer_info_.find(unwrapped_tl0);
   }
-  not_yet_received_frames_.erase(frame->id.picture_id);
+  not_yet_received_frames_.erase(frame->Id());
 
   UnwrapPictureIds(frame);
 }
@@ -232,7 +229,7 @@ void RtpVp8RefFinder::RetryStashedFrames(
 void RtpVp8RefFinder::UnwrapPictureIds(RtpFrameObject* frame) {
   for (size_t i = 0; i < frame->num_references; ++i)
     frame->references[i] = unwrapper_.Unwrap(frame->references[i]);
-  frame->id.picture_id = unwrapper_.Unwrap(frame->id.picture_id);
+  frame->SetId(unwrapper_.Unwrap(frame->Id()));
 }
 
 void RtpVp8RefFinder::ClearTo(uint16_t seq_num) {
@@ -246,5 +243,4 @@ void RtpVp8RefFinder::ClearTo(uint16_t seq_num) {
   }
 }
 
-}  // namespace video_coding
 }  // namespace webrtc

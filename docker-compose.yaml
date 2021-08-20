@@ -1,0 +1,34 @@
+version: "3.0"
+services:
+  tgcalls_x86_64:
+    build:
+      context: .
+      dockerfile: build/manylinux/dev/Dockerfile
+      args:
+        MANYLINUX_PLATFORM: manylinux2014_x86_64
+    command: ["cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39", "manylinux2014_x86_64"]
+    environment:
+      - ROOT_PATH=/usr/src
+    volumes:
+      - ./dist:/usr/src/dist
+  tgcalls_aarch64:
+    build:
+      context: .
+      dockerfile: build/manylinux/dev/Dockerfile
+      args:
+        MANYLINUX_PLATFORM: manylinux2014_aarch64
+    command: ["cp36-cp36m cp37-cp37m cp38-cp38 cp39-cp39", "manylinux2014_aarch64"]
+    environment:
+      - ROOT_PATH=/usr/src
+    volumes:
+      - ./dist:/usr/src/dist
+  tgcalls_ubuntu:
+    build:
+      context: .
+      dockerfile: build/ubuntu/Dockerfile
+    env_file: pytgcalls/.env
+#    command: tail -F anything
+    command: python3 pytgcalls/test3.py
+    volumes:
+      - ./dist:/usr/src/dist
+      - ./pytgcalls:/usr/src/tgcalls/pytgcalls

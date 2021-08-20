@@ -14,9 +14,9 @@
 #include <vector>
 
 #include "api/scoped_refptr.h"
+#include "api/sequence_checker.h"
 #include "rtc_base/constructor_magic.h"
 #include "rtc_base/synchronization/mutex.h"
-#include "rtc_base/thread_checker.h"
 
 // Forward declaration to avoid pulling in libsrtp headers here
 struct srtp_event_data_t;
@@ -124,10 +124,16 @@ class SrtpSession {
   void HandleEvent(const srtp_event_data_t* ev);
   static void HandleEventThunk(srtp_event_data_t* ev);
 
-  rtc::ThreadChecker thread_checker_;
+  webrtc::SequenceChecker thread_checker_;
   srtp_ctx_t_* session_ = nullptr;
+
+  // Overhead of the SRTP auth tag for RTP and RTCP in bytes.
+  // Depends on the cipher suite used and is usually the same with the exception
+  // of the CS_AES_CM_128_HMAC_SHA1_32 cipher suite. The additional four bytes
+  // required for RTCP protection are not included.
   int rtp_auth_tag_len_ = 0;
   int rtcp_auth_tag_len_ = 0;
+
   bool inited_ = false;
   static webrtc::GlobalMutex lock_;
   int last_send_seq_num_ = -1;

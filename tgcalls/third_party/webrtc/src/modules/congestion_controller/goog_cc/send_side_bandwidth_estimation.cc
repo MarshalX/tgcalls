@@ -226,6 +226,7 @@ SendSideBandwidthEstimation::SendSideBandwidthEstimation(
       low_loss_threshold_(kDefaultLowLossThreshold),
       high_loss_threshold_(kDefaultHighLossThreshold),
       bitrate_threshold_(kDefaultBitrateThreshold),
+      loss_based_bandwidth_estimation_(key_value_config),
       receiver_limit_caps_only_("Enabled") {
   RTC_DCHECK(event_log);
   if (BweLossExperimentIsEnabled()) {
@@ -287,9 +288,6 @@ void SendSideBandwidthEstimation::SetSendBitrate(DataRate bitrate,
   RTC_DCHECK_GT(bitrate, DataRate::Zero());
   // Reset to avoid being capped by the estimate.
   delay_based_limit_ = DataRate::PlusInfinity();
-  if (loss_based_bandwidth_estimation_.Enabled()) {
-    loss_based_bandwidth_estimation_.MaybeReset(bitrate);
-  }
   UpdateTargetBitrate(bitrate, at_time);
   // Clear last sent bitrate history so the new value can be used directly
   // and not capped.
@@ -357,8 +355,8 @@ void SendSideBandwidthEstimation::IncomingPacketFeedbackVector(
   }
 }
 
-void SendSideBandwidthEstimation::UpdatePacketsLost(int packets_lost,
-                                                    int number_of_packets,
+void SendSideBandwidthEstimation::UpdatePacketsLost(int64_t packets_lost,
+                                                    int64_t number_of_packets,
                                                     Timestamp at_time) {
   last_loss_feedback_ = at_time;
   if (first_report_time_.IsInfinite())
@@ -366,21 +364,23 @@ void SendSideBandwidthEstimation::UpdatePacketsLost(int packets_lost,
 
   // Check sequence number diff and weight loss report
   if (number_of_packets > 0) {
-    // Accumulate reports.
-    lost_packets_since_last_loss_update_ += packets_lost;
-    expected_packets_since_last_loss_update_ += number_of_packets;
+    int64_t expected =
+        expected_packets_since_last_loss_update_ + number_of_packets;
 
     // Don't generate a loss rate until it can be based on enough packets.
-    if (expected_packets_since_last_loss_update_ < kLimitNumPackets)
+    if (expected < kLimitNumPackets) {
+      // Accumulate reports.
+      expected_packets_since_last_loss_update_ = expected;
+      lost_packets_since_last_loss_update_ += packets_lost;
       return;
+    }
 
     has_decreased_since_last_fraction_loss_ = false;
-    int64_t lost_q8 = lost_packets_since_last_loss_update_ << 8;
-    int64_t expected = expected_packets_since_last_loss_update_;
+    int64_t lost_q8 = (lost_packets_since_last_loss_update_ + packets_lost)
+                      << 8;
     last_fraction_loss_ = std::min<int>(lost_q8 / expected, 255);
 
     // Reset accumulators.
-
     lost_packets_since_last_loss_update_ = 0;
     expected_packets_since_last_loss_update_ = 0;
     last_loss_packet_report_ = at_time;
@@ -460,7 +460,7 @@ void SendSideBandwidthEstimation::UpdateEstimate(Timestamp at_time) {
     if (delay_based_limit_.IsFinite())
       new_bitrate = std::max(delay_based_limit_, new_bitrate);
     if (loss_based_bandwidth_estimation_.Enabled()) {
-      loss_based_bandwidth_estimation_.SetInitialBitrate(new_bitrate);
+      loss_based_bandwidth_estimation_.Initialize(new_bitrate);
     }
 
     if (new_bitrate != current_target_) {
@@ -483,10 +483,10 @@ void SendSideBandwidthEstimation::UpdateEstimate(Timestamp at_time) {
     return;
   }
 
-  if (loss_based_bandwidth_estimation_.Enabled()) {
-    loss_based_bandwidth_estimation_.Update(
-        at_time, min_bitrate_history_.front().second, last_round_trip_time_);
-    DataRate new_bitrate = MaybeRampupOrBackoff(current_target_, at_time);
+  if (loss_based_bandwidth_estimation_.InUse()) {
+    DataRate new_bitrate = loss_based_bandwidth_estimation_.Update(
+        at_time, min_bitrate_history_.front().second, delay_based_limit_,
+        last_round_trip_time_);
     UpdateTargetBitrate(new_bitrate, at_time);
     return;
   }
@@ -583,29 +583,11 @@ void SendSideBandwidthEstimation::UpdateMinHistory(Timestamp at_time) {
   min_bitrate_history_.push_back(std::make_pair(at_time, current_target_));
 }
 
-DataRate SendSideBandwidthEstimation::MaybeRampupOrBackoff(DataRate new_bitrate,
-                                                           Timestamp at_time) {
-  // TODO(crodbro): reuse this code in UpdateEstimate instead of current
-  // inlining of very similar functionality.
-  const TimeDelta time_since_loss_packet_report =
-      at_time - last_loss_packet_report_;
-  if (time_since_loss_packet_report < 1.2 * kMaxRtcpFeedbackInterval) {
-    new_bitrate = min_bitrate_history_.front().second * 1.08;
-    new_bitrate += DataRate::BitsPerSec(1000);
-  }
-  return new_bitrate;
-}
-
 DataRate SendSideBandwidthEstimation::GetUpperLimit() const {
   DataRate upper_limit = delay_based_limit_;
   if (!receiver_limit_caps_only_)
     upper_limit = std::min(upper_limit, receiver_limit_);
   upper_limit = std::min(upper_limit, max_bitrate_configured_);
-  if (loss_based_bandwidth_estimation_.Enabled() &&
-      loss_based_bandwidth_estimation_.GetEstimate() > DataRate::Zero()) {
-    upper_limit =
-        std::min(upper_limit, loss_based_bandwidth_estimation_.GetEstimate());
-  }
   return upper_limit;
 }
 

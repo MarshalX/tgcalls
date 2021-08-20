@@ -4,7 +4,7 @@ import ffmpeg  # pip install ffmpeg-python
 from pyrogram import Client, filters
 from pyrogram.types import Message
 
-from pytgcalls import GroupCall  # pip install pytgcalls
+from pytgcalls import GroupCallFactory  # pip install pytgcalls[pyrogram]
 
 # Example of pinned message in a chat:
 '''
@@ -21,6 +21,7 @@ To stop use !stop command
 async def anon_filter(_, __, m: Message):
     return bool(m.from_user is None and m.sender_chat)
 
+
 anonymous = filters.create(anon_filter)
 
 GROUP_CALLS = {}
@@ -33,7 +34,7 @@ async def start(client, message: Message):
 
     group_call = GROUP_CALLS.get(message.chat.id)
     if group_call is None:
-        group_call = GroupCall(client, input_filename, path_to_log_file='')
+        group_call = GroupCallFactory(client, path_to_log_file='').get_file_group_call(input_filename)
         GROUP_CALLS[message.chat.id] = group_call
 
     if not message.reply_to_message or len(message.command) < 2:
@@ -59,13 +60,12 @@ async def start(client, message: Message):
 
     await group_call.start(message.chat.id)
 
-    process = ffmpeg.input(station_stream_url).output(
-        input_filename,
-        format='s16le',
-        acodec='pcm_s16le',
-        ac=2,
-        ar='48k'
-    ).overwrite_output().run_async()
+    process = (
+        ffmpeg.input(station_stream_url)
+        .output(input_filename, format='s16le', acodec='pcm_s16le', ac=2, ar='48k')
+        .overwrite_output()
+        .run_async()
+    )
     FFMPEG_PROCESSES[message.chat.id] = process
 
     await message.reply_text(f'Radio #{station_id} is playing...')
