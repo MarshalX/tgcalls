@@ -55,12 +55,12 @@ PRIVATE
     VideoCapturerInterface.h
 
     # Desktop capturer
-#    desktop_capturer/DesktopCaptureSource.h
-#    desktop_capturer/DesktopCaptureSource.cpp
-#    desktop_capturer/DesktopCaptureSourceHelper.h
-#    desktop_capturer/DesktopCaptureSourceHelper.cpp
-#    desktop_capturer/DesktopCaptureSourceManager.h
-#    desktop_capturer/DesktopCaptureSourceManager.cpp
+    desktop_capturer/DesktopCaptureSource.h
+    desktop_capturer/DesktopCaptureSource.cpp
+    desktop_capturer/DesktopCaptureSourceHelper.h
+    desktop_capturer/DesktopCaptureSourceHelper.cpp
+    desktop_capturer/DesktopCaptureSourceManager.h
+    desktop_capturer/DesktopCaptureSourceManager.cpp
 
     # Group calls
     group/GroupInstanceCustomImpl.cpp
@@ -137,8 +137,8 @@ PRIVATE
     # Teleram Desktop
     platform/tdesktop/DesktopInterface.cpp
     platform/tdesktop/DesktopInterface.h
-#    platform/tdesktop/VideoCapturerInterfaceImpl.cpp
-#    platform/tdesktop/VideoCapturerInterfaceImpl.h
+    platform/tdesktop/VideoCapturerInterfaceImpl.cpp
+    platform/tdesktop/VideoCapturerInterfaceImpl.h
     platform/tdesktop/VideoCapturerTrackSource.cpp
     platform/tdesktop/VideoCapturerTrackSource.h
     platform/tdesktop/VideoCameraCapturer.cpp

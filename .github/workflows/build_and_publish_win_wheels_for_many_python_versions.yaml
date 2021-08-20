@@ -1,4 +1,4 @@
-name: Build and publish wheels for Windows and many Python versions
+name: Build and publish wheels for Windows x32 and many Python versions
 on:
   push:
     branches:
@@ -13,7 +13,7 @@ on:
 jobs:
 
   build_wheels_for_win:
-    name: Build and publish wheels for Windows
+    name: Build and publish wheels for Windows x32
     runs-on: windows-latest
 
     env:
@@ -217,7 +217,7 @@ jobs:
       - uses: actions/upload-artifact@master
         name: Upload artifact.
         with:
-          name: "tgcalls for Windows"
+          name: "tgcalls for Windows x32"
           path: dist\
 
       - name: Upload wheels to PyPi.
