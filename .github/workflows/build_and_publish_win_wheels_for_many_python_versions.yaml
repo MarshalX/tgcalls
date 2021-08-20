@@ -61,6 +61,7 @@ jobs:
         with:
           submodules: recursive
           path: ${{ env.REPO_NAME }}
+        run: git config core.protectNTFS false
 
       - name: Generate cache key.
         shell: bash
