@@ -17,7 +17,7 @@ jobs:
     runs-on: windows-latest
 
     env:
-      BUILD_WHEELS: "false"
+      BUILD_WHEELS: "true"
       UPLOAD_WHEELS: "false"
       GLOBAL_CACHE_KEY: "4"
       WEBRTC_CACHE_KEY: "3"
@@ -203,11 +203,12 @@ jobs:
         if: env.BUILD_WHEELS == 'true'
         env:
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
-#          CIBW_ARCHS: "auto32"
+          CIBW_ARCHS: "auto32"
           CIBW_BUILD: cp3*-*
           CIBW_SKIP: cp35-*
-          CIBW_ENVIRONMENT: 'ROOT_PATH="d:/a/tgcalls/tgcalls"' # todo
-#          CIBW_BEFORE_BUILD: 'call vcvars32.bat'
+          CIBW_ENVIRONMENT: 'ROOT_PATH="d:\a\tgcalls\tgcalls"' # todo
+          CIBW_TEST_COMMAND: 'python3 -c "import tgcalls;tgcalls.ping()"'
+          CIBW_BEFORE_BUILD: 'call vcvars32.bat'
         run: |
           pip install cibuildwheel
           cibuildwheel --output-dir dist %REPO_NAME%
