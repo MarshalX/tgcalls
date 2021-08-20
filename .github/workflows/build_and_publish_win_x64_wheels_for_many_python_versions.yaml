@@ -170,7 +170,7 @@ jobs:
       - name: WebRTC.
         if: steps.cache-webrtc.outputs.cache-hit != 'true'
         run: |
-          xcopy ..\tgcalls\tgcalls\third_party\webrtc tg_owt\ /E/H
+          xcopy ..\..\tgcalls\tgcalls\third_party\webrtc tg_owt\ /E/H
 
           mkdir tg_owt\out\Release
           cd tg_owt\out\Release
