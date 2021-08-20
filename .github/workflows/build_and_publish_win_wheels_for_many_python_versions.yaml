@@ -97,7 +97,7 @@ jobs:
           -A Win32 ^
           -DWITH_JPEG8=ON ^
           -DPNG_SUPPORTED=OFF
-          cmake --build . --config Debug
+          cmake --build . --config Release
 
       - name: OpenSSL cache.
         id: cache-openssl
