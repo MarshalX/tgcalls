@@ -281,7 +281,7 @@ DesktopSourceRenderer::DesktopSourceRenderer(
     options.set_disable_effects(true);
     options.set_detect_updated_region(true);
 
-#ifdef WEBRTC_WIN_TMP
+#ifdef WEBRTC_WIN
     options.set_allow_directx_capturer(true);
     options.set_allow_use_magnification_api(false);
 #elif defined WEBRTC_MAC
