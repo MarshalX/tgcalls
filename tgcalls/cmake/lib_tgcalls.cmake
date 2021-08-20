@@ -137,8 +137,8 @@ PRIVATE
     # Teleram Desktop
     platform/tdesktop/DesktopInterface.cpp
     platform/tdesktop/DesktopInterface.h
-    platform/tdesktop/VideoCapturerInterfaceImpl.cpp
-    platform/tdesktop/VideoCapturerInterfaceImpl.h
+#    platform/tdesktop/VideoCapturerInterfaceImpl.cpp
+#    platform/tdesktop/VideoCapturerInterfaceImpl.h
     platform/tdesktop/VideoCapturerTrackSource.cpp
     platform/tdesktop/VideoCapturerTrackSource.h
     platform/tdesktop/VideoCameraCapturer.cpp
