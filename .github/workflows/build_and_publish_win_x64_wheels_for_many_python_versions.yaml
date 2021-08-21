@@ -17,7 +17,7 @@ jobs:
     runs-on: windows-latest
 
     env:
-      BUILD_WHEELS: "false"
+      BUILD_WHEELS: "true"
       UPLOAD_WHEELS: "false"
       GLOBAL_CACHE_KEY: "64_1"
       WEBRTC_CACHE_KEY: "64_1"
