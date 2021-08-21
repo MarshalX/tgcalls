@@ -27,11 +27,11 @@ namespace tgcalls {
 class VideoCaptureInterface;
 
 struct FilePath {
-#ifndef _WIN32
+//#ifndef _WIN32
 	std::string data;
-#else
-	std::wstring data;
-#endif
+//#else
+//	std::wstring data;
+//#endif
 };
 
 struct Proxy {

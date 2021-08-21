@@ -83,6 +83,12 @@ class CMakeBuild(build_ext):
             '-DPYTHON_EXECUTABLE={}'.format(sys.executable),
             '-DCMAKE_BUILD_TYPE={}'.format(cfg),  # not used on MSVC, but no harm
         ]
+
+        if self.plat_name == 'win-amd64':
+            cmake_args.append(
+                '-DDESKTOP_APP_SPECIAL_TARGET=win64'
+            )
+
         build_args = []
 
         if self.compiler.compiler_type != 'msvc':
