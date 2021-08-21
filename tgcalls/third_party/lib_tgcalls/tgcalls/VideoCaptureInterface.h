@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <functional>
+#include <api/media_stream_interface.h>
 
 namespace rtc {
 template <typename VideoFrameT>
@@ -33,6 +34,7 @@ protected:
 public:
 	static std::unique_ptr<VideoCaptureInterface> Create(
                 std::shared_ptr<Threads> threads,
+                rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> videoSource,
                 std::string deviceId = std::string(),
 		std::shared_ptr<PlatformContext> platformContext = nullptr);
 
