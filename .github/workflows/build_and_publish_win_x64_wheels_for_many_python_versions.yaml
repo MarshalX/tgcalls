@@ -2,14 +2,14 @@ name: Build and publish wheels for Windows x64 and many Python versions
 on:
   push:
     branches:
-#      - main
+      - main
       - win-wheels
-#    paths:
-#      - '.github/workflows/build_and_publish_win_x64_wheels_for_many_python_versions.yaml'
-#      - 'tgcalls/third_party/webrtc/**'
-#      - 'tgcalls/**'
-#      - 'CMakeLists.txt'
-#      - 'setup.py'
+    paths:
+      - '.github/workflows/build_and_publish_win_x64_wheels_for_many_python_versions.yaml'
+      - 'tgcalls/third_party/webrtc/**'
+      - 'tgcalls/**'
+      - 'CMakeLists.txt'
+      - 'setup.py'
 jobs:
 
   build_wheels_for_win:
@@ -18,7 +18,7 @@ jobs:
 
     env:
       BUILD_WHEELS: "true"
-      UPLOAD_WHEELS: "false"
+      UPLOAD_WHEELS: "true"
       GLOBAL_CACHE_KEY: "64_1"
       WEBRTC_CACHE_KEY: "64_1"
 
