@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - main
-      - win-wheels
+      - pypi-dev
     paths:
       - '.github/workflows/build_and_publish_win_x32_wheels_for_many_python_versions.yaml'
       - 'tgcalls/third_party/webrtc/**'
