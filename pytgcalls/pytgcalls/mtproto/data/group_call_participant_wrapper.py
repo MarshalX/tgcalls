@@ -16,6 +16,7 @@
 #
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
+
 from datetime import datetime
 from typing import Optional, Union
 
@@ -59,21 +60,30 @@ class GroupCallParticipantWrapper(WrapperBase):
         **kwargs,  # to bypass new attr from layers
     ):
         self.peer = peer
+        '''Peer (as joined) of the group call participant'''
         self.date = date
         self.source = source
+        '''User's audio channel synchronization source identifier'''
         self.muted = muted
+        '''True, if the participant is muted for all users'''
         self.left = left
+        '''True, if the participant left the group call'''
         self.can_self_unmute = can_self_unmute
+        '''True, if the participant is muted for all users, but can unmute themselves'''
         self.just_joined = just_joined
         self.versioned = versioned
         self.min = min
         self.muted_by_you = muted_by_you
+        '''True, if the current user can mute the participant only for self'''
         self.volume_by_admin = volume_by_admin
         self.is_self = is_self
+        '''True, if the participant is the current user'''
         self.video_joined = video_joined
         self.active_date = active_date
         self.volume = volume
+        '''Participant's volume level'''
         self.about = about
+        '''The participant user's bio or the participant chat's description'''
         self.raise_hand_rating = raise_hand_rating
 
     @classmethod
