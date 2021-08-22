@@ -105,18 +105,21 @@ class PyrogramBridge(MTProtoBridgeBase):
         return in_group_call
 
     async def leave_current_group_call(self):
-        if not self.full_chat or not self.full_chat.call or not self.my_ssrc:
+        if not self.group_call or not self.my_ssrc:
             return
 
         response = await self.client.send(
-            functions.phone.LeaveGroupCall(call=self.full_chat.call, source=int_ssrc(self.my_ssrc))
+            functions.phone.LeaveGroupCall(call=self.group_call, source=int_ssrc(self.my_ssrc))
         )
         await self.client.handle_updates(response)
 
     async def edit_group_call_member(self, peer, volume: int = None, muted=False):
+        if not self.group_call:
+            return
+        
         response = await self.client.send(
             functions.phone.EditGroupCallParticipant(
-                call=self.full_chat.call,
+                call=self.group_call,
                 participant=peer,
                 muted=muted,
                 volume=volume,
