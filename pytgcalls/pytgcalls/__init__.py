@@ -82,12 +82,9 @@ __all__ = [
     'GroupCallDevice',
     'GroupCallRaw',
 ]
-__version__ = '2.0.0'
+__version__ = '2.1.0'
 __pdoc__ = {
     # files
     'utils': False,
     'dispatcher': False,
-    # packages
-    'mtproto.data': False,
-    'mtproto.exceptions': False,
 }
