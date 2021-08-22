@@ -16,15 +16,74 @@
 #
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
+from datetime import datetime
+from typing import Optional, Union
 
 from pytgcalls.mtproto.data import WrapperBase
 
 
 class GroupCallParticipantWrapper(WrapperBase):
-    def __init__(self, source: int, left: bool, peer, muted: bool, can_self_unmute: bool, is_self: bool):
-        self.source = source
-        self.left = left
+    """Group Call Participant wrapper for any MTProto client.
+
+    Note:
+        `peer` will be `raw.base.Peer` when you are using Pyrogram bridge.
+
+        `peer` will be `TypePeer` when you are using Telethon bridge.
+
+        `date` and `active_date`will be `int` when you are using Pyrogram bridge.
+
+        `date` and `active_date`will be `datetime` when you are using Telethon bridge.
+
+        `video_joined` always will be `None` for Pyrogram until it will update.
+    """
+
+    def __init__(
+        self,
+        peer: Union['raw.base.Peer', 'TypePeer'],
+        date: Optional[Union[int, datetime]],
+        source: int,
+        muted: Optional[bool] = None,
+        left: Optional[bool] = None,
+        can_self_unmute: Optional[bool] = None,
+        just_joined: Optional[bool] = None,
+        versioned: Optional[bool] = None,
+        min: Optional[bool] = None,
+        muted_by_you: Optional[bool] = None,
+        volume_by_admin: Optional[bool] = None,
+        is_self: Optional[bool] = None,
+        video_joined: Optional[bool] = None,
+        active_date: Optional[Union[int, datetime]] = None,
+        volume: Optional[int] = None,
+        about: Optional[str] = None,
+        raise_hand_rating: Optional[int] = None,
+        **kwargs,  # to bypass new attr from layers
+    ):
         self.peer = peer
+        self.date = date
+        self.source = source
         self.muted = muted
+        self.left = left
         self.can_self_unmute = can_self_unmute
+        self.just_joined = just_joined
+        self.versioned = versioned
+        self.min = min
+        self.muted_by_you = muted_by_you
+        self.volume_by_admin = volume_by_admin
         self.is_self = is_self
+        self.video_joined = video_joined
+        self.active_date = active_date
+        self.volume = volume
+        self.about = about
+        self.raise_hand_rating = raise_hand_rating
+
+    @classmethod
+    def create(cls, participant):
+        if hasattr(participant, '__slots__'):  # pyrogram
+            attrs = participant.__slots__
+            args_for_init = {}
+            for attr in attrs:
+                args_for_init[attr] = getattr(participant, attr, None)
+
+            return cls(**args_for_init)
+        else:  # telethon
+            return cls(**vars(participant))

@@ -87,7 +87,4 @@ __pdoc__ = {
     # files
     'utils': False,
     'dispatcher': False,
-    # packages
-    'mtproto.data': False,
-    'mtproto.exceptions': False,
 }

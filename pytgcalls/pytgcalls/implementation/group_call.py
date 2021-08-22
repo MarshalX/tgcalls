@@ -38,6 +38,8 @@ logger = logging.getLogger(__name__)
 class GroupCallAction:
     NETWORK_STATUS_CHANGED = Action()
     '''When a status of network will be changed.'''
+    PARTICIPANT_LIST_UPDATED = Action()
+    '''When a list of participant will be updated.'''
 
 
 class GroupCallDispatcherMixin(DispatcherMixin):
@@ -52,6 +54,22 @@ class GroupCallDispatcherMixin(DispatcherMixin):
         """
 
         return self.add_handler(func, GroupCallAction.NETWORK_STATUS_CHANGED)
+
+    def on_participant_list_updated(self, func: Callable) -> Callable:
+        """When a list of participant will be updated.
+
+        Args:
+            func (`Callable`): A functions that accept group_call and participants args.
+
+        Note:
+            The `participants` arg is a `list` of `GroupCallParticipantWrapper`.
+            It contains only updated participants! It's not a list of all participants!
+
+        Returns:
+            `Callable`: passed to args callback function.
+        """
+
+        return self.add_handler(func, GroupCallAction.PARTICIPANT_LIST_UPDATED)
 
 
 class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
@@ -99,6 +117,8 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
     async def _group_call_participants_update_callback(self, update: UpdateGroupCallParticipantsWrapper):
         logger.debug('Group call participants update...')
         logger.debug(update)
+
+        self.trigger_handlers(GroupCallAction.PARTICIPANT_LIST_UPDATED, self, update.participants)
 
         for participant in update.participants:
             ssrc = uint_ssrc(participant.source)
