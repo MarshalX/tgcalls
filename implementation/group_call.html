@@ -76,6 +76,8 @@ logger = logging.getLogger(__name__)
 class GroupCallAction:
     NETWORK_STATUS_CHANGED = Action()
     &#39;&#39;&#39;When a status of network will be changed.&#39;&#39;&#39;
+    PARTICIPANT_LIST_UPDATED = Action()
+    &#39;&#39;&#39;When a list of participant will be updated.&#39;&#39;&#39;
 
 
 class GroupCallDispatcherMixin(DispatcherMixin):
@@ -90,6 +92,22 @@ class GroupCallDispatcherMixin(DispatcherMixin):
         &#34;&#34;&#34;
 
         return self.add_handler(func, GroupCallAction.NETWORK_STATUS_CHANGED)
+
+    def on_participant_list_updated(self, func: Callable) -&gt; Callable:
+        &#34;&#34;&#34;When a list of participant will be updated.
+
+        Args:
+            func (`Callable`): A functions that accept group_call and participants args.
+
+        Note:
+            The `participants` arg is a `list` of `GroupCallParticipantWrapper`.
+            It contains only updated participants! It&#39;s not a list of all participants!
+
+        Returns:
+            `Callable`: passed to args callback function.
+        &#34;&#34;&#34;
+
+        return self.add_handler(func, GroupCallAction.PARTICIPANT_LIST_UPDATED)
 
 
 class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
@@ -137,6 +155,8 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
     async def _group_call_participants_update_callback(self, update: UpdateGroupCallParticipantsWrapper):
         logger.debug(&#39;Group call participants update...&#39;)
         logger.debug(update)
+
+        self.trigger_handlers(GroupCallAction.PARTICIPANT_LIST_UPDATED, self, update.participants)
 
         for participant in update.participants:
             ssrc = uint_ssrc(participant.source)
@@ -501,6 +521,8 @@ inheritance.</p></div>
     async def _group_call_participants_update_callback(self, update: UpdateGroupCallParticipantsWrapper):
         logger.debug(&#39;Group call participants update...&#39;)
         logger.debug(update)
+
+        self.trigger_handlers(GroupCallAction.PARTICIPANT_LIST_UPDATED, self, update.participants)
 
         for participant in update.participants:
             ssrc = uint_ssrc(participant.source)
@@ -1010,6 +1032,16 @@ muted (<code>bool</code>): Is muted.</p></div>
 </p>
 <div class="desc inherited"><p>When a status of network will be changed …</p></div>
 </dd>
+<dt id="pytgcalls.implementation.group_call.GroupCall.on_participant_list_updated"><code class="name flex">
+<span>def <span class="ident">on_participant_list_updated</span></span>(<span>self, func: Callable) ‑> Callable</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.implementation.group_call.GroupCallDispatcherMixin" href="#pytgcalls.implementation.group_call.GroupCallDispatcherMixin">GroupCallDispatcherMixin</a></code>.<code><a title="pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_participant_list_updated" href="#pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_participant_list_updated">on_participant_list_updated</a></code>
+</p>
+<div class="desc inherited"><p>When a list of participant will be updated …</p></div>
+</dd>
 <dt id="pytgcalls.implementation.group_call.GroupCall.print_available_playout_devices"><code class="name flex">
 <span>def <span class="ident">print_available_playout_devices</span></span>(<span>self)</span>
 </code></dt>
@@ -1240,7 +1272,9 @@ enable_action (<code>bool</code>, optional): Is enables sending of speaking acti
 </summary>
 <pre><code class="python">class GroupCallAction:
     NETWORK_STATUS_CHANGED = Action()
-    &#39;&#39;&#39;When a status of network will be changed.&#39;&#39;&#39;</code></pre>
+    &#39;&#39;&#39;When a status of network will be changed.&#39;&#39;&#39;
+    PARTICIPANT_LIST_UPDATED = Action()
+    &#39;&#39;&#39;When a list of participant will be updated.&#39;&#39;&#39;</code></pre>
 </details>
 <h3>Subclasses</h3>
 <ul class="hlist">
@@ -1251,6 +1285,10 @@ enable_action (<code>bool</code>, optional): Is enables sending of speaking acti
 <dt id="pytgcalls.implementation.group_call.GroupCallAction.NETWORK_STATUS_CHANGED"><code class="name">var <span class="ident">NETWORK_STATUS_CHANGED</span></code></dt>
 <dd>
 <div class="desc"><p>When a status of network will be changed.</p></div>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCallAction.PARTICIPANT_LIST_UPDATED"><code class="name">var <span class="ident">PARTICIPANT_LIST_UPDATED</span></code></dt>
+<dd>
+<div class="desc"><p>When a list of participant will be updated.</p></div>
 </dd>
 </dl>
 </dd>
@@ -1275,7 +1313,23 @@ enable_action (<code>bool</code>, optional): Is enables sending of speaking acti
             `Callable`: passed to args callback function.
         &#34;&#34;&#34;
 
-        return self.add_handler(func, GroupCallAction.NETWORK_STATUS_CHANGED)</code></pre>
+        return self.add_handler(func, GroupCallAction.NETWORK_STATUS_CHANGED)
+
+    def on_participant_list_updated(self, func: Callable) -&gt; Callable:
+        &#34;&#34;&#34;When a list of participant will be updated.
+
+        Args:
+            func (`Callable`): A functions that accept group_call and participants args.
+
+        Note:
+            The `participants` arg is a `list` of `GroupCallParticipantWrapper`.
+            It contains only updated participants! It&#39;s not a list of all participants!
+
+        Returns:
+            `Callable`: passed to args callback function.
+        &#34;&#34;&#34;
+
+        return self.add_handler(func, GroupCallAction.PARTICIPANT_LIST_UPDATED)</code></pre>
 </details>
 <h3>Ancestors</h3>
 <ul class="hlist">
@@ -1312,6 +1366,39 @@ enable_action (<code>bool</code>, optional): Is enables sending of speaking acti
     &#34;&#34;&#34;
 
     return self.add_handler(func, GroupCallAction.NETWORK_STATUS_CHANGED)</code></pre>
+</details>
+</dd>
+<dt id="pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_participant_list_updated"><code class="name flex">
+<span>def <span class="ident">on_participant_list_updated</span></span>(<span>self, func: Callable) ‑> Callable</span>
+</code></dt>
+<dd>
+<div class="desc"><p>When a list of participant will be updated.</p>
+<h2 id="args">Args</h2>
+<p>func (<code>Callable</code>): A functions that accept group_call and participants args.</p>
+<h2 id="note">Note</h2>
+<p>The <code>participants</code> arg is a <code>list</code> of <code>GroupCallParticipantWrapper</code>.
+It contains only updated participants! It's not a list of all participants!</p>
+<h2 id="returns">Returns</h2>
+<p><code>Callable</code>: passed to args callback function.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def on_participant_list_updated(self, func: Callable) -&gt; Callable:
+    &#34;&#34;&#34;When a list of participant will be updated.
+
+    Args:
+        func (`Callable`): A functions that accept group_call and participants args.
+
+    Note:
+        The `participants` arg is a `list` of `GroupCallParticipantWrapper`.
+        It contains only updated participants! It&#39;s not a list of all participants!
+
+    Returns:
+        `Callable`: passed to args callback function.
+    &#34;&#34;&#34;
+
+    return self.add_handler(func, GroupCallAction.PARTICIPANT_LIST_UPDATED)</code></pre>
 </details>
 </dd>
 </dl>
@@ -1375,6 +1462,7 @@ data-gaCategoryParameter="pytgcalls.implementation.group_call">
 <li><code><a title="pytgcalls.implementation.group_call.GroupCall.my_peer" href="#pytgcalls.implementation.group_call.GroupCall.my_peer">my_peer</a></code></li>
 <li><code><a title="pytgcalls.implementation.group_call.GroupCall.my_ssrc" href="#pytgcalls.implementation.group_call.GroupCall.my_ssrc">my_ssrc</a></code></li>
 <li><code><a title="pytgcalls.implementation.group_call.GroupCall.on_network_status_changed" href="#pytgcalls.implementation.group_call.GroupCall.on_network_status_changed">on_network_status_changed</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCall.on_participant_list_updated" href="#pytgcalls.implementation.group_call.GroupCall.on_participant_list_updated">on_participant_list_updated</a></code></li>
 <li><code><a title="pytgcalls.implementation.group_call.GroupCall.print_available_playout_devices" href="group_call_native.html#pytgcalls.implementation.group_call.GroupCall.print_available_playout_devices">print_available_playout_devices</a></code></li>
 <li><code><a title="pytgcalls.implementation.group_call.GroupCall.print_available_recording_devices" href="group_call_native.html#pytgcalls.implementation.group_call.GroupCall.print_available_recording_devices">print_available_recording_devices</a></code></li>
 <li><code><a title="pytgcalls.implementation.group_call.GroupCall.reconnect" href="#pytgcalls.implementation.group_call.GroupCall.reconnect">reconnect</a></code></li>
@@ -1388,12 +1476,14 @@ data-gaCategoryParameter="pytgcalls.implementation.group_call">
 <h4><code><a title="pytgcalls.implementation.group_call.GroupCallAction" href="#pytgcalls.implementation.group_call.GroupCallAction">GroupCallAction</a></code></h4>
 <ul class="">
 <li><code><a title="pytgcalls.implementation.group_call.GroupCallAction.NETWORK_STATUS_CHANGED" href="#pytgcalls.implementation.group_call.GroupCallAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCallAction.PARTICIPANT_LIST_UPDATED" href="#pytgcalls.implementation.group_call.GroupCallAction.PARTICIPANT_LIST_UPDATED">PARTICIPANT_LIST_UPDATED</a></code></li>
 </ul>
 </li>
 <li>
 <h4><code><a title="pytgcalls.implementation.group_call.GroupCallDispatcherMixin" href="#pytgcalls.implementation.group_call.GroupCallDispatcherMixin">GroupCallDispatcherMixin</a></code></h4>
 <ul class="">
 <li><code><a title="pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_network_status_changed" href="#pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_network_status_changed">on_network_status_changed</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_participant_list_updated" href="#pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_participant_list_updated">on_participant_list_updated</a></code></li>
 </ul>
 </li>
 </ul>

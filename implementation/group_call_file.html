@@ -435,6 +435,16 @@ def output_filename(self):
 </p>
 <div class="desc inherited"><p>When a status of network will be changed …</p></div>
 </dd>
+<dt id="pytgcalls.implementation.group_call_file.GroupCallFile.on_participant_list_updated"><code class="name flex">
+<span>def <span class="ident">on_participant_list_updated</span></span>(<span>self, func: Callable) ‑> Callable</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.implementation.group_call.GroupCall" href="group_call.html#pytgcalls.implementation.group_call.GroupCall">GroupCall</a></code>.<code><a title="pytgcalls.implementation.group_call.GroupCall.on_participant_list_updated" href="group_call.html#pytgcalls.implementation.group_call.GroupCall.on_participant_list_updated">on_participant_list_updated</a></code>
+</p>
+<div class="desc inherited"><p>When a list of participant will be updated …</p></div>
+</dd>
 <dt id="pytgcalls.implementation.group_call_file.GroupCallFile.on_playout_ended"><code class="name flex">
 <span>def <span class="ident">on_playout_ended</span></span>(<span>self, func: Callable) ‑> Callable</span>
 </code></dt>
@@ -630,6 +640,14 @@ def output_filename(self):
 </p>
 <div class="desc inherited"><p>When a status of network will be changed.</p></div>
 </dd>
+<dt id="pytgcalls.implementation.group_call_file.GroupCallFileAction.PARTICIPANT_LIST_UPDATED"><code class="name">var <span class="ident">PARTICIPANT_LIST_UPDATED</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.implementation.group_call.GroupCallAction" href="group_call.html#pytgcalls.implementation.group_call.GroupCallAction">GroupCallAction</a></code>.<code><a title="pytgcalls.implementation.group_call.GroupCallAction.PARTICIPANT_LIST_UPDATED" href="group_call.html#pytgcalls.implementation.group_call.GroupCallAction.PARTICIPANT_LIST_UPDATED">PARTICIPANT_LIST_UPDATED</a></code>
+</p>
+<div class="desc inherited"><p>When a list of participant will be updated.</p></div>
+</dd>
 <dt id="pytgcalls.implementation.group_call_file.GroupCallFileAction.PLAYOUT_ENDED"><code class="name">var <span class="ident">PLAYOUT_ENDED</span></code></dt>
 <dd>
 <div class="desc"><p>When a input file is ended.</p></div>
@@ -679,6 +697,16 @@ def output_filename(self):
 <code><a title="pytgcalls.implementation.group_call.GroupCallDispatcherMixin" href="group_call.html#pytgcalls.implementation.group_call.GroupCallDispatcherMixin">GroupCallDispatcherMixin</a></code>.<code><a title="pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_network_status_changed" href="group_call.html#pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_network_status_changed">on_network_status_changed</a></code>
 </p>
 <div class="desc inherited"><p>When a status of network will be changed …</p></div>
+</dd>
+<dt id="pytgcalls.implementation.group_call_file.GroupCallFileDispatcherMixin.on_participant_list_updated"><code class="name flex">
+<span>def <span class="ident">on_participant_list_updated</span></span>(<span>self, func: Callable) ‑> Callable</span>
+</code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.implementation.group_call.GroupCallDispatcherMixin" href="group_call.html#pytgcalls.implementation.group_call.GroupCallDispatcherMixin">GroupCallDispatcherMixin</a></code>.<code><a title="pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_participant_list_updated" href="group_call.html#pytgcalls.implementation.group_call.GroupCallDispatcherMixin.on_participant_list_updated">on_participant_list_updated</a></code>
+</p>
+<div class="desc inherited"><p>When a list of participant will be updated …</p></div>
 </dd>
 <dt id="pytgcalls.implementation.group_call_file.GroupCallFileDispatcherMixin.on_playout_ended"><code class="name flex">
 <span>def <span class="ident">on_playout_ended</span></span>(<span>self, func: Callable) ‑> Callable</span>
@@ -761,6 +789,7 @@ data-gaCategoryParameter="pytgcalls.implementation.group_call_file">
 <li><code><a title="pytgcalls.implementation.group_call_file.GroupCallFile.is_connected" href="group_call.html#pytgcalls.implementation.group_call_file.GroupCallFile.is_connected">is_connected</a></code></li>
 <li><code><a title="pytgcalls.implementation.group_call_file.GroupCallFile.leave_current_group_call" href="group_call.html#pytgcalls.implementation.group_call_file.GroupCallFile.leave_current_group_call">leave_current_group_call</a></code></li>
 <li><code><a title="pytgcalls.implementation.group_call_file.GroupCallFile.on_network_status_changed" href="group_call.html#pytgcalls.implementation.group_call_file.GroupCallFile.on_network_status_changed">on_network_status_changed</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call_file.GroupCallFile.on_participant_list_updated" href="group_call.html#pytgcalls.implementation.group_call_file.GroupCallFile.on_participant_list_updated">on_participant_list_updated</a></code></li>
 <li><code><a title="pytgcalls.implementation.group_call_file.GroupCallFile.on_playout_ended" href="#pytgcalls.implementation.group_call_file.GroupCallFile.on_playout_ended">on_playout_ended</a></code></li>
 <li><code><a title="pytgcalls.implementation.group_call_file.GroupCallFile.output_filename" href="#pytgcalls.implementation.group_call_file.GroupCallFile.output_filename">output_filename</a></code></li>
 <li><code><a title="pytgcalls.implementation.group_call_file.GroupCallFile.pause_playout" href="#pytgcalls.implementation.group_call_file.GroupCallFile.pause_playout">pause_playout</a></code></li>
@@ -783,6 +812,7 @@ data-gaCategoryParameter="pytgcalls.implementation.group_call_file">
 <h4><code><a title="pytgcalls.implementation.group_call_file.GroupCallFileAction" href="#pytgcalls.implementation.group_call_file.GroupCallFileAction">GroupCallFileAction</a></code></h4>
 <ul class="">
 <li><code><a title="pytgcalls.implementation.group_call_file.GroupCallFileAction.NETWORK_STATUS_CHANGED" href="group_call.html#pytgcalls.implementation.group_call_file.GroupCallFileAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call_file.GroupCallFileAction.PARTICIPANT_LIST_UPDATED" href="group_call.html#pytgcalls.implementation.group_call_file.GroupCallFileAction.PARTICIPANT_LIST_UPDATED">PARTICIPANT_LIST_UPDATED</a></code></li>
 <li><code><a title="pytgcalls.implementation.group_call_file.GroupCallFileAction.PLAYOUT_ENDED" href="#pytgcalls.implementation.group_call_file.GroupCallFileAction.PLAYOUT_ENDED">PLAYOUT_ENDED</a></code></li>
 </ul>
 </li>
@@ -790,6 +820,7 @@ data-gaCategoryParameter="pytgcalls.implementation.group_call_file">
 <h4><code><a title="pytgcalls.implementation.group_call_file.GroupCallFileDispatcherMixin" href="#pytgcalls.implementation.group_call_file.GroupCallFileDispatcherMixin">GroupCallFileDispatcherMixin</a></code></h4>
 <ul class="">
 <li><code><a title="pytgcalls.implementation.group_call_file.GroupCallFileDispatcherMixin.on_network_status_changed" href="group_call.html#pytgcalls.implementation.group_call_file.GroupCallFileDispatcherMixin.on_network_status_changed">on_network_status_changed</a></code></li>
+<li><code><a title="pytgcalls.implementation.group_call_file.GroupCallFileDispatcherMixin.on_participant_list_updated" href="group_call.html#pytgcalls.implementation.group_call_file.GroupCallFileDispatcherMixin.on_participant_list_updated">on_participant_list_updated</a></code></li>
 <li><code><a title="pytgcalls.implementation.group_call_file.GroupCallFileDispatcherMixin.on_playout_ended" href="#pytgcalls.implementation.group_call_file.GroupCallFileDispatcherMixin.on_playout_ended">on_playout_ended</a></code></li>
 </ul>
 </li>

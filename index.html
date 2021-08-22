@@ -120,14 +120,11 @@ __all__ = [
     &#39;GroupCallDevice&#39;,
     &#39;GroupCallRaw&#39;,
 ]
-__version__ = &#39;2.0.0&#39;
+__version__ = &#39;2.1.0&#39;
 __pdoc__ = {
     # files
     &#39;utils&#39;: False,
     &#39;dispatcher&#39;: False,
-    # packages
-    &#39;mtproto.data&#39;: False,
-    &#39;mtproto.exceptions&#39;: False,
 }</code></pre>
 </details>
 </section>
@@ -226,7 +223,9 @@ __pdoc__ = {
 </summary>
 <pre><code class="python">class GroupCallAction:
     NETWORK_STATUS_CHANGED = Action()
-    &#39;&#39;&#39;When a status of network will be changed.&#39;&#39;&#39;</code></pre>
+    &#39;&#39;&#39;When a status of network will be changed.&#39;&#39;&#39;
+    PARTICIPANT_LIST_UPDATED = Action()
+    &#39;&#39;&#39;When a list of participant will be updated.&#39;&#39;&#39;</code></pre>
 </details>
 <h3>Subclasses</h3>
 <ul class="hlist">
@@ -237,6 +236,10 @@ __pdoc__ = {
 <dt id="pytgcalls.GroupCallAction.NETWORK_STATUS_CHANGED"><code class="name">var <span class="ident">NETWORK_STATUS_CHANGED</span></code></dt>
 <dd>
 <div class="desc"><p>When a status of network will be changed.</p></div>
+</dd>
+<dt id="pytgcalls.GroupCallAction.PARTICIPANT_LIST_UPDATED"><code class="name">var <span class="ident">PARTICIPANT_LIST_UPDATED</span></code></dt>
+<dd>
+<div class="desc"><p>When a list of participant will be updated.</p></div>
 </dd>
 </dl>
 </dd>
@@ -485,6 +488,14 @@ __pdoc__ = {
 </p>
 <div class="desc inherited"><p>When a status of network will be changed.</p></div>
 </dd>
+<dt id="pytgcalls.GroupCallFileAction.PARTICIPANT_LIST_UPDATED"><code class="name">var <span class="ident">PARTICIPANT_LIST_UPDATED</span></code></dt>
+<dd>
+<p class="inheritance">
+<em>Inherited from:</em>
+<code><a title="pytgcalls.implementation.group_call.GroupCallAction" href="implementation/group_call.html#pytgcalls.implementation.group_call.GroupCallAction">GroupCallAction</a></code>.<code><a title="pytgcalls.implementation.group_call.GroupCallAction.PARTICIPANT_LIST_UPDATED" href="implementation/group_call.html#pytgcalls.implementation.group_call.GroupCallAction.PARTICIPANT_LIST_UPDATED">PARTICIPANT_LIST_UPDATED</a></code>
+</p>
+<div class="desc inherited"><p>When a list of participant will be updated.</p></div>
+</dd>
 <dt id="pytgcalls.GroupCallFileAction.PLAYOUT_ENDED"><code class="name">var <span class="ident">PLAYOUT_ENDED</span></code></dt>
 <dd>
 <div class="desc"><p>When a input file is ended.</p></div>
@@ -548,6 +559,7 @@ data-gaCategoryParameter="pytgcalls">
 <h4><code><a title="pytgcalls.GroupCallAction" href="#pytgcalls.GroupCallAction">GroupCallAction</a></code></h4>
 <ul class="">
 <li><code><a title="pytgcalls.GroupCallAction.NETWORK_STATUS_CHANGED" href="#pytgcalls.GroupCallAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code></li>
+<li><code><a title="pytgcalls.GroupCallAction.PARTICIPANT_LIST_UPDATED" href="#pytgcalls.GroupCallAction.PARTICIPANT_LIST_UPDATED">PARTICIPANT_LIST_UPDATED</a></code></li>
 </ul>
 </li>
 <li>
@@ -567,6 +579,7 @@ data-gaCategoryParameter="pytgcalls">
 <h4><code><a title="pytgcalls.GroupCallFileAction" href="#pytgcalls.GroupCallFileAction">GroupCallFileAction</a></code></h4>
 <ul class="">
 <li><code><a title="pytgcalls.GroupCallFileAction.NETWORK_STATUS_CHANGED" href="implementation/group_call.html#pytgcalls.GroupCallFileAction.NETWORK_STATUS_CHANGED">NETWORK_STATUS_CHANGED</a></code></li>
+<li><code><a title="pytgcalls.GroupCallFileAction.PARTICIPANT_LIST_UPDATED" href="implementation/group_call.html#pytgcalls.GroupCallFileAction.PARTICIPANT_LIST_UPDATED">PARTICIPANT_LIST_UPDATED</a></code></li>
 <li><code><a title="pytgcalls.GroupCallFileAction.PLAYOUT_ENDED" href="#pytgcalls.GroupCallFileAction.PLAYOUT_ENDED">PLAYOUT_ENDED</a></code></li>
 </ul>
 </li>
