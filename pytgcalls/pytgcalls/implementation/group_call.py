@@ -305,7 +305,7 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         """Connect to voice chat using the same native instance."""
         logger.debug('Reconnecting...')
         if not self.mtproto.group_call:
-            raise NotConnectedError("You are notconnected to any voice chat at the moment.")
+            raise NotConnectedError("You are not connected to any voice chat at the moment.")
 
         self._set_connection_mode(tgcalls.GroupConnectionMode.GroupConnectionModeNone)
         self._emit_join_payload(self.__emit_join_payload_callback)
