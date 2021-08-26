@@ -51,7 +51,7 @@ auto DesktopCaptureSourceManager::CreateForType(DesktopCaptureType type)
 std::vector<DesktopCaptureSource> DesktopCaptureSourceManager::sources() {
     auto result = std::vector<DesktopCaptureSource>();
 	auto list = webrtc::DesktopCapturer::SourceList();
-    if (_capturer->GetSourceList(&list)) {
+    if (_capturer && _capturer->GetSourceList(&list)) {
         const auto isWindow = (_type == DesktopCaptureType::Window);
         for (const auto &source : list) {
             result.emplace_back(source.id, source.title, isWindow);

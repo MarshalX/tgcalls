@@ -44,6 +44,8 @@ public:
     void setVolume(uint32_t ssrc, double volume);
     void setRequestedVideoChannels(std::vector<VideoChannelDescription> &&requestedVideoChannels);
 
+    void getStats(std::function<void(GroupInstanceStats)> completion);
+
     void performWithAudioDeviceModule(std::function<void(rtc::scoped_refptr<WrappedAudioDeviceModule>)> callback);
 
   private:

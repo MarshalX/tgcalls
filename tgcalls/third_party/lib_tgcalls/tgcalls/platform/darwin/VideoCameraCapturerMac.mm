@@ -20,6 +20,22 @@
 #include "rtc_base/logging.h"
 #include "third_party/libyuv/include/libyuv.h"
 #include "DarwinVideoSource.h"
+
+struct CameraFrameSize {
+    int width = 0;
+    int height = 0;
+};
+
+CameraFrameSize AspectFitted(CameraFrameSize from, CameraFrameSize to) {
+    double scale = std::min(
+        from.width / std::max(1., double(to.width)),
+        from.height / std::max(1., double(to.height)));
+    return {
+        int(std::ceil(to.width * scale)),
+        int(std::ceil(to.height * scale))
+    };
+}
+
 static const int64_t kNanosecondsPerSecond = 1000000000;
 
 static tgcalls::DarwinVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> nativeSource) {
@@ -442,45 +458,18 @@ static tgcalls::DarwinVideoTrackSource *getObjCVideoSource(const rtc::scoped_ref
     if (pixelBuffer == nil) {
         return;
     }
+    
+    int width = (int)CVPixelBufferGetWidth(pixelBuffer);
+    int height = (int)CVPixelBufferGetHeight(pixelBuffer);
 
-    TGRTCCVPixelBuffer *rtcPixelBuffer = [[TGRTCCVPixelBuffer alloc] initWithPixelBuffer:pixelBuffer];
+    CameraFrameSize fittedSize = { width, height };
+    
+    fittedSize.width -= (fittedSize.width % 32);
+    fittedSize.height -= (fittedSize.height % 4);
+
+    TGRTCCVPixelBuffer *rtcPixelBuffer = [[TGRTCCVPixelBuffer alloc] initWithPixelBuffer:pixelBuffer adaptedWidth:fittedSize.width adaptedHeight:fittedSize.height cropWidth:width cropHeight:height cropX:0 cropY:0];
+
     rtcPixelBuffer.shouldBeMirrored = _shouldBeMirrored;
-    if (_aspectRatio > 0.001) {
-		const auto originalWidth = rtcPixelBuffer.width;
-		const auto originalHeight = rtcPixelBuffer.height;
-		auto width = (originalWidth > _aspectRatio * originalHeight)
-			? int(std::round(_aspectRatio * originalHeight))
-			: originalWidth;
-		auto height = (originalWidth > _aspectRatio * originalHeight)
-			? originalHeight
-			: int(std::round(originalHeight / _aspectRatio));
-
-        if ((width < originalWidth || height < originalHeight) && width && height) {
-			width &= ~int(1);
-			height &= ~int(1);
-			const auto left = (originalWidth - width) / 2;
-			const auto top = (originalHeight - height) / 2;
-
-            rtcPixelBuffer = [[TGRTCCVPixelBuffer alloc] initWithPixelBuffer:pixelBuffer adaptedWidth:width adaptedHeight:height cropWidth:width cropHeight:height cropX:left cropY:top];
-
-            rtcPixelBuffer.shouldBeMirrored = YES;
-
-            CVPixelBufferRef outputPixelBufferRef = NULL;
-            OSType pixelFormat = CVPixelBufferGetPixelFormatType(rtcPixelBuffer.pixelBuffer);
-            CVPixelBufferCreate(NULL, width, height, pixelFormat, NULL, &outputPixelBufferRef);
-            if (outputPixelBufferRef) {
-                int bufferSize = [rtcPixelBuffer bufferSizeForCroppingAndScalingToWidth:width height:width];
-                if (_croppingBuffer.size() < bufferSize) {
-                    _croppingBuffer.resize(bufferSize);
-                }
-                if ([rtcPixelBuffer cropAndScaleTo:outputPixelBufferRef withTempBuffer:_croppingBuffer.data()]) {
-                    rtcPixelBuffer = [[TGRTCCVPixelBuffer alloc] initWithPixelBuffer:outputPixelBufferRef];
-                    rtcPixelBuffer.shouldBeMirrored = YES;
-                }
-                CVPixelBufferRelease(outputPixelBufferRef);
-            }
-        }
-    }
 
 	if (!_isPaused && _uncroppedSink) {
         int64_t timeStampNs = CMTimeGetSeconds(CMSampleBufferGetPresentationTimeStamp(sampleBuffer)) *

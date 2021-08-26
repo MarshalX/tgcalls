@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <memory>
 #include <api/scoped_refptr.h>
 
 namespace webrtc {

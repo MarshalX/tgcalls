@@ -21,6 +21,7 @@ public:
 
 	void receiveSignalingData(const std::vector<uint8_t> &data) override;
 	void setVideoCapture(std::shared_ptr<VideoCaptureInterface> videoCapture) override;
+	void sendVideoDeviceUpdated() override;
     void setRequestedVideoAspect(float aspect) override;
 	void setNetworkType(NetworkType networkType) override;
 	void setMuteMicrophone(bool muteMicrophone) override;
@@ -35,6 +36,7 @@ public:
 	void setInputVolume(float level) override;
 	void setOutputVolume(float level) override;
 	void setAudioOutputDuckingEnabled(bool enabled) override;
+    void addExternalAudioSamples(std::vector<uint8_t> &&samples) override;
     void setIsLowBatteryLevel(bool isLowBatteryLevel) override;
 	std::string getLastError() override;
 	std::string getDebugInfo() override;

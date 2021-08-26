@@ -8,12 +8,12 @@
 
 namespace tgcalls {
 
-  VideoCaptureInterfaceObject::VideoCaptureInterfaceObject(std::string deviceId, std::shared_ptr<PlatformContext> platformContext, Threads &threads, rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> videoSource)
+  VideoCaptureInterfaceObject::VideoCaptureInterfaceObject(std::string deviceId, bool isScreenCapture, std::shared_ptr<PlatformContext> platformContext, Threads &threads, rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> videoSource)
 //: _videoSource(PlatformInterface::SharedInstance()->makeVideoSource(threads.getMediaThread(), threads.getWorkerThread())) {
 : _videoSource(videoSource) {
 	_platformContext = platformContext;
 
-	switchToDevice(deviceId);
+	switchToDevice(deviceId, isScreenCapture);
 }
 
 VideoCaptureInterfaceObject::~VideoCaptureInterfaceObject() {
@@ -34,39 +34,44 @@ int VideoCaptureInterfaceObject::getRotation() {
     }
 }
 
-void VideoCaptureInterfaceObject::switchToDevice(std::string deviceId) {
+bool VideoCaptureInterfaceObject::isScreenCapture() {
+    return _isScreenCapture;
+}
+
+void VideoCaptureInterfaceObject::switchToDevice(std::string deviceId, bool isScreenCapture) {
     if (_videoCapturer) {
 		_videoCapturer->setUncroppedOutput(nullptr);
     }
-//	if (_videoSource) {
-//        //this should outlive the capturer
-//        _videoCapturer = NULL;
-//		_videoCapturer = PlatformInterface::SharedInstance()->makeVideoCapturer(_videoSource, deviceId, [this](VideoState state) {
-//			if (this->_stateUpdated) {
-//				this->_stateUpdated(state);
-//			}
-//            if (this->_onIsActiveUpdated) {
-//                switch (state) {
-//                    case VideoState::Active: {
-//                        this->_onIsActiveUpdated(true);
-//                        break;
-//                    }
-//                    default: {
-//                        this->_onIsActiveUpdated(false);
-//                        break;
-//                    }
-//                }
-//            }
-//        }, [this](PlatformCaptureInfo info) {
-//            if (this->_shouldBeAdaptedToReceiverAspectRate != info.shouldBeAdaptedToReceiverAspectRate) {
-//                this->_shouldBeAdaptedToReceiverAspectRate = info.shouldBeAdaptedToReceiverAspectRate;
-//            }
-//            if (this->_rotationUpdated) {
-//                this->_rotationUpdated(info.rotation);
-//            }
-//            this->updateAspectRateAdaptation();
-//        }, _platformContext, _videoCapturerResolution);
-//	}
+    _isScreenCapture = isScreenCapture;
+	if (_videoSource) {
+        //this should outlive the capturer
+        _videoCapturer = nullptr;
+		_videoCapturer = PlatformInterface::SharedInstance()->makeVideoCapturer(_videoSource, deviceId, [this](VideoState state) {
+			if (this->_stateUpdated) {
+				this->_stateUpdated(state);
+			}
+            if (this->_onIsActiveUpdated) {
+                switch (state) {
+                    case VideoState::Active: {
+                        this->_onIsActiveUpdated(true);
+                        break;
+                    }
+                    default: {
+                        this->_onIsActiveUpdated(false);
+                        break;
+                    }
+                }
+            }
+        }, [this](PlatformCaptureInfo info) {
+            if (this->_shouldBeAdaptedToReceiverAspectRate != info.shouldBeAdaptedToReceiverAspectRate) {
+                this->_shouldBeAdaptedToReceiverAspectRate = info.shouldBeAdaptedToReceiverAspectRate;
+            }
+            if (this->_rotationUpdated) {
+                this->_rotationUpdated(info.rotation);
+            }
+            this->updateAspectRateAdaptation();
+        }, _platformContext, _videoCapturerResolution);
+	}
 	if (_videoCapturer) {
 		if (_preferredAspectRatio > 0) {
 			_videoCapturer->setPreferredCaptureAspectRatio(_preferredAspectRatio);
@@ -163,19 +168,20 @@ void VideoCaptureInterfaceObject::setRotationUpdated(std::function<void(int)> ro
 }
 
 VideoCaptureInterfaceImpl::VideoCaptureInterfaceImpl(std::string deviceId,
+                                                     bool isScreenCapture,
                                                      std::shared_ptr<PlatformContext> platformContext,
                                                      std::shared_ptr<Threads> threads,
                                                      rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> videoSource) :
-_impl(threads->getMediaThread(), [deviceId, platformContext, threads, videoSource]() {
-	return new VideoCaptureInterfaceObject(deviceId, platformContext, *threads, videoSource);
+ _impl(threads->getMediaThread(), [deviceId, isScreenCapture, platformContext, threads, videoSource]() {
+ return new VideoCaptureInterfaceObject(deviceId, isScreenCapture, platformContext, *threads, videoSource);
 }) {
 }
 
 VideoCaptureInterfaceImpl::~VideoCaptureInterfaceImpl() = default;
 
-void VideoCaptureInterfaceImpl::switchToDevice(std::string deviceId) {
-	_impl.perform(RTC_FROM_HERE, [deviceId](VideoCaptureInterfaceObject *impl) {
-		impl->switchToDevice(deviceId);
+void VideoCaptureInterfaceImpl::switchToDevice(std::string deviceId, bool isScreenCapture) {
+	_impl.perform(RTC_FROM_HERE, [deviceId, isScreenCapture](VideoCaptureInterfaceObject *impl) {
+		impl->switchToDevice(deviceId, isScreenCapture);
 	});
 }
 
