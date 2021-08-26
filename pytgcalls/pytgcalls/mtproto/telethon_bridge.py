@@ -118,13 +118,14 @@ class TelethonBridge(MTProtoBridgeBase):
 
         self.client._handle_update(response)
 
-    async def edit_group_call_member(self, peer, volume: int = None, muted=False):
+    async def edit_group_call_member(self, peer, volume: int = None, muted=False, video_stopped=True):
         response = await self.client(
             functions.phone.EditGroupCallParticipantRequest(
                 call=self.full_chat.call,
                 participant=peer,
                 muted=muted,
                 volume=volume,
+                video_stopped=video_stopped
             )
         )
 

@@ -161,6 +161,11 @@ std::function<webrtc::VideoTrackSourceInterface*()> FakeVideoTrackSource::create
     return source.get();
   };
 }
+
+rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> FakeVideoTrackSource::createPtr(std::unique_ptr<FrameSource> frame_source) {
+  return FakeVideoTrackSourceImpl::Create(std::move(frame_source));
+}
+
 std::unique_ptr<FrameSource> FrameSource::chess(){
   return std::make_unique<ChessFrameSource>();
 }

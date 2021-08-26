@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <api/scoped_refptr.h>
 
 namespace webrtc {
 class VideoTrackSourceInterface;
@@ -29,5 +30,6 @@ public:
 class FakeVideoTrackSource {
  public:
   static std::function<webrtc::VideoTrackSourceInterface*()> create(std::unique_ptr<FrameSource> source);
+  static rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> createPtr(std::unique_ptr<FrameSource> source);
 };
 }

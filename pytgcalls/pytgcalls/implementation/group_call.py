@@ -329,7 +329,7 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         else:
             logger.debug('Completely left the current group call.')
 
-    async def edit_group_call(self, volume: int = None, muted=False):
+    async def edit_group_call(self, volume: int = None, muted=False, video_stopped=False): # TODO
         """Edit own settings of group call.
 
         Note:
@@ -340,9 +340,9 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
             muted (`bool`): Is muted.
         """
 
-        await self.edit_group_call_member(self.mtproto.join_as, volume, muted)
+        await self.edit_group_call_member(self.mtproto.join_as, volume, muted, video_stopped)
 
-    async def edit_group_call_member(self, peer, volume: int = None, muted=False):
+    async def edit_group_call_member(self, peer, volume: int = None, muted=False, video_stopped=True):
         """Edit setting of user in voice chat (required voice chat management permission).
 
         Note:
@@ -355,7 +355,7 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         """
 
         volume = max(1, volume * 100) if volume is not None else None
-        await self.mtproto.edit_group_call_member(peer, volume, muted)
+        await self.mtproto.edit_group_call_member(peer, volume, muted, video_stopped)
 
     async def set_is_mute(self, is_muted: bool):
         """Set is mute.
