@@ -66,7 +66,7 @@ public:
     void setAudioOutputDevice(std::string id) const;
     void setAudioInputDevice(std::string id) const;
 
-    void setVideoCapture();
+    void setVideoCapture(std::string sourcePath);
 
     void receiveSignalingData(std::vector<uint8_t> &data) const;
     void setJoinResponsePayload(std::string const &) const;

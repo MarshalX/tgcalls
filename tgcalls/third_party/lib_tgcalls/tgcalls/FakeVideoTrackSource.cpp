@@ -13,6 +13,50 @@ namespace tgcalls {
 int WIDTH = 1280;
 int HEIGHT = 720;
 
+class OpenCvVideoCapture : public FrameSource {
+public:
+  explicit OpenCvVideoCapture(std::string sourcePath) {
+    while(!_capture.isOpened()){
+      std::cout << "Try to open VideoCapture" << std::endl;
+      _capture.open(sourcePath);
+    }
+  }
+
+  Info info() const override{
+    return Info{WIDTH, HEIGHT};
+  }
+
+  webrtc::VideoFrame get_frame() {
+    int width = WIDTH;
+    int height = HEIGHT;
+
+    double pts = 0;
+
+    cv::Mat frame;
+
+    if (_capture.read(frame)) {
+      cv::Mat bgra(frame.rows, frame.cols, CV_8UC4);
+      cv::cvtColor(frame, bgra, cv::COLOR_BGR2RGBA);
+
+      rtc::scoped_refptr<webrtc::I420Buffer> buffer = webrtc::I420Buffer::Create(width, height);
+
+      libyuv::ABGRToI420(bgra.data, width * 4, buffer->MutableDataY(), buffer->StrideY(), buffer->MutableDataU(),
+                         buffer->StrideU(), buffer->MutableDataV(), buffer->StrideV(), width, height);
+
+      return webrtc::VideoFrame::Builder().set_video_frame_buffer(buffer).build();
+    } else {
+      rtc::scoped_refptr<webrtc::I420Buffer> buffer = webrtc::I420Buffer::Create(width, height);
+      return webrtc::VideoFrame::Builder().set_timestamp_us(static_cast<int64_t>(pts * 1000000)).set_video_frame_buffer(buffer).build();
+    }
+  }
+
+  void next_frame_rgb0(char *buf, double *pts) override {
+  }
+
+private:
+  cv::VideoCapture _capture;
+};
+
 class ChessFrameSource : public FrameSource {
 public:
   ChessFrameSource() {
@@ -93,11 +137,13 @@ webrtc::VideoFrame FrameSource::next_frame() {
   auto width = info.width;
   auto bytes_ptr = std::make_unique<std::uint8_t[]>(width * height * 4);
   double pts;
-  next_frame_rgb0(reinterpret_cast<char *>(bytes_ptr.get()), &pts);
-  rtc::scoped_refptr<webrtc::I420Buffer> buffer = webrtc::I420Buffer::Create(width, height);
-  libyuv::ABGRToI420(bytes_ptr.get(), width * 4, buffer->MutableDataY(), buffer->StrideY(), buffer->MutableDataU(),
-                     buffer->StrideU(), buffer->MutableDataV(), buffer->StrideV(), width, height);
-  return webrtc::VideoFrame::Builder().set_timestamp_us(static_cast<int64_t>(pts * 1000000)).set_video_frame_buffer(buffer).build();
+
+  return get_frame();
+//  next_frame_rgb0(reinterpret_cast<char *>(bytes_ptr.get()), &pts);
+//  rtc::scoped_refptr<webrtc::I420Buffer> buffer = webrtc::I420Buffer::Create(width, height);
+//  libyuv::ABGRToI420(bytes_ptr.get(), width * 4, buffer->MutableDataY(), buffer->StrideY(), buffer->MutableDataU(),
+//                     buffer->StrideU(), buffer->MutableDataV(), buffer->StrideV(), width, height);
+//  return webrtc::VideoFrame::Builder().set_timestamp_us(static_cast<int64_t>(pts * 1000000)).set_video_frame_buffer(buffer).build();
 }
 
 class FakeVideoSource : public rtc::VideoSourceInterface<webrtc::VideoFrame> {
@@ -108,7 +154,7 @@ class FakeVideoSource : public rtc::VideoSourceInterface<webrtc::VideoFrame> {
       std::uint32_t step = 0;
       while (!data->flag_) {
         step++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 30));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 24));
         auto frame = source->next_frame();
         frame.set_id(static_cast<std::uint16_t>(step));
         frame.set_timestamp_us(rtc::TimeMicros());
@@ -170,9 +216,21 @@ std::unique_ptr<FrameSource> FrameSource::chess(){
   return std::make_unique<ChessFrameSource>();
 }
 
+std::unique_ptr<FrameSource> FrameSource::opencv(std::string sourcePath){
+  return std::make_unique<OpenCvVideoCapture>(std::move(sourcePath));
+}
+
 void FrameSource::video_frame_to_rgb0(const webrtc::VideoFrame & src, char *dest){
   auto buffer = src.video_frame_buffer()->GetI420();
   libyuv::I420ToABGR(buffer->DataY(), buffer->StrideY(), buffer->DataU(),
                      buffer->StrideU(), buffer->DataV(), buffer->StrideV( ), reinterpret_cast<uint8_t *>(dest), src.width() * 4,  src.width(), src.height());
+}
+
+webrtc::VideoFrame FrameSource::get_frame() {
+  int width = WIDTH;
+  int height = HEIGHT;
+
+  rtc::scoped_refptr<webrtc::I420Buffer> buffer = webrtc::I420Buffer::Create(width, height);
+  return webrtc::VideoFrame::Builder().set_video_frame_buffer(buffer).build();
 }
 }

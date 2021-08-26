@@ -42,4 +42,7 @@ add_subdirectory(cmake/external/openssl)
 add_subdirectory(cmake/external/opus)
 add_subdirectory(cmake/external/webrtc)
 
+find_package( OpenCV REQUIRED )
+include_directories( ${OpenCV_INCLUDE_DIRS} )
+
 add_subdirectory(tgcalls)

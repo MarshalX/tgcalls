@@ -1,4 +1,5 @@
 #include <iostream>
+#include <utility>
 
 #include <rtc_base/ssl_adapter.h>
 
@@ -238,10 +239,11 @@ void NativeInstance::setAudioInputDevice(std::string id) const {
 }
 
 // todo args std::shared_ptr<tgcalls::VideoCaptureInterface> videoCapture
-void NativeInstance::setVideoCapture() {
+void NativeInstance::setVideoCapture(std::string sourcePath) {
   _videoCapture = tgcalls::VideoCaptureInterface::Create(
       tgcalls::StaticThreads::getThreads(),
-      tgcalls::FakeVideoTrackSource::createPtr(tgcalls::FrameSource::chess()),
+      tgcalls::FakeVideoTrackSource::createPtr(tgcalls::FrameSource::opencv(std::move(sourcePath))),
+//      tgcalls::FakeVideoTrackSource::createPtr(tgcalls::FrameSource::chess()),
       "tgcalls_video_device"
   );
 

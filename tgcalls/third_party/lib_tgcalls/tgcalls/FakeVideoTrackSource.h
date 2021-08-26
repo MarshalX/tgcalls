@@ -3,6 +3,10 @@
 #include <functional>
 #include <memory>
 #include <api/scoped_refptr.h>
+#include "opencv2/videoio.hpp"
+#include "opencv2/opencv.hpp"
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
 namespace webrtc {
 class VideoTrackSourceInterface;
@@ -23,8 +27,10 @@ public:
   virtual webrtc::VideoFrame next_frame();
   static void video_frame_to_rgb0(const webrtc::VideoFrame &src, char *dest);
   virtual void next_frame_rgb0(char *buf, double *pt_in_seconds) = 0;
+  virtual webrtc::VideoFrame get_frame();
 
   static std::unique_ptr<FrameSource> chess();
+  static std::unique_ptr<FrameSource> opencv(std::string sourcePath);
   static std::unique_ptr<FrameSource> from_file(std::string path);
 };
 
