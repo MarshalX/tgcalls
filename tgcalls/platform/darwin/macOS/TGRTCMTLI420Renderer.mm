@@ -20,58 +20,6 @@
 
 #import "TGRTCMTLRenderer+Private.h"
 
-static NSString *const shaderSource = MTL_STRINGIFY(
-    using namespace metal;
-
-    typedef struct {
-      packed_float2 position;
-      packed_float2 texcoord;
-    } Vertex;
-
-    typedef struct {
-      float4 position[[position]];
-      float2 texcoord;
-    } Varyings;
-
-    vertex Varyings vertexPassthrough(constant Vertex *verticies[[buffer(0)]],
-                                      unsigned int vid[[vertex_id]]) {
-      Varyings out;
-      constant Vertex &v = verticies[vid];
-      out.position = float4(float2(v.position), 0.0, 1.0);
-      out.texcoord = v.texcoord;
-
-      return out;
-    }
-
-    fragment half4 fragmentColorConversion(
-        Varyings in[[stage_in]],
-        texture2d<float, access::sample> textureY[[texture(0)]],
-        texture2d<float, access::sample> textureU[[texture(1)]],
-        texture2d<float, access::sample> textureV[[texture(2)]]) {
-      constexpr sampler s(address::clamp_to_edge, filter::linear);
-      float y;
-      float u;
-      float v;
-      float r;
-      float g;
-      float b;
-      // Conversion for YUV to rgb from http://www.fourcc.org/fccyvrgb.php
-      y = textureY.sample(s, in.texcoord).r;
-      u = textureU.sample(s, in.texcoord).r;
-      v = textureV.sample(s, in.texcoord).r;
-    
-      y = y - 0.0625;
-      u = u - 0.5;
-      v = v - 0.5;
-    
-      r = 1.164 * y + 1.596 * v;
-      g = 1.164 * y - 0.392 * u - 0.813 * v;
-      b = 1.164 * y + 2.17 * u;
-
-      float4 out = float4(r, g, b, 1.0);
-
-      return half4(out);
-    });
 
 @implementation TGRTCMTLI420Renderer {
   // Textures.
@@ -88,26 +36,15 @@ static NSString *const shaderSource = MTL_STRINGIFY(
   int _chromaHeight;
 }
 
-#pragma mark - Virtual
 
-- (NSString *)shaderSource {
-  return shaderSource;
-}
 
 - (void)getWidth:(nonnull int *)width
           height:(nonnull int *)height
-       cropWidth:(nonnull int *)cropWidth
-      cropHeight:(nonnull int *)cropHeight
-           cropX:(nonnull int *)cropX
-           cropY:(nonnull int *)cropY
          ofFrame:(nonnull RTC_OBJC_TYPE(RTCVideoFrame) *)frame {
   *width = frame.width;
   *height = frame.height;
-  *cropWidth = frame.width;
-  *cropHeight = frame.height;
-  *cropX = 0;
-  *cropY = 0;
 }
+
 
 - (BOOL)setupTexturesForFrame:(nonnull RTC_OBJC_TYPE(RTCVideoFrame) *)frame {
   if (![super setupTexturesForFrame:frame]) {
@@ -171,3 +108,4 @@ static NSString *const shaderSource = MTL_STRINGIFY(
 }
 
 @end
+

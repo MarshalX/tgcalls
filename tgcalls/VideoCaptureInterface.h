@@ -34,11 +34,12 @@ public:
 	static std::unique_ptr<VideoCaptureInterface> Create(
                 std::shared_ptr<Threads> threads,
                 std::string deviceId = std::string(),
+                bool isScreenCapture = false,
 		std::shared_ptr<PlatformContext> platformContext = nullptr);
 
 	virtual ~VideoCaptureInterface();
 
-	virtual void switchToDevice(std::string deviceId) = 0;
+	virtual void switchToDevice(std::string deviceId, bool isScreenCapture) = 0;
 	virtual void setState(VideoState state) = 0;
     virtual void setPreferredAspectRatio(float aspectRatio) = 0;
 	virtual void setOutput(std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> sink) = 0;

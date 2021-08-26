@@ -286,7 +286,7 @@ DesktopSourceRenderer::DesktopSourceRenderer(
     options.set_allow_use_magnification_api(false);
 #elif defined WEBRTC_MAC
     options.set_allow_iosurface(true);
-#elif defined WEBRTC_LINUX
+#elif defined WEBRTC_USE_PIPEWIRE
     options.set_allow_pipewire(true);
 #endif // WEBRTC_WIN || WEBRTC_MAC
 
@@ -294,6 +294,10 @@ DesktopSourceRenderer::DesktopSourceRenderer(
         _capturer = webrtc::DesktopCapturer::CreateWindowCapturer(options);
     } else {
         _capturer = webrtc::DesktopCapturer::CreateScreenCapturer(options);
+    }
+    if (!_capturer) {
+        _fatalError = true;
+        return;
     }
     if (data.captureMouse) {
         _capturer = std::make_unique<webrtc::DesktopAndCursorComposer>(
@@ -305,7 +309,7 @@ DesktopSourceRenderer::DesktopSourceRenderer(
 }
 
 void DesktopSourceRenderer::start() {
-    if (_isRunning) {
+    if (!_capturer || _isRunning) {
         return;
     }
 //    ++GlobalCount;
@@ -331,7 +335,7 @@ void DesktopSourceRenderer::stop() {
 }
 
 void DesktopSourceRenderer::loop() {
-    if (!_isRunning) {
+    if (!_capturer || !_isRunning) {
         return;
     }
 

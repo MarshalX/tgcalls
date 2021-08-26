@@ -31,6 +31,10 @@
 - (void)internalSetOnOrientationUpdated:(void (^ _Nullable)(int, CGFloat))onOrientationUpdated;
 - (void)internalSetOnIsMirroredUpdated:(void (^ _Nullable)(bool))onIsMirroredUpdated;
 - (void)setForceMirrored:(BOOL)forceMirrored;
+
+-(void)setIsPaused:(bool)paused;
+-(void)renderToSize:(NSSize)size animated: (bool)animated;
+
 @end
 
 #endif // WEBRTC_MAC

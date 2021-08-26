@@ -33,7 +33,7 @@ webrtc::DesktopCaptureOptions DesktopCaptureSourceManager::OptionsForType(
     result.set_allow_use_magnification_api(false);
 #elif defined WEBRTC_MAC
     result.set_allow_iosurface(type == DesktopCaptureType::Screen);
-#elif defined WEBRTC_LINUX
+#elif defined WEBRTC_USE_PIPEWIRE
     result.set_allow_pipewire(true);
 #endif // WEBRTC_WIN || WEBRTC_MAC
     result.set_detect_updated_region(true);
@@ -51,7 +51,7 @@ auto DesktopCaptureSourceManager::CreateForType(DesktopCaptureType type)
 std::vector<DesktopCaptureSource> DesktopCaptureSourceManager::sources() {
     auto result = std::vector<DesktopCaptureSource>();
 	auto list = webrtc::DesktopCapturer::SourceList();
-    if (_capturer->GetSourceList(&list)) {
+    if (_capturer && _capturer->GetSourceList(&list)) {
         const auto isWindow = (_type == DesktopCaptureType::Window);
         for (const auto &source : list) {
             result.emplace_back(source.id, source.title, isWindow);
