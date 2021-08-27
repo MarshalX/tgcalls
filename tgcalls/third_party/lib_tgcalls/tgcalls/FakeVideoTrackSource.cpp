@@ -12,10 +12,52 @@ namespace tgcalls {
 
 int WIDTH = 1280;
 int HEIGHT = 720;
+int FPS = 30;
+
+class PythonCapture: public FrameSource {
+public:
+  explicit PythonCapture(std::function<std::string()> getNextFrameBuffer) {
+    _getNextFrameBuffer = std::move(getNextFrameBuffer);
+  }
+
+  Info info() const override{
+    return Info{WIDTH, HEIGHT};
+  }
+
+  webrtc::VideoFrame get_frame() {
+    int width = WIDTH;
+    int height = HEIGHT;
+
+    double pts = 0;
+
+    std::string frame = _getNextFrameBuffer();
+    auto pythonBuffer = (uint8_t *) (new std::string{frame})->data();
+
+    rtc::scoped_refptr<webrtc::I420Buffer> buffer = webrtc::I420Buffer::Create(width, height);
+
+    libyuv::ABGRToI420(pythonBuffer, width * 4, buffer->MutableDataY(), buffer->StrideY(), buffer->MutableDataU(),
+                       buffer->StrideU(), buffer->MutableDataV(), buffer->StrideV(), width, height);
+
+    delete [] pythonBuffer;
+
+    return webrtc::VideoFrame::Builder().set_video_frame_buffer(buffer).build();
+
+  }
+
+  void next_frame_rgb0(char *buf, double *pts) override {}
+
+private:
+  std::function<std::string()> _getNextFrameBuffer = nullptr;
+};
 
 class OpenCvVideoCapture : public FrameSource {
 public:
-  explicit OpenCvVideoCapture(std::string sourcePath) {
+  OpenCvVideoCapture(std::string sourcePath) {
+    _capture.set(cv::CAP_PROP_FRAME_WIDTH, WIDTH);
+    _capture.set(cv::CAP_PROP_FRAME_HEIGHT, HEIGHT);
+    _capture.set(cv::CAP_PROP_FPS, FPS);
+
+    _capture.set(cv::CAP_PROP_BUFFERSIZE, 3);
     while(!_capture.isOpened()){
       std::cout << "Try to open VideoCapture" << std::endl;
       _capture.open(sourcePath);
@@ -43,8 +85,18 @@ public:
       libyuv::ABGRToI420(bgra.data, width * 4, buffer->MutableDataY(), buffer->StrideY(), buffer->MutableDataU(),
                          buffer->StrideU(), buffer->MutableDataV(), buffer->StrideV(), width, height);
 
-      return webrtc::VideoFrame::Builder().set_video_frame_buffer(buffer).build();
+      auto rtcFrame = webrtc::VideoFrame::Builder().set_video_frame_buffer(buffer).build();
+
+//      _cachedFrames.push(rtcFrame);
+//      _lastFrame = rtcFrame;
+
+      return rtcFrame;
     } else {
+//      auto rtcFrame = _cachedFrames.front();
+//      _cachedFrames.pop();
+//      _cachedFrames.push(rtcFrame);
+//      return rtcFrame;
+
       rtc::scoped_refptr<webrtc::I420Buffer> buffer = webrtc::I420Buffer::Create(width, height);
       return webrtc::VideoFrame::Builder().set_timestamp_us(static_cast<int64_t>(pts * 1000000)).set_video_frame_buffer(buffer).build();
     }
@@ -54,7 +106,9 @@ public:
   }
 
 private:
-  cv::VideoCapture _capture;
+  cv::VideoCapture _capture = cv::VideoCapture(0, cv::CAP_DSHOW);
+  std::queue<webrtc::VideoFrame> _cachedFrames;
+//  webrtc::VideoFrame _lastFrame;
 };
 
 class ChessFrameSource : public FrameSource {
@@ -154,7 +208,7 @@ class FakeVideoSource : public rtc::VideoSourceInterface<webrtc::VideoFrame> {
       std::uint32_t step = 0;
       while (!data->flag_) {
         step++;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000 / 24));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000 / FPS));
         auto frame = source->next_frame();
         frame.set_id(static_cast<std::uint16_t>(step));
         frame.set_timestamp_us(rtc::TimeMicros());
@@ -218,6 +272,10 @@ std::unique_ptr<FrameSource> FrameSource::chess(){
 
 std::unique_ptr<FrameSource> FrameSource::opencv(std::string sourcePath){
   return std::make_unique<OpenCvVideoCapture>(std::move(sourcePath));
+}
+
+std::unique_ptr<FrameSource> FrameSource::python(std::function<std::string()> getNextFrameBuffer){
+  return std::make_unique<PythonCapture>(std::move(getNextFrameBuffer));
 }
 
 void FrameSource::video_frame_to_rgb0(const webrtc::VideoFrame & src, char *dest){

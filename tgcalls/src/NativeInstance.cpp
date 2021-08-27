@@ -240,8 +240,10 @@ void NativeInstance::setAudioInputDevice(std::string id) const {
 
 // todo args std::shared_ptr<tgcalls::VideoCaptureInterface> videoCapture
 void NativeInstance::setVideoCapture(std::string sourcePath) {
+//void NativeInstance::setVideoCapture(std::function<std::string()> getNextFrameBuffer) {
   _videoCapture = tgcalls::VideoCaptureInterface::Create(
       tgcalls::StaticThreads::getThreads(),
+//      tgcalls::FakeVideoTrackSource::createPtr(tgcalls::FrameSource::python(std::move(getNextFrameBuffer))),
       tgcalls::FakeVideoTrackSource::createPtr(tgcalls::FrameSource::opencv(std::move(sourcePath))),
 //      tgcalls::FakeVideoTrackSource::createPtr(tgcalls::FrameSource::chess()),
       "tgcalls_video_device"

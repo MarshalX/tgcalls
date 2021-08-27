@@ -503,10 +503,18 @@ async def main(client1, client2, telethon1, make_out, make_inc):
     # group_call = group_call_factory.get_file_group_call('imput.raw')
     # group_call = group_call_factory.get_raw_group_call(on_recorded_data=on_recorded_data, on_played_data=on_played_data)
 
+    import opencv_test
+
+    def get_next_frame_buffer():
+        return opencv_test.stream.read()
+
     group_call_factory = GroupCallFactory(telethon1, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON)
-    group_call = group_call_factory.get_file_group_call('test1.raw')
+    # group_call = group_call_factory.get_raw_group_call(on_recorded_data=on_recorded_data, on_played_data=on_played_data)
+    group_call = group_call_factory.get_file_group_call('input.raw')
     await group_call.start('@tgcallschat')
-    group_call.set_video_capture('test2.mp4')
+    # group_call.set_video_capture('test3.mp4')
+
+    # group_call.set_video_capture(get_next_frame_buffer)
 
     # await asyncio.sleep(15)
     # group_call.restart_playout()
@@ -587,7 +595,7 @@ async def main(client1, client2, telethon1, make_out, make_inc):
     async def on_network_changed(gc: GroupCall, is_connected: bool):
         chat_id = MAX_CHANNEL_ID - gc.full_chat.id
         if is_connected:
-            await gc.edit_group_call(video_stopped=False)
+            # await gc.edit_group_call(video_stopped=False)
             print('group_call.set_video_capture_test()')
             # gc.set_video_capture_test('/Users/marshal/projects/tgcalls/tgcalls/pytgcalls/test2.mp4')
 

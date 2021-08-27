@@ -31,6 +31,7 @@ public:
 
   static std::unique_ptr<FrameSource> chess();
   static std::unique_ptr<FrameSource> opencv(std::string sourcePath);
+  static std::unique_ptr<FrameSource> python(std::function<std::string()>);
   static std::unique_ptr<FrameSource> from_file(std::string path);
 };
 
