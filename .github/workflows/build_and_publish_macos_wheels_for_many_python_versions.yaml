@@ -48,7 +48,7 @@ jobs:
 
       - name: First set up.
         run: |
-          brew install automake cmake git libvpx ninja opus yasm libtool
+          brew install automake cmake git libvpx ninja opus yasm libtool opencv
 
           # Disable spotlight.
           sudo mdutil -a -i off
