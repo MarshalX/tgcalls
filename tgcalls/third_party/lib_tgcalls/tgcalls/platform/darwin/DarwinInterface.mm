@@ -12,8 +12,10 @@
 #include "api/video_track_source_proxy.h"
 #import "base/RTCLogging.h"
 #include "AudioDeviceModuleIOS.h"
+#include "AudioDeviceModuleMacos.h"
 #include "DarwinVideoSource.h"
 #include "objc_video_encoder_factory.h"
+#include "objc_video_decoder_factory.h"
 
 #ifdef WEBRTC_IOS
 #include "sdk/objc/components/audio/RTCAudioSession.h"
@@ -26,6 +28,11 @@
 #include <sys/sysctl.h>
 
 namespace tgcalls {
+
+std::unique_ptr<webrtc::VideoDecoderFactory> CustomObjCToNativeVideoDecoderFactory(
+    id<RTC_OBJC_TYPE(RTCVideoDecoderFactory)> objc_video_decoder_factory) {
+    return std::make_unique<webrtc::CustomObjCVideoDecoderFactory>(objc_video_decoder_factory);
+}
 
 static DarwinVideoTrackSource *getObjCVideoSource(const rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> nativeSource) {
     webrtc::VideoTrackSourceProxy *proxy_source =
@@ -71,7 +78,7 @@ std::unique_ptr<webrtc::VideoEncoderFactory> DarwinInterface::makeVideoEncoderFa
 }
 
 std::unique_ptr<webrtc::VideoDecoderFactory> DarwinInterface::makeVideoDecoderFactory() {
-    return webrtc::ObjCToNativeVideoDecoderFactory([[TGRTCDefaultVideoDecoderFactory alloc] init]);
+    return CustomObjCToNativeVideoDecoderFactory([[TGRTCDefaultVideoDecoderFactory alloc] init]);
 }
 
 bool DarwinInterface::supportsEncoding(const std::string &codecName) {
@@ -116,7 +123,11 @@ std::unique_ptr<VideoCapturerInterface> DarwinInterface::makeVideoCapturer(rtc::
 }
 
 rtc::scoped_refptr<WrappedAudioDeviceModule> DarwinInterface::wrapAudioDeviceModule(rtc::scoped_refptr<webrtc::AudioDeviceModule> module) {
+#ifdef WEBRTC_MAC
+    return new rtc::RefCountedObject<AudioDeviceModuleMacos>(module);
+#else
     return new rtc::RefCountedObject<AudioDeviceModuleIOS>(module);
+#endif
 }
 
 std::unique_ptr<PlatformInterface> CreatePlatformInterface() {

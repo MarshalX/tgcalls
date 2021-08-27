@@ -206,6 +206,18 @@ RUN cmake -B out/Release . \
     -DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include
 RUN cmake --build out/Release -- -j$(nproc)
 
+RUN cmake -B out/Debug . \
+    -DCMAKE_BUILD_TYPE=Debug \
+    -DTG_OWT_SPECIAL_TARGET=linux \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+    -DTG_OWT_USE_PIPEWIRE=OFF \
+    -DTG_OWT_LIBJPEG_INCLUDE_PATH=/usr/local/include \
+    -DTG_OWT_OPENSSL_INCLUDE_PATH=$OPENSSL_PREFIX/include \
+    -DTG_OWT_OPUS_INCLUDE_PATH=/usr/local/include/opus \
+    -DTG_OWT_FFMPEG_INCLUDE_PATH=/usr/local/include
+RUN cmake --build out/Debug -- -j$(nproc)
+
 WORKDIR ..
 
 FROM builder
@@ -220,5 +232,8 @@ COPY --from=webrtc ${LibrariesPath}/webrtc tg_owt
 WORKDIR ..
 COPY ./ ${MainPath}/tgcalls
 WORKDIR ${MainPath}/tgcalls
+
+RUN pip3 install pyrogram tgcrypto telethon
+RUN python3 setup.py build --debug
 
 CMD pip3 wheel . --no-deps -w ../dist/ --use-feature=in-tree-build

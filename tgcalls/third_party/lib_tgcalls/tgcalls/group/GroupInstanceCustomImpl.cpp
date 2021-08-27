@@ -70,6 +70,21 @@ namespace tgcalls {
 
 namespace {
 
+template <typename Out>
+void splitString(const std::string &s, char delim, Out result) {
+    std::istringstream iss(s);
+    std::string item;
+    while (std::getline(iss, item, delim)) {
+        *result++ = item;
+    }
+}
+
+std::vector<std::string> splitString(const std::string &s, char delim) {
+    std::vector<std::string> elems;
+    splitString(s, delim, std::back_inserter(elems));
+    return elems;
+}
+
 static int stringToInt(std::string const &string) {
     std::stringstream stringStream(string);
     int value = 0;
@@ -656,6 +671,10 @@ public:
         }
     }
 
+    std::vector<std::weak_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>>> getSinks() {
+        return _sinks;
+    }
+
 private:
     std::vector<std::weak_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>>> _sinks;
     absl::optional<webrtc::VideoFrame> _lastFrame;
@@ -789,23 +808,25 @@ private:
             }
         }
 
-        _externalAudioSamplesMutex->Lock();
-        if (!_externalAudioSamples->empty()) {
-            float *bufferData = buffer->channels()[0];
-            int takenSamples = 0;
-            for (int i = 0; i < _externalAudioSamples->size() && i < _frameSamples.size(); i++) {
-                float sample = (*_externalAudioSamples)[i];
-                sample += bufferData[i];
-                sample = std::min(sample, 32768.f);
-                sample = std::max(sample, -32768.f);
-                bufferData[i] = sample;
-                takenSamples++;
+        if (_externalAudioSamplesMutex && _externalAudioSamples) {
+            _externalAudioSamplesMutex->Lock();
+            if (!_externalAudioSamples->empty()) {
+                float *bufferData = buffer->channels()[0];
+                int takenSamples = 0;
+                for (int i = 0; i < _externalAudioSamples->size() && i < _frameSamples.size(); i++) {
+                    float sample = (*_externalAudioSamples)[i];
+                    sample += bufferData[i];
+                    sample = std::min(sample, 32768.f);
+                    sample = std::max(sample, -32768.f);
+                    bufferData[i] = sample;
+                    takenSamples++;
+                }
+                if (takenSamples != 0) {
+                    _externalAudioSamples->erase(_externalAudioSamples->begin(), _externalAudioSamples->begin() + takenSamples);
+                }
             }
-            if (takenSamples != 0) {
-                _externalAudioSamples->erase(_externalAudioSamples->begin(), _externalAudioSamples->begin() + takenSamples);
-            }
+            _externalAudioSamplesMutex->Unlock();
         }
-        _externalAudioSamplesMutex->Unlock();
     }
 
     virtual std::string ToString() const override {
@@ -882,6 +903,74 @@ private:
     webrtc::Mutex *_externalAudioSamplesMutex = nullptr;
     std::vector<int16_t> _samples;
 };
+
+#if not USE_RNNOISE
+class AudioCaptureAnalyzer : public webrtc::CustomAudioAnalyzer {
+private:
+  void Initialize(int sample_rate_hz, int num_channels) override {
+
+  }
+
+  void Analyze(const webrtc::AudioBuffer* buffer) override {
+    if (!buffer) {
+      return;
+    }
+    if (buffer->num_channels() != 1) {
+      return;
+    }
+
+    float peak = 0;
+    int peakCount = 0;
+    const float *samples = buffer->channels_const()[0];
+    for (int i = 0; i < buffer->num_frames(); i++) {
+      float sample = samples[i];
+      if (sample < 0) {
+        sample = -sample;
+      }
+      if (peak < sample) {
+        peak = sample;
+      }
+      peakCount += 1;
+    }
+
+    bool vadStatus = _vad.update((webrtc::AudioBuffer *)buffer);
+
+    _peakCount += peakCount;
+    if (_peak < peak) {
+      _peak = peak;
+    }
+
+    if (_peakCount >= 1200) {
+      float level = _peak / 4000.0f;
+      _peak = 0;
+      _peakCount = 0;
+
+      _updated(GroupLevelValue{
+          level,
+          vadStatus,
+      });
+    }
+  }
+
+  std::string ToString() const override {
+    return "analyzing";
+  }
+
+private:
+  std::function<void(GroupLevelValue const &)> _updated;
+
+  CombinedVad _vad;
+  int32_t _peakCount = 0;
+  float _peak = 0;
+
+public:
+  AudioCaptureAnalyzer(std::function<void(GroupLevelValue const &)> updated) :
+      _updated(updated) {
+  }
+
+  virtual ~AudioCaptureAnalyzer() = default;
+};
+#endif
 
 class IncomingAudioChannel : public sigslot::has_slots<> {
 public:
@@ -1114,6 +1203,10 @@ public:
         _videoSink->addSink(impl);
     }
 
+    std::vector<std::weak_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>>> getSinks() {
+        return _videoSink->getSinks();
+    }
+
     std::string const &endpointId() {
         return _endpointId;
     }
@@ -1132,6 +1225,14 @@ public:
 
     void setRequstedMaxQuality(VideoChannelDescription::Quality quality) {
         _requestedMaxQuality = quality;
+    }
+
+    void setStats(absl::optional<GroupInstanceStats::IncomingVideoStats> stats) {
+        _stats = stats;
+    }
+
+    absl::optional<GroupInstanceStats::IncomingVideoStats> getStats() {
+        return _stats;
     }
 
 private:
@@ -1154,6 +1255,8 @@ private:
 
     VideoChannelDescription::Quality _requestedMinQuality = VideoChannelDescription::Quality::Thumbnail;
     VideoChannelDescription::Quality _requestedMaxQuality = VideoChannelDescription::Quality::Thumbnail;
+
+    absl::optional<GroupInstanceStats::IncomingVideoStats> _stats;
 };
 
 class MissingSsrcPacketBuffer {
@@ -1296,6 +1399,7 @@ public:
         const auto weak = std::weak_ptr<GroupInstanceCustomInternal>(shared_from_this());
 
         webrtc::field_trial::InitFieldTrialsFromString(
+//            "WebRTC-Audio-Allocation/min:32kbps,max:2048kbps/"
             "WebRTC-Audio-Allocation/min:32kbps,max:32kbps/"
             "WebRTC-Audio-OpusMinPacketLossRate/Enabled-1/"
             "WebRTC-TaskQueuePacer/Enabled/"
@@ -1364,11 +1468,26 @@ public:
                     }
                     strong->_myAudioLevel = level;
                 });
-            }, _noiseSuppressionConfiguration, &_externalAudioSamples, &_externalAudioSamplesMutex);
+                }, _noiseSuppressionConfiguration, nullptr, nullptr);
     #endif
         }
 
+    #if not USE_RNNOISE
+          auto analyzer = new AudioCaptureAnalyzer([weak, threads = _threads](GroupLevelValue const &level) {
+            threads->getMediaThread()->PostTask(RTC_FROM_HERE, [weak, level](){
+              auto strong = weak.lock();
+              if (!strong) {
+                return;
+              }
+              strong->_myAudioLevel = level;
+            });
+          });
+    #endif
+
       _threads->getWorkerThread()->Invoke<void>(RTC_FROM_HERE, [this
+    #if not USE_RNNOISE
+          , analyzer
+    #endif
     #if USE_RNNOISE
           , audioProcessor = std::move(audioProcessor)
     #endif
@@ -1381,14 +1500,11 @@ public:
             mediaDeps.video_encoder_factory = PlatformInterface::SharedInstance()->makeVideoEncoderFactory();
             mediaDeps.video_decoder_factory = PlatformInterface::SharedInstance()->makeVideoDecoderFactory();
 
-      #if USE_RNNOISE
-            if (_audioLevelsUpdated && audioProcessor) {
-                webrtc::AudioProcessingBuilder builder;
-                builder.SetCapturePostProcessing(std::move(audioProcessor));
-
-                mediaDeps.audio_processing = builder.Create();
-            }
-      #endif
+    #if not USE_RNNOISE
+            webrtc::AudioProcessingBuilder builder;
+            builder.SetCaptureAnalyzer(std::unique_ptr<AudioCaptureAnalyzer>(analyzer));
+            mediaDeps.audio_processing = builder.Create();
+    #endif
 
             _audioDeviceModule = createAudioDeviceModule();
             if (!_audioDeviceModule) {
@@ -1573,7 +1689,7 @@ public:
                             rtpParameters.encodings[i].scale_resolution_down_by = 4.0;
                             rtpParameters.encodings[i].active = _outgoingVideoConstraint >= 180;
                         } else if (i == 1) {
-                            rtpParameters.encodings[i].max_bitrate_bps = 150000;
+                            rtpParameters.encodings[i].min_bitrate_bps = 150000;
                             rtpParameters.encodings[i].max_bitrate_bps = 200000;
                             rtpParameters.encodings[i].scale_resolution_down_by = 2.0;
                             rtpParameters.encodings[i].active = _outgoingVideoConstraint >= 360;
@@ -1611,7 +1727,7 @@ public:
                             rtpParameters.encodings[i].scale_resolution_down_by = 4.0;
                             rtpParameters.encodings[i].active = _outgoingVideoConstraint >= 180;
                         } else if (i == 1) {
-                            rtpParameters.encodings[i].max_bitrate_bps = 100000;
+                            rtpParameters.encodings[i].min_bitrate_bps = 100000;
                             rtpParameters.encodings[i].max_bitrate_bps = 110000;
                             rtpParameters.encodings[i].scale_resolution_down_by = 2.0;
                             rtpParameters.encodings[i].active = _outgoingVideoConstraint >= 360;
@@ -1704,15 +1820,17 @@ public:
         const uint8_t opusStartBitrateKbps = _outgoingAudioBitrateKbit;
         const uint8_t opusPTimeMs = 120;
 
+//        cricket::AudioCodec opusCodec(111, "opus", 48000, _outgoingAudioBitrateKbit, 2);
         cricket::AudioCodec opusCodec(111, "opus", 48000, 0, 2);
         opusCodec.AddFeedbackParam(cricket::FeedbackParam(cricket::kRtcpFbParamTransportCc));
         opusCodec.SetParam(cricket::kCodecParamMinBitrate, opusMinBitrateKbps);
         opusCodec.SetParam(cricket::kCodecParamStartBitrate, opusStartBitrateKbps);
         opusCodec.SetParam(cricket::kCodecParamMaxBitrate, opusMaxBitrateKbps);
-        opusCodec.SetParam(cricket::kCodecParamUseInbandFec, 0);
-        opusCodec.SetParam(cricket::kCodecParamMaxAverageBitrate, 510000);
-        opusCodec.SetParam(cricket::kCodecParamUseDtx, 0);
-        opusCodec.SetParam(cricket::kCodecParamMinPTime, 10);
+//        opusCodec.SetParam(cricket::kCodecParamUseInbandFec, 0);
+        opusCodec.SetParam(cricket::kCodecParamUseInbandFec, 1);
+//        opusCodec.SetParam(cricket::kCodecParamMaxAverageBitrate, 510000);
+//        opusCodec.SetParam(cricket::kCodecParamUseDtx, 0);
+//        opusCodec.SetParam(cricket::kCodecParamMinPTime, 10);
         opusCodec.SetParam(cricket::kCodecParamPTime, opusPTimeMs);
 
         auto outgoingAudioDescription = std::make_unique<cricket::AudioContentDescription>();
@@ -1791,27 +1909,32 @@ public:
             GroupLevelsUpdate levelsUpdate;
             levelsUpdate.updates.reserve(strong->_audioLevels.size() + 1);
             for (auto &it : strong->_audioLevels) {
-                if (it.second.value.level > 0.001f && it.second.timestamp > timestamp - maxSampleTimeout) {
-                    uint32_t effectiveSsrc = it.first.actualSsrc;
-                    if (std::find_if(levelsUpdate.updates.begin(), levelsUpdate.updates.end(), [&](GroupLevelUpdate const &item) {
-                        return item.ssrc == effectiveSsrc;
-                    }) != levelsUpdate.updates.end()) {
-                        continue;
-                    }
-                    levelsUpdate.updates.push_back(GroupLevelUpdate{
-                        effectiveSsrc,
-                        it.second.value,
-                        });
-                    if (it.second.value.level > 0.001f) {
-                        auto audioChannel = strong->_incomingAudioChannels.find(it.first);
-                        if (audioChannel != strong->_incomingAudioChannels.end()) {
-                            audioChannel->second->updateActivity();
-                        }
-                    }
-
-                    it.second.value.level *= 0.5f;
-                    it.second.value.voice = false;
+                if (it.second.value.level < 0.001f) {
+                    continue;
                 }
+                if (it.second.timestamp <= timestamp - maxSampleTimeout) {
+                    continue;
+                }
+
+                uint32_t effectiveSsrc = it.first.actualSsrc;
+                if (std::find_if(levelsUpdate.updates.begin(), levelsUpdate.updates.end(), [&](GroupLevelUpdate const &item) {
+                    return item.ssrc == effectiveSsrc;
+                }) != levelsUpdate.updates.end()) {
+                    continue;
+                }
+                levelsUpdate.updates.push_back(GroupLevelUpdate{
+                    effectiveSsrc,
+                    it.second.value,
+                    });
+                if (it.second.value.level > 0.001f) {
+                    auto audioChannel = strong->_incomingAudioChannels.find(it.first);
+                    if (audioChannel != strong->_incomingAudioChannels.end()) {
+                        audioChannel->second->updateActivity();
+                    }
+                }
+
+                it.second.value.level *= 0.5f;
+                it.second.value.voice = false;
             }
 
             auto myAudioLevel = strong->_myAudioLevel;
@@ -2478,6 +2601,58 @@ public:
                             }
                         }
                     }
+                } else if (messageType == "DebugMessage") {
+                    const auto message = json.object_items().find("message");
+                    if (message != json.object_items().end() && message->second.is_string()) {
+                        std::vector<std::string> parts = splitString(message->second.string_value(), '\n');
+                        for (const auto &part : parts) {
+                            std::string cleanString = part;
+                            std::size_t index = cleanString.find("=");
+                            if (index == std::string::npos) {
+                                continue;
+                            }
+                            cleanString.erase(cleanString.begin(), cleanString.begin() + index + 1);
+
+                            index = cleanString.find("target=");
+                            if (index == std::string::npos) {
+                                continue;
+                            }
+
+                            std::string endpointId = cleanString.substr(0, index);
+                            cleanString.erase(cleanString.begin(), cleanString.begin() + index + 7);
+
+                            index = cleanString.find("p/");
+                            if (index == std::string::npos) {
+                                continue;
+                            }
+
+                            std::string targetQuality = cleanString.substr(0, index);
+                            cleanString.erase(cleanString.begin(), cleanString.begin() + index + 2);
+
+                            index = cleanString.find("ideal=");
+                            if (index == std::string::npos) {
+                                continue;
+                            }
+
+                            cleanString.erase(cleanString.begin(), cleanString.begin() + index + 6);
+
+                            index = cleanString.find("p/");
+                            if (index == std::string::npos) {
+                                continue;
+                            }
+
+                            std::string availableQuality = cleanString.substr(0, index);
+
+                            for (const auto &it : _incomingVideoChannels) {
+                                if (it.second->endpointId() == endpointId) {
+                                    GroupInstanceStats::IncomingVideoStats incomingVideoStats;
+                                    incomingVideoStats.receivingQuality = stringToInt(targetQuality);
+                                    incomingVideoStats.availableQuality = stringToInt(availableQuality);
+                                    it.second->setStats(incomingVideoStats);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -2922,35 +3097,9 @@ public:
     }
 
     void removeSsrcs(std::vector<uint32_t> ssrcs) {
-        /*bool updatedIncomingVideoChannels = false;
-
-        for (auto ssrc : ssrcs) {
-            auto it = _ssrcMapping.find(ssrc);
-            if (it != _ssrcMapping.end()) {
-                auto mainSsrc = it->second.ssrc;
-                auto audioChannel = _incomingAudioChannels.find(ChannelId(mainSsrc));
-                if (audioChannel != _incomingAudioChannels.end()) {
-                    _incomingAudioChannels.erase(audioChannel);
-                }
-                auto videoChannel = _incomingVideoChannels.find(mainSsrc);
-                if (videoChannel != _incomingVideoChannels.end()) {
-                    _incomingVideoChannels.erase(videoChannel);
-                    updatedIncomingVideoChannels = true;
-                }
-            }
-        }
-
-        if (updatedIncomingVideoChannels) {
-            updateIncomingVideoSources();
-        }*/
     }
 
     void removeIncomingVideoSource(uint32_t ssrc) {
-        /*auto videoChannel = _incomingVideoChannels.find(ssrc);
-        if (videoChannel != _incomingVideoChannels.end()) {
-            _incomingVideoChannels.erase(videoChannel);
-            updateIncomingVideoSources();
-        }*/
     }
 
     void setIsMuted(bool isMuted) {
@@ -3038,11 +3187,21 @@ public:
                         if (!strong) {
                             return;
                         }
-                        InternalGroupLevelValue updated;
-                        updated.value.level = update.level;
-                        updated.value.voice = update.hasSpeech;
-                        updated.timestamp = rtc::TimeMillis();
-                        strong->_audioLevels.insert(std::make_pair(ChannelId(ssrc), std::move(updated)));
+
+                        auto it = strong->_audioLevels.find(ChannelId(ssrc));
+                        if (it != strong->_audioLevels.end()) {
+                            it->second.value.level = fmax(it->second.value.level, update.level);
+                            if (update.hasSpeech) {
+                                it->second.value.voice = true;
+                            }
+                            it->second.timestamp = rtc::TimeMillis();
+                        } else {
+                            InternalGroupLevelValue updated;
+                            updated.value.level = update.level;
+                            updated.value.voice = update.hasSpeech;
+                            updated.timestamp = rtc::TimeMillis();
+                            strong->_audioLevels.insert(std::make_pair(ChannelId(ssrc), std::move(updated)));
+                        }
                     });
                 };
             }
@@ -3231,7 +3390,14 @@ public:
         }
 
         for (const auto &endpointId : removeEndpointIds) {
-            _incomingVideoChannels.erase(VideoChannelId(endpointId));
+            const auto it = _incomingVideoChannels.find(VideoChannelId(endpointId));
+            if (it != _incomingVideoChannels.end()) {
+                auto sinks = it->second->getSinks();
+                for (const auto &sink : sinks) {
+                    _pendingVideoSinks[VideoChannelId(endpointId)].push_back(sink);
+                }
+                _incomingVideoChannels.erase(it);
+            }
         }
 
         if (updated) {
@@ -3239,6 +3405,24 @@ public:
         }
     }
 
+    void getStats(std::function<void(GroupInstanceStats)> completion) {
+      GroupInstanceStats result;
+
+      for (const auto &it : _incomingVideoChannels) {
+        const auto videoStats = it.second->getStats();
+        if (videoStats) {
+          result.incomingVideoStats.push_back(std::make_pair(it.second->endpointId(), videoStats.value()));
+        }
+      }
+
+      completion(result);
+    }
+
+    void performWithAudioDeviceModule(std::function<void(rtc::scoped_refptr<WrappedAudioDeviceModule>)> callback) {
+      _threads->getWorkerThread()->Invoke<void>(RTC_FROM_HERE, [&] {
+        callback(_audioDeviceModule);
+      });
+    }
 private:
     rtc::scoped_refptr<WrappedAudioDeviceModule> createAudioDeviceModule() {
         const auto create = [&](webrtc::AudioDeviceModule::AudioLayer layer) {
@@ -3492,9 +3676,15 @@ void GroupInstanceCustomImpl::setRequestedVideoChannels(std::vector<VideoChannel
     });
 }
 
+void GroupInstanceCustomImpl::getStats(std::function<void(GroupInstanceStats)> completion) {
+    _internal->perform(RTC_FROM_HERE, [completion = std::move(completion)](GroupInstanceCustomInternal *internal) mutable {
+        internal->getStats(completion);
+    });
+}
+
 std::vector<GroupInstanceInterface::AudioDevice> GroupInstanceInterface::getAudioDevices(AudioDevice::Type type) {
   auto result = std::vector<AudioDevice>();
-#ifdef WEBRTC_LINUX //Not needed for ios, and some crl::sync stuff is needed for windows
+//#ifdef WEBRTC_LINUX //Not needed for ios, and some crl::sync stuff is needed for windows
   const auto resolve = [&] {
     const auto queueFactory = webrtc::CreateDefaultTaskQueueFactory();
     const auto info = webrtc::AudioDeviceModule::Create(
@@ -3519,8 +3709,14 @@ std::vector<GroupInstanceInterface::AudioDevice> GroupInstanceInterface::getAudi
     }
   };
   resolve();
-#endif
+//#endif
   return result;
+}
+
+void GroupInstanceCustomImpl::performWithAudioDeviceModule(std::function<void(rtc::scoped_refptr<WrappedAudioDeviceModule>)> callback) {
+  _internal->perform(RTC_FROM_HERE, [callback = std::move(callback)](GroupInstanceCustomInternal *internal) {
+    internal->performWithAudioDeviceModule(callback);
+  });
 }
 
 } // namespace tgcalls

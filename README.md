@@ -80,6 +80,7 @@ app.run_until_disconnected()
 ### Features
 
 - Python solution.
+- Prebuilt wheels for macOS, Linux and Windows.
 - Supporting popular MTProto libraries: Pyrogram, Telethon.
 - Abstract class to implement own MTProto bridge.
 - Work with voice chats in channels and chats.
@@ -87,17 +88,19 @@ app.run_until_disconnected()
 - System of custom handlers on events.
 - Join as channels or chats.
 - Join using invite (speaker) links.
-- Speaking status with audio levels inside and outside of voice chat.
+- Speaking status with voice activity detection.
 - Mute/unmute, pause/resume, stop/play, volume control and more...
 
 ### Available sources of input/output data transfers
 
+- Raw (`GroupCallRaw`, [example with pyav](https://github.com/MarshalX/tgcalls/blob/main/examples/pyav.py),
+[example of restreaming](https://github.com/MarshalX/tgcalls/blob/main/examples/restream_using_raw_data.py))
+  — to send and receive data in `bytes` directly from Python.
 - File (`GroupCallFile`, [playout example](https://github.com/MarshalX/tgcalls/blob/main/examples/file_playout.py),
   [recording example](https://github.com/MarshalX/tgcalls/blob/main/examples/recorder_as_smart_plugin.py))
-  — to use any audio files including named pipe (FIFO).
-- Device (`GroupCallDevice`, [example](https://github.com/MarshalX/tgcalls/blob/main/examples/device_playout.py)) — to use microphone, headphones, etc.
-- Raw (`GroupCallRaw`, [example of restreaming](https://github.com/MarshalX/tgcalls/blob/main/examples/restream_using_raw_data.py))
-  — to send and receive data in `bytes` directly from Python.
+  — to use audio files including named pipe (FIFO).
+- Device (`GroupCallDevice`, [example](https://github.com/MarshalX/tgcalls/blob/main/examples/device_playout.py)) — 
+to use system virtual devices. Please don't use it with real microphone, headphones, etc.
 
 Note: All audio data is transmitted in PCM 16 bit, 48k. 
 [Example how to convert files using FFmpeg](#audio-file-formats).
@@ -106,13 +109,11 @@ Note: All audio data is transmitted in PCM 16 bit, 48k.
 
 - Python 3.6 or higher.
 - A [Telegram API key](https://docs.pyrogram.org/intro/setup#api-keys).
-- x86_64/arm64 platform and Unix system (use WSL for Windows).
-
 
 ### TODO list
-- Incoming and Outgoing calls (already there and working, but not in release).
-- Private and group video calls.
-- Python binary wheels for Windows
+- Incoming and Outgoing private calls 
+(already there and working, but not in the release version).
+- Group Video Calls
 [and more...](https://github.com/MarshalX/tgcalls/issues)
 
 ### Installing
@@ -150,15 +151,15 @@ library by Telegram, which is used in all official clients.
 To implement the binding, the code of Telegram Desktop and Telegram Android was studied.
 Changes have been made to the Telegram library. 
 All modified code is [available as a subtree](https://github.com/MarshalX/tgcalls/tree/main/tgcalls/third_party/lib_tgcalls)
-in this repository. The main idea of the changes is to improve 
-the sound quality by making the minimum number of code edits for a simple update.
-In addition, audio modules for WebRTC were developed. Modules are allowing
-to transfer audio data directly from Python via bytes, transfer and control 
+in this repository. The main ideas of the changes is to improve 
+the sound quality and to add ability to work with third party audio device modules.
+In addition, this binding implemented custom audio modules. These modules are allowing
+transfer audio data directly from Python via bytes, transfer and control 
 the playback/recording of a file or a virtual system device.
 
 ### How to build
 
-Short answer for linux:
+Short answer for Linux:
 ```bash
 git clone git@github.com:MarshalX/tgcalls.git --recursive
 cd tgcalls

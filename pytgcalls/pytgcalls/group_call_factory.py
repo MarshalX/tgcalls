@@ -21,6 +21,7 @@ import importlib
 from importlib.util import find_spec
 from typing import Callable, Optional, Union
 
+from pytgcalls.exceptions import PytgcallsBaseException, PytgcallsError
 from pytgcalls.group_call_type import GroupCallType
 from pytgcalls.mtproto_client_type import MTProtoClientType
 from pytgcalls.implementation.group_call_file import GroupCallFile
@@ -32,7 +33,7 @@ def hot_load_mtproto_lib_or_exception(module):
     if find_spec(module):
         importlib.import_module(module)
     else:
-        raise RuntimeError(
+        raise PytgcallsBaseException(
             f'To use this MTProto client type you need to install {module.capitalize()}. '
             f'Run this command: pip3 install -U pytgcalls[{module}]'
         )
@@ -49,7 +50,12 @@ class GroupCallFactory:
     }
 
     def __init__(
-        self, client, mtproto_backend=MTProtoClientType.PYROGRAM, enable_logs_to_console=False, path_to_log_file=None
+        self,
+        client,
+        mtproto_backend=MTProtoClientType.PYROGRAM,
+        enable_logs_to_console=False,
+        path_to_log_file=None,
+        outgoing_audio_bitrate_kbit=128,
     ):
         self.client = client
 
@@ -64,10 +70,11 @@ class GroupCallFactory:
 
             self.__mtproto_bride_class = TelethonBridge
         else:
-            raise RuntimeError('Unknown MTProto client type')
+            raise PytgcallsError('Unknown MTProto client type')
 
         self.enable_logs_to_console = enable_logs_to_console
         self.path_to_log_file = path_to_log_file
+        self.outgoing_audio_bitrate_kbit = outgoing_audio_bitrate_kbit
 
     def get_mtproto_bridge(self):
         return self.__mtproto_bride_class(self.client)
@@ -77,6 +84,7 @@ class GroupCallFactory:
             mtproto_bridge=self.get_mtproto_bridge(),
             enable_logs_to_console=self.enable_logs_to_console,
             path_to_log_file=self.path_to_log_file,
+            outgoing_audio_bitrate_kbit=self.outgoing_audio_bitrate_kbit,
             **kwargs,
         )
 
@@ -90,6 +98,7 @@ class GroupCallFactory:
             play_on_repeat,
             self.enable_logs_to_console,
             self.path_to_log_file,
+            self.outgoing_audio_bitrate_kbit,
         )
 
     def get_device_group_call(
@@ -101,6 +110,7 @@ class GroupCallFactory:
             audio_output_device,
             self.enable_logs_to_console,
             self.path_to_log_file,
+            self.outgoing_audio_bitrate_kbit,
         )
 
     def get_raw_group_call(
@@ -114,4 +124,5 @@ class GroupCallFactory:
             on_recorded_data,
             self.enable_logs_to_console,
             self.path_to_log_file,
+            self.outgoing_audio_bitrate_kbit,
         )

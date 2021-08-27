@@ -57,6 +57,7 @@ public:
 	void setIsConnected(bool isConnected);
 	void notifyPacketSent(const rtc::SentPacket &sentPacket);
 	void setSendVideo(std::shared_ptr<VideoCaptureInterface> videoCapture);
+	void sendVideoDeviceUpdated();
     void setRequestedVideoAspect(float aspect);
 	void setMuteOutgoingAudio(bool mute);
 	void setIncomingVideoOutput(std::shared_ptr<rtc::VideoSinkInterface<webrtc::VideoFrame>> sink);
@@ -69,6 +70,8 @@ public:
 	void setAudioOutputDevice(std::string id);
 	void setInputVolume(float level);
 	void setOutputVolume(float level);
+
+    void addExternalAudioSamples(std::vector<uint8_t> &&samples);
 
 private:
 	struct SSRC {
@@ -155,6 +158,7 @@ private:
 	std::unique_ptr<cricket::VideoMediaChannel> _videoChannel;
 	std::unique_ptr<webrtc::VideoBitrateAllocatorFactory> _videoBitrateAllocatorFactory;
 	std::shared_ptr<VideoCaptureInterface> _videoCapture;
+    bool _isScreenCapture = false;
     std::shared_ptr<VideoSinkInterfaceProxyImpl> _incomingVideoSinkProxy;
 
     float _localPreferredVideoAspectRatio = 0.0f;
@@ -165,13 +169,14 @@ private:
 
     float _currentAudioLevel = 0.0f;
     float _currentMyAudioLevel = 0.0f;
-    int _myAudioLevelPeakCount = 0;
-    int _myAudioLevelPeak = 0;
 
 	std::unique_ptr<MediaManager::NetworkInterfaceImpl> _audioNetworkInterface;
 	std::unique_ptr<MediaManager::NetworkInterfaceImpl> _videoNetworkInterface;
 
     std::vector<CallStatsBitrateRecord> _bitrateRecords;
+
+    std::vector<float> _externalAudioSamples;
+    webrtc::Mutex _externalAudioSamplesMutex;
 };
 
 } // namespace tgcalls

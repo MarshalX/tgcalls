@@ -31,8 +31,8 @@ async def main(client):
     await group_call.start(CHAT_ID)
 
     # to get available device names
-    group_call.print_available_playout_devices()
-    group_call.print_available_recording_devices()
+    print(group_call.get_playout_devices())
+    print(group_call.get_recording_devices())
 
     await pyrogram.idle()
 

@@ -19,7 +19,7 @@ const size_t kPlayoutBufferSize =
 const size_t kRecordingBufferSize =
     kRecordingFixedSampleRate / 100 * kRecordingNumChannels * 2;
 
-FileAudioDevice::FileAudioDevice(FileAudioDeviceDescriptor *fileAudioDeviceDescriptor)
+FileAudioDevice::FileAudioDevice(std::shared_ptr<FileAudioDeviceDescriptor> fileAudioDeviceDescriptor)
     : _ptrAudioBuffer(nullptr),
       _recordingBuffer(nullptr),
       _playoutBuffer(nullptr),
@@ -32,7 +32,7 @@ FileAudioDevice::FileAudioDevice(FileAudioDeviceDescriptor *fileAudioDeviceDescr
       _recording(false),
       _lastCallPlayoutMillis(0),
       _lastCallRecordMillis(0),
-      _fileAudioDeviceDescriptor(fileAudioDeviceDescriptor) {}
+      _fileAudioDeviceDescriptor(std::move(fileAudioDeviceDescriptor)) {}
 
 FileAudioDevice::~FileAudioDevice() = default;
 

@@ -14,8 +14,8 @@
 namespace tgcalls {
 namespace {
 
-constexpr auto kPreferredWidth = 640;
-constexpr auto kPreferredHeight = 480;
+constexpr auto kPreferredWidth = 1280;
+constexpr auto kPreferredHeight = 720;
 constexpr auto kPreferredFps = 30;
 
 } // namespace

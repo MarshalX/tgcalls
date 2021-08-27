@@ -1947,13 +1947,14 @@ PRIVATE
     sdk/media_constraints.cc
 
     # screen drawer
-    modules/desktop_capture/screen_drawer.cc
-    modules/desktop_capture/screen_drawer.h
-    modules/desktop_capture/screen_drawer_mac.cc
-    modules/desktop_capture/screen_drawer_linux.cc
-    modules/desktop_capture/screen_drawer_lock_posix.cc
-    modules/desktop_capture/screen_drawer_lock_posix.h
-    modules/desktop_capture/screen_drawer_win.cc
+    # there is x11 required also
+#    modules/desktop_capture/screen_drawer.cc
+#    modules/desktop_capture/screen_drawer.h
+#    modules/desktop_capture/screen_drawer_mac.cc
+#    modules/desktop_capture/screen_drawer_linux.cc
+#    modules/desktop_capture/screen_drawer_lock_posix.cc
+#    modules/desktop_capture/screen_drawer_lock_posix.h
+#    modules/desktop_capture/screen_drawer_win.cc
 
     # primitives
     modules/desktop_capture/desktop_capture_types.h

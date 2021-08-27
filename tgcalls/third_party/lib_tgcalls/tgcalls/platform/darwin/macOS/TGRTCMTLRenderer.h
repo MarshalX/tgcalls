@@ -9,52 +9,39 @@
  */
 
 #import <Foundation/Foundation.h>
-#if TARGET_OS_IPHONE
-#import <UIKit/UIKit.h>
-#else
 #import <AppKit/AppKit.h>
 #import <MetalKit/MetalKit.h>
-#endif
 
 #import "base/RTCVideoFrame.h"
 
+bool initMetal();
+
+struct MTLFrameSize {
+    float width = 0;
+    float height = 0;
+};
+MTLFrameSize MTLAspectFilled(MTLFrameSize from, MTLFrameSize to);
+MTLFrameSize MTLAspectFitted(MTLFrameSize from, MTLFrameSize to);
+
 NS_ASSUME_NONNULL_BEGIN
-/**
- * Protocol defining ability to render RTCVideoFrame in Metal enabled views.
- */
+
+typedef enum {
+    TGRTCMTLRenderModeSinge,
+    TGRTCMTLRenderModeDouble
+} TGRTCMTLRenderMode;
+
 @protocol TGRTCMTLRenderer <NSObject>
 
-/**
- * Method to be implemented to perform actual rendering of the provided frame.
- *
- * @param frame The frame to be rendered.
- */
 - (void)drawFrame:(RTC_OBJC_TYPE(RTCVideoFrame) *)frame;
-
-/**
- * Sets the provided view as rendering destination if possible.
- *
- * If not possible method returns NO and callers of the method are responisble for performing
- * cleanups.
- */
-
-#if TARGET_OS_IOS
-- (BOOL)addRenderingDestination:(__kindof UIView *)view;
-#else
-- (BOOL)addRenderingDestination:(__kindof CAMetalLayer *)view;
-#endif
+- (BOOL)setSingleRendering:(__kindof CAMetalLayer *)view;
+- (BOOL)setDoubleRendering:(__kindof CAMetalLayer *)view foreground: (__kindof CAMetalLayer *)foreground;
 
 @end
 
-/**
- * Implementation of RTCMTLRenderer protocol.
- */
+
 NS_AVAILABLE(10_11, 9_0)
 @interface TGRTCMTLRenderer : NSObject <TGRTCMTLRenderer>
 
-/** @abstract   A wrapped RTCVideoRotation, or nil.
-    @discussion When not nil, the rotation of the actual frame is ignored when rendering.
- */
 @property(atomic, nullable) NSValue *rotationOverride;
 
 @end

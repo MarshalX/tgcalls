@@ -17,22 +17,22 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-from pytgcalls.implementation.group_call_native import GroupCallNative
 
-from pytgcalls.implementation.group_call import GroupCallAction
-from pytgcalls.implementation.group_call import GroupCallDispatcherMixin
-from pytgcalls.implementation.group_call import GroupCall
+class PytgcallsBaseException(Exception):
+    ...
 
-from pytgcalls.implementation.group_call_file import GroupCallFile
-from pytgcalls.implementation.group_call_device import GroupCallDevice
-from pytgcalls.implementation.group_call_raw import GroupCallRaw
 
-__all__ = [
-    'GroupCallNative',
-    'GroupCall',
-    'GroupCallAction',
-    'GroupCallDispatcherMixin',
-    'GroupCallFile',
-    'GroupCallDevice',
-    'GroupCallRaw',
-]
+class PytgcallsError(PytgcallsBaseException):
+    ...
+
+
+class CallBeforeStartError(PytgcallsBaseException):
+    ...
+
+
+class NotConnectedError(PytgcallsBaseException):
+    ...
+
+
+class GroupCallNotFoundError(PytgcallsBaseException):
+    ...

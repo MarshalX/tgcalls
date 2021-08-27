@@ -397,6 +397,13 @@ static CVReturn OnDisplayLinkFired(CVDisplayLinkRef displayLink,
     [self setNeedsLayout:YES];
 }
 
+-(void)setIsPaused:(bool)paused {
+    
+}
+-(void)renderToSize:(NSSize)size animated: (bool)animated {
+    
+}
+
 -(void)layout {
     [super layout];
     

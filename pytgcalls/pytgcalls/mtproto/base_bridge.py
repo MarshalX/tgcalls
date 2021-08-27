@@ -19,10 +19,7 @@
 
 from abc import ABC
 from asyncio import AbstractEventLoop
-from typing import Callable, List, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from pytgcalls.mtproto.data import GroupCallParticipantWrapper
+from typing import Callable
 
 
 class MTProtoBridgeBase(ABC):
@@ -59,6 +56,11 @@ class MTProtoBridgeBase(ABC):
     ):
         self.group_call_participants_update_callback = group_call_participants_update_callback
         self.group_call_update_callback = group_call_update_callback
+
+    def re_register_update_handlers(self):
+        """Delete and add pytgcalls handler in MTProto client."""
+        self.unregister_update_handlers()
+        self.register_update_handlers()
 
     async def check_group_call(self) -> bool:
         """Check if client is in a voice chat.
@@ -125,7 +127,7 @@ class MTProtoBridgeBase(ABC):
         """
         raise NotImplementedError
 
-    async def join_group_call(self, invite_hash: str, params: dict, muted: bool):
+    async def join_group_call(self, invite_hash: str, params: dict, muted: bool, pre_update_processing: Callable):
         """
         call phone.JoinGroupCall with group_call, join_as, invite hash, muted and params
 

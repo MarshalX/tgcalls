@@ -9,6 +9,7 @@
 
 #include "../Instance.h"
 #include "GroupInstanceImpl.h"
+#include "../platform/PlatformInterface.h"
 
 namespace tgcalls {
 
@@ -43,7 +44,11 @@ public:
     void setVolume(uint32_t ssrc, double volume);
     void setRequestedVideoChannels(std::vector<VideoChannelDescription> &&requestedVideoChannels);
 
-//private:
+    void getStats(std::function<void(GroupInstanceStats)> completion);
+
+    void performWithAudioDeviceModule(std::function<void(rtc::scoped_refptr<WrappedAudioDeviceModule>)> callback);
+
+  private:
     std::shared_ptr<Threads> _threads;
     std::unique_ptr<ThreadLocalObject<GroupInstanceCustomInternal>> _internal;
     std::unique_ptr<LogSinkImpl> _logSink;

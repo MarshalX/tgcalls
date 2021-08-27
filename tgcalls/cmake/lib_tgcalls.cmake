@@ -29,6 +29,8 @@ PRIVATE
     EncryptedConnection.h
     FakeAudioDeviceModule.cpp
     FakeAudioDeviceModule.h
+    FakeVideoTrackSource.cpp
+    FakeVideoTrackSource.h
     InstanceImpl.cpp
     InstanceImpl.h
     LogSinkImpl.cpp
@@ -99,6 +101,8 @@ PRIVATE
     platform/darwin/GLVideoView.mm
     platform/darwin/GLVideoViewMac.h
     platform/darwin/GLVideoViewMac.mm
+    platform/darwin/objc_video_decoder_factory.h
+    platform/darwin/objc_video_decoder_factory.mm
     platform/darwin/objc_video_encoder_factory.h
     platform/darwin/objc_video_encoder_factory.mm
     platform/darwin/TGCMIOCapturer.h

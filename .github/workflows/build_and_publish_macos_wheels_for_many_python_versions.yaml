@@ -3,7 +3,7 @@ on:
   push:
     branches:
       - main
-      - dev
+      - pypi-dev
     paths:
       - '.github/workflows/build_and_publish_macos_wheels_for_many_python_versions.yaml'
       - 'tgcalls/third_party/webrtc/**'
@@ -365,11 +365,11 @@ jobs:
       - name: Upload artifacts.
         uses: actions/upload-artifact@v2
         with:
-          name: Wheels for macOS
+          name: "tgcalls for macOS (Intel)"
           path: dist/
 
       - name: Upload wheels to PyPi.
-        if: env.UPLOAD_WHEELS == 'true' # && github.ref == 'refs/heads/main'
+        if: env.UPLOAD_WHEELS == 'true'  && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/pypi-dev')
         env:
           TWINE_USERNAME: __token__
           TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}

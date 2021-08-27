@@ -20,9 +20,10 @@
 import logging
 import warnings
 
+from pytgcalls.exceptions import PytgcallsError
 from pytgcalls.group_call_factory import GroupCallFactory
 from pytgcalls.implementation.group_call_file import GroupCallFileAction
-from pytgcalls.implementation.group_call_native import GroupCallNativeAction
+from pytgcalls.implementation.group_call import GroupCallAction
 
 # backward compatibility below. Dont use it in new projects
 
@@ -42,7 +43,7 @@ def backward_compatibility_helper(group_call_type, client, *args, **kwargs):
     try:
         import pyrogram
     except ImportError:
-        raise RuntimeError(
+        raise PytgcallsError(
             'To use this backward compatibility you need to install Pyrogram. '
             'Run this command: pip3 install -U pytgcalls[pyrogram]'
         )
@@ -75,18 +76,15 @@ def GroupCallRaw(client, *args, **kwargs):
 __all__ = [
     'GroupCallFactory',
     'GroupCallFileAction',
-    'GroupCallNativeAction',
+    'GroupCallAction',
     # below backward compatibility
     'GroupCall',
     'GroupCallDevice',
     'GroupCallRaw',
 ]
-__version__ = '2.0.0.dev0'
+__version__ = '3.0.0.dev1'
 __pdoc__ = {
     # files
     'utils': False,
     'dispatcher': False,
-    # packages
-    'mtproto.data': False,
-    'mtproto.exceptions': False,
 }

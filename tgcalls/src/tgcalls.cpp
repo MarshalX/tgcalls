@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <sstream>
 
-#include <pybind11/pybind11.h>
+#include <pybind11/smart_holder.h>
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
 
@@ -13,6 +13,13 @@ void ping() {
     py::print("pong");
 }
 
+PYBIND11_TYPE_CASTER_BASE_HOLDER(T, std::unique_ptr<T>)
+
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(FileAudioDeviceDescriptor)
+PYBIND11_SMART_HOLDER_TYPE_CASTERS(RawAudioDeviceDescriptor)
+
+PYBIND11_TYPE_CASTER_BASE_HOLDER(FileAudioDeviceDescriptor, std::shared_ptr<FileAudioDeviceDescriptor)
+PYBIND11_TYPE_CASTER_BASE_HOLDER(RawAudioDeviceDescriptor, std::shared_ptr<RawAudioDeviceDescriptor>)
 PYBIND11_MODULE(tgcalls, m) {
     m.def("ping", &ping);
 
@@ -74,7 +81,7 @@ PYBIND11_MODULE(tgcalls, m) {
             .def_readwrite("ssrcs", &tgcalls::GroupJoinPayloadVideoSourceGroup::ssrcs)
             .def_readwrite("semantics", &tgcalls::GroupJoinPayloadVideoSourceGroup::semantics);
 
-    py::class_<FileAudioDeviceDescriptor>(m, "FileAudioDeviceDescriptor")
+    py::classh<FileAudioDeviceDescriptor>(m, "FileAudioDeviceDescriptor")
             .def(py::init<>())
             .def_readwrite("getInputFilename", &FileAudioDeviceDescriptor::_getInputFilename)
             .def_readwrite("getOutputFilename", &FileAudioDeviceDescriptor::_getOutputFilename)
@@ -83,12 +90,23 @@ PYBIND11_MODULE(tgcalls, m) {
             .def_readwrite("isRecordingPaused", &FileAudioDeviceDescriptor::_isRecordingPaused)
             .def_readwrite("playoutEndedCallback", &FileAudioDeviceDescriptor::_playoutEndedCallback);
 
-    py::class_<RawAudioDeviceDescriptor>(m, "RawAudioDeviceDescriptor")
+    py::classh<RawAudioDeviceDescriptor>(m, "RawAudioDeviceDescriptor")
             .def(py::init<>())
             .def_readwrite("setRecordedBufferCallback", &RawAudioDeviceDescriptor::_setRecordedBufferCallback)
             .def_readwrite("getPlayedBufferCallback", &RawAudioDeviceDescriptor::_getPlayedBufferCallback)
             .def_readwrite("isPlayoutPaused", &RawAudioDeviceDescriptor::_isPlayoutPaused)
             .def_readwrite("isRecordingPaused", &RawAudioDeviceDescriptor::_isRecordingPaused);
+
+    py::class_<tgcalls::GroupInstanceInterface::AudioDevice>(m, "AudioDevice")
+            .def_readwrite("name", &tgcalls::GroupInstanceInterface::AudioDevice::name)
+            .def_readwrite("guid", &tgcalls::GroupInstanceInterface::AudioDevice::guid)
+            .def("__repr__", [](const tgcalls::GroupInstanceInterface::AudioDevice &e) {
+              ostringstream repr;
+              repr << "<tgcalls.AudioDevice ";
+              repr << "name=\"" << e.name << "\" ";
+              repr << "guid=\"" << e.guid << "\"> ";
+              return repr.str();
+            });
 
     py::enum_<tgcalls::GroupConnectionMode>(m, "GroupConnectionMode")
             .value("GroupConnectionModeNone", tgcalls::GroupConnectionMode::GroupConnectionModeNone)
@@ -100,21 +118,24 @@ PYBIND11_MODULE(tgcalls, m) {
             .def(py::init<bool, string>())
             .def("startCall", &NativeInstance::startCall)
             .def("setupGroupCall", &NativeInstance::setupGroupCall)
-            .def("startGroupCall", py::overload_cast<FileAudioDeviceDescriptor &>(&NativeInstance::startGroupCall))
-            .def("startGroupCall", py::overload_cast<RawAudioDeviceDescriptor &>(&NativeInstance::startGroupCall))
+            .def("startGroupCall", py::overload_cast<std::shared_ptr<FileAudioDeviceDescriptor>>(&NativeInstance::startGroupCall))
+            .def("startGroupCall", py::overload_cast<std::shared_ptr<RawAudioDeviceDescriptor>>(&NativeInstance::startGroupCall))
             .def("startGroupCall", py::overload_cast<std::string, std::string>(&NativeInstance::startGroupCall))
-            .def("isGroupCallStarted", &NativeInstance::isGroupCallStarted)
+            .def("isGroupCallNativeCreated", &NativeInstance::isGroupCallNativeCreated)
             .def("stopGroupCall", &NativeInstance::stopGroupCall)
             .def("setIsMuted", &NativeInstance::setIsMuted)
             .def("setVolume", &NativeInstance::setVolume)
             .def("restartAudioInputDevice", &NativeInstance::restartAudioInputDevice)
             .def("restartAudioOutputDevice", &NativeInstance::restartAudioOutputDevice)
-            .def("printAvailablePlayoutDevices", &NativeInstance::printAvailablePlayoutDevices)
-            .def("printAvailableRecordingDevices", &NativeInstance::printAvailableRecordingDevices)
+            .def("stopAudioDeviceModule", &NativeInstance::stopAudioDeviceModule)
+            .def("startAudioDeviceModule", &NativeInstance::startAudioDeviceModule)
+            .def("getPlayoutDevices", &NativeInstance::getPlayoutDevices)
+            .def("getRecordingDevices", &NativeInstance::getRecordingDevices)
             .def("setAudioOutputDevice", &NativeInstance::setAudioOutputDevice)
             .def("setAudioInputDevice", &NativeInstance::setAudioInputDevice)
             .def("setJoinResponsePayload", &NativeInstance::setJoinResponsePayload)
             .def("setConnectionMode", &NativeInstance::setConnectionMode)
+            .def("setVideoCapture", &NativeInstance::setVideoCapture)
             .def("emitJoinPayload", &NativeInstance::emitJoinPayload)
             .def("receiveSignalingData", &NativeInstance::receiveSignalingData)
             .def("setSignalingDataEmittedCallback", &NativeInstance::setSignalingDataEmittedCallback);

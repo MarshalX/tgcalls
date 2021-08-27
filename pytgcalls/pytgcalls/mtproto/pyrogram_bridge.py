@@ -18,6 +18,7 @@
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
 from asyncio import AbstractEventLoop
+from typing import Callable
 
 from pyrogram.errors import (
     BadRequest as PyrogramBadRequest,
@@ -28,6 +29,7 @@ from pyrogram.raw import functions, types
 from pyrogram.raw.types import GroupCallDiscarded as PyrogramGroupCallDiscarded, InputPeerChannel, InputPeerChat
 from pyrogram.utils import get_peer_id
 
+from pytgcalls import PytgcallsError
 from pytgcalls.mtproto.data import GroupCallDiscardedWrapper, GroupCallWrapper, GroupCallParticipantWrapper
 from pytgcalls.mtproto.data.update import UpdateGroupCallWrapper, UpdateGroupCallParticipantsWrapper
 from pytgcalls.mtproto.exceptions import BadRequest, GroupcallSsrcDuplicateMuch
@@ -61,7 +63,7 @@ class PyrogramBridge(MTProtoBridgeBase):
         await self._update_to_handler[type(update)](update)
 
     async def _process_group_call_participants_update(self, update):
-        participants = [GroupCallParticipantWrapper(p.source, p.left, p.peer) for p in update.participants]
+        participants = [GroupCallParticipantWrapper.create(p) for p in update.participants]
         wrapped_update = UpdateGroupCallParticipantsWrapper(participants)
 
         await self.group_call_participants_update_callback(wrapped_update)
@@ -141,7 +143,7 @@ class PyrogramBridge(MTProtoBridgeBase):
             ).full_chat
 
         if self.full_chat is None:
-            raise RuntimeError(f'Can\'t get full chat by {group}')
+            raise PytgcallsError(f'Can\'t get full chat by {group}')
 
         self.group_call = self.full_chat.call
 
@@ -179,7 +181,7 @@ class PyrogramBridge(MTProtoBridgeBase):
             functions.messages.SetTyping(peer=self.chat_peer, action=types.SpeakingInGroupCallAction())
         )
 
-    async def join_group_call(self, invite_hash: str, params: str, muted: bool):
+    async def join_group_call(self, invite_hash: str, params: str, muted: bool, pre_update_processing: Callable):
         try:
             response = await self.client.send(
                 functions.phone.JoinGroupCall(
@@ -190,6 +192,8 @@ class PyrogramBridge(MTProtoBridgeBase):
                     muted=muted,
                 )
             )
+
+            pre_update_processing()
 
             await self.client.handle_updates(response)
         except PyrogramGroupcallSsrcDuplicateMuch as e:

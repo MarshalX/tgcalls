@@ -30,7 +30,7 @@ from pyrogram.raw import functions, types
 from pyrogram.utils import MAX_CHANNEL_ID
 from telethon import TelegramClient
 
-from pytgcalls import GroupCallDevice, GroupCallFactory, GroupCallFileAction, GroupCall
+from pytgcalls import GroupCallAction, GroupCallDevice, GroupCallFactory, GroupCallFileAction, GroupCall
 import tgcalls
 from helpers import b2i, calc_fingerprint, check_g, generate_visualization, i2b
 
@@ -474,28 +474,94 @@ async def main(client1, client2, telethon1, make_out, make_inc):
         await asyncio.sleep(1)
 
     # example hot to use another mtproto backend
-    # group_call_factory = GroupCallFactory(telethon1, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON)
-    group_call_factory = GroupCallFactory(client2, GroupCallFactory.MTPROTO_CLIENT_TYPE.PYROGRAM)
+    # group_call_factory = GroupCallFactory(telethon1, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON, enable_logs_to_console=False)
+    # group_call_factory = GroupCallFactory(client2, GroupCallFactory.MTPROTO_CLIENT_TYPE.PYROGRAM, enable_logs_to_console=False, outgoing_audio_bitrate_kbit=512)
 
-    gc = group_call_factory.get_file_group_call('input.raw')
-    await gc.start('@ilya_marshal')
-    await gc.stop()
-    await gc.stop()
-    print('case 1')
-    await gc.start('@ilya_marshal')
-    await asyncio.sleep(10)
-    await gc.stop()
-    await gc.stop()
-    print('case 2')
-    await gc.start('@ilya_marshal')
-    print('case 3')
-    await gc.start('@ilya_marshal')
-    print('case 4')
-    await asyncio.sleep(10)
-    await gc.reconnect()
-    print('case 5')
+    def on_played_data(_, leng):
+        # print('on_played_data')
+        pass
 
-    print('all cases has been passed')
+    def on_recorded_data(_, data, leng):
+        # print('on_recorded_data')
+        pass
+    #
+    # try:
+    #     gcf = GroupCallFactory(client2)
+    #     gc = gcf.get_file_group_call('input.raw')
+    #     await gc.start('@ilya_marshal')
+    # except RuntimeError:
+    #     print('pass1')
+    #
+    # try:
+    #     gcf2 = GroupCallFactory(client2)
+    #     gc2 = gcf2.get_file_group_call('input.raw')
+    #     await gc2.start('@ilya_marshal')
+    # except RuntimeError:
+    #     print('pass2')
+
+    # group_call = group_call_factory.get_device_group_call()
+    # group_call = group_call_factory.get_file_group_call('imput.raw')
+    # group_call = group_call_factory.get_raw_group_call(on_recorded_data=on_recorded_data, on_played_data=on_played_data)
+
+    import opencv_test
+
+    def get_next_frame_buffer():
+        return opencv_test.stream.read()
+
+    group_call_factory = GroupCallFactory(telethon1, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON)
+    # group_call = group_call_factory.get_raw_group_call(on_recorded_data=on_recorded_data, on_played_data=on_played_data)
+    group_call = group_call_factory.get_file_group_call('input.raw')
+    await group_call.start('@tgcallschat')
+    # group_call.set_video_capture('test3.mp4')
+
+    # group_call.set_video_capture(get_next_frame_buffer)
+
+    # await asyncio.sleep(15)
+    # group_call.restart_playout()
+    # await group_call.stop()
+    # await group_call.reconnect()
+    # await group_call.start('@ilya_marshal')
+    # await asyncio.sleep(2)
+    # print(group_call.get_playout_devices())
+    # print(group_call.get_recording_devices())
+    # group_call.print_available_playout_devices()
+    # group_call.print_available_recording_devices()
+    # await asyncio.sleep(2)
+
+
+    # while True:
+    #     group_call_factory = GroupCallFactory(telethon1, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON)
+    #     # group_call_factory = GroupCallFactory(client2, GroupCallFactory.MTPROTO_CLIENT_TYPE.PYROGRAM, enable_logs_to_console=False, outgoing_audio_bitrate_kbit=512)
+    #     group_call = group_call_factory.get_raw_group_call(on_played_data=on_played_data)
+    #     # group_call = group_call_factory.get_file_group_call('input.raw')
+    #     await group_call.start('@ilya_marshal')
+    #     await asyncio.sleep(5)
+    #     # await group_call.stop()
+    #     # del group_call
+    #     await asyncio.sleep(2)
+    #     break
+
+    # gc = group_call_factory.get_file_group_call('input.raw')
+    # # gc = group_call_factory.get_device_group_call()
+    # await gc.start('@ilya_marshal')
+    # await gc.stop()
+    # await gc.stop()
+    # print('case 1')
+    # await gc.start('@ilya_marshal')
+    # await asyncio.sleep(20)
+    # await gc.set_is_mute(True)
+    # await gc.stop()
+    # await gc.stop()
+    # print('case 2')
+    # await gc.start('@ilya_marshal')
+    # print('case 3')
+    # await gc.start('@ilya_marshal')
+    # print('case 4')
+    # await asyncio.sleep(10)
+    # await gc.reconnect()
+    # print('case 5')
+    #
+    # print('all cases has been passed')
 
     # await tgc.reconnect()
     # await tgc.stop()
@@ -524,13 +590,22 @@ async def main(client1, client2, telethon1, make_out, make_inc):
     # group_call.print_available_recording_devices()
 
     # backward compatibility test
-    # @group_call.on_network_status_changed
+
+    @group_call.on_network_status_changed
     async def on_network_changed(gc: GroupCall, is_connected: bool):
         chat_id = MAX_CHANNEL_ID - gc.full_chat.id
         if is_connected:
-            print('Successfully joined!', chat_id)
-        else:
-            print('Disconnected from voice chat..', chat_id)
+            # await gc.edit_group_call(video_stopped=False)
+            print('group_call.set_video_capture_test()')
+            # gc.set_video_capture_test('/Users/marshal/projects/tgcalls/tgcalls/pytgcalls/test2.mp4')
+
+    # @group_call.on_participant_list_updated
+    async def participants_are_updated(gc, participants):
+        print(f'Updated participant list: {participants}')
+
+    # group_call.on_participant_list_updated(participants_are_updated)
+
+    # group_call.add_handler(participants_are_updated, GroupCallAction.PARTICIPANT_LIST_UPDATED)
 
     async def network_status_changed_handler(group_call, is_connected: bool):
         print(f'Is connected: {is_connected}')
