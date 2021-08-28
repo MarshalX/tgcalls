@@ -7,8 +7,6 @@ MANYLINUX_PLATFORM=$2
 export TWINE_USERNAME=$3
 export TWINE_PASSWORD=$4
 
-sudo yum install opencv opencv-devel
-
 cp -R /github/workspace /usr/src/tgcalls
 cp -R /usr/src/Libraries/ /tmp/Libraries
 cd /usr/src/tgcalls

@@ -30,7 +30,7 @@ from pytgcalls.implementation import GroupCallNative
 from pytgcalls.mtproto.data import GroupCallDiscardedWrapper
 from pytgcalls.mtproto.data.update import UpdateGroupCallParticipantsWrapper, UpdateGroupCallWrapper
 from pytgcalls.mtproto.exceptions import GroupcallSsrcDuplicateMuch
-from pytgcalls.utils import uint_ssrc
+from pytgcalls.utils import uint_ssrc, VideoStream
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +113,7 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         self.__emit_join_payload_event = None
 
         self.__is_muted = True
+        self.__is_video_stopped = True
 
     async def _group_call_participants_update_callback(self, update: UpdateGroupCallParticipantsWrapper):
         logger.debug('Group call participants update...')
@@ -329,7 +330,34 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         else:
             logger.debug('Completely left the current group call.')
 
-    async def edit_group_call(self, volume: int = None, muted=False, video_stopped=False): # TODO
+    async def set_video_capture(self, source, fps=30, width=1280, height=720):
+        """Enable video playing for current group call.
+
+        Note:
+            Source is video file or image file sequence or a
+            capturing device or a IP video stream for video capturing.
+
+        Args:
+            source (`str`): Path to filename of URL with some protocol. For example RTCP..
+            fps (`int`): FPS of vide.
+            width (`int`): width of video.
+            height (`int`): height of video.
+        """
+
+        self.__is_video_stopped = False
+
+        # TODO need to store and properly stop
+        stream = VideoStream(source).start()
+
+        def get_next_frame_buffer():
+            return stream.read()
+
+        self._set_video_capture(get_next_frame_buffer, fps, width, height)
+
+        if self.is_connected:
+            await self.edit_group_call(video_stopped=False)
+
+    async def edit_group_call(self, volume: int = None, muted=None, video_stopped=None):
         """Edit own settings of group call.
 
         Note:
@@ -338,11 +366,18 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         Args:
             volume (`int`): Volume.
             muted (`bool`): Is muted.
+            video_stopped (`bool`): Is video stopped AKA muted.
         """
+
+        if not muted:
+            muted = self.__is_muted
+
+        if not video_stopped:
+            video_stopped = self.__is_video_stopped
 
         await self.edit_group_call_member(self.mtproto.join_as, volume, muted, video_stopped)
 
-    async def edit_group_call_member(self, peer, volume: int = None, muted=False, video_stopped=True):
+    async def edit_group_call_member(self, peer, volume: int = None, muted=None, video_stopped=None):
         """Edit setting of user in voice chat (required voice chat management permission).
 
         Note:
@@ -352,6 +387,7 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
             peer (`InputPeer`): Participant of voice chat.
             volume (`int`): Volume.
             muted (`bool`): Is muted.
+            video_stopped (`bool`): Is video stopped AKA muted.
         """
 
         volume = max(1, volume * 100) if volume is not None else None

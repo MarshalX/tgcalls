@@ -238,15 +238,12 @@ void NativeInstance::setAudioInputDevice(std::string id) const {
   instanceHolder->groupNativeInstance->setAudioInputDevice(std::move(id));
 }
 
-// todo args std::shared_ptr<tgcalls::VideoCaptureInterface> videoCapture
-void NativeInstance::setVideoCapture(std::string sourcePath) {
-//void NativeInstance::setVideoCapture(std::function<std::string()> getNextFrameBuffer) {
+void NativeInstance::setVideoCapture(std::function<std::string()> getNextFrameBuffer, int fps, int width, int height) {
   _videoCapture = tgcalls::VideoCaptureInterface::Create(
       tgcalls::StaticThreads::getThreads(),
-//      tgcalls::FakeVideoTrackSource::createPtr(tgcalls::FrameSource::python(std::move(getNextFrameBuffer))),
-      tgcalls::FakeVideoTrackSource::createPtr(tgcalls::FrameSource::opencv(std::move(sourcePath))),
-//      tgcalls::FakeVideoTrackSource::createPtr(tgcalls::FrameSource::chess()),
-      "tgcalls_video_device"
+      PythonVideoTrackSource::createPtr(
+          std::make_unique<PythonSource>(std::move(getNextFrameBuffer), fps, width, height),fps),
+      "python_video_track_source"
   );
 
   instanceHolder->groupNativeInstance->setVideoCapture(std::move(_videoCapture));

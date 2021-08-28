@@ -26,7 +26,12 @@ from pyrogram.errors import (
 )
 from pyrogram.handlers import RawUpdateHandler
 from pyrogram.raw import functions, types
-from pyrogram.raw.types import GroupCallDiscarded as PyrogramGroupCallDiscarded, InputPeerChannel, InputPeerChat
+from pyrogram.raw.types import (
+    GroupCallDiscarded as PyrogramGroupCallDiscarded,
+    InputPeerChannel,
+    InputPeerChat,
+    UpdateGroupCallConnection,
+)
 from pyrogram.utils import get_peer_id
 
 from pytgcalls import PytgcallsError
@@ -78,6 +83,13 @@ class PyrogramBridge(MTProtoBridgeBase):
 
         await self.group_call_update_callback(wrapped_update)
 
+    async def _process_group_call_connection(self, update):
+        # TODO update to new layer when pyrogram will release new stable version on pypi
+        call = GroupCallWrapper('placeholder', update.params)
+        wrapped_update = UpdateGroupCallWrapper('placeholder', call)
+
+        await self.group_call_update_callback(wrapped_update)
+
     async def check_group_call(self) -> bool:
         if not self.group_call or not self.my_ssrc:
             return False
@@ -103,13 +115,10 @@ class PyrogramBridge(MTProtoBridgeBase):
         )
         await self.client.handle_updates(response)
 
-    async def edit_group_call_member(self, peer, volume: int = None, muted=False):
+    async def edit_group_call_member(self, peer, volume: int = None, muted=False, video_stopped=True):
         response = await self.client.send(
             functions.phone.EditGroupCallParticipant(
-                call=self.full_chat.call,
-                participant=peer,
-                muted=muted,
-                volume=volume,
+                call=self.full_chat.call, participant=peer, muted=muted, volume=volume, video_stopped=video_stopped
             )
         )
         await self.client.handle_updates(response)
@@ -194,6 +203,11 @@ class PyrogramBridge(MTProtoBridgeBase):
             )
 
             pre_update_processing()
+
+            # it is here cuz we need to associate params for connection with group call
+            for update in response.updates:
+                if isinstance(update, UpdateGroupCallConnection):
+                    await self._process_group_call_connection(update)
 
             await self.client.handle_updates(response)
         except PyrogramGroupcallSsrcDuplicateMuch as e:

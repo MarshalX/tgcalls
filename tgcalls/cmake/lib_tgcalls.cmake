@@ -29,8 +29,6 @@ PRIVATE
     EncryptedConnection.h
     FakeAudioDeviceModule.cpp
     FakeAudioDeviceModule.h
-    FakeVideoTrackSource.cpp
-    FakeVideoTrackSource.h
     InstanceImpl.cpp
     InstanceImpl.h
     LogSinkImpl.cpp

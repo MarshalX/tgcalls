@@ -4,7 +4,6 @@ on:
     branches:
       - main
       - dev
-      - pypi-dev
     paths:
       - '.github/workflows/build_and_push_manylinux_webrtc_entrypoint_images.yaml'
       - 'build/manylinux/Dockerfile'

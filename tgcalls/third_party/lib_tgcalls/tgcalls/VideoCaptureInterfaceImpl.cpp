@@ -46,31 +46,31 @@ void VideoCaptureInterfaceObject::switchToDevice(std::string deviceId, bool isSc
 	if (_videoSource) {
         //this should outlive the capturer
         _videoCapturer = nullptr;
-		_videoCapturer = PlatformInterface::SharedInstance()->makeVideoCapturer(_videoSource, deviceId, [this](VideoState state) {
-			if (this->_stateUpdated) {
-				this->_stateUpdated(state);
-			}
-            if (this->_onIsActiveUpdated) {
-                switch (state) {
-                    case VideoState::Active: {
-                        this->_onIsActiveUpdated(true);
-                        break;
-                    }
-                    default: {
-                        this->_onIsActiveUpdated(false);
-                        break;
-                    }
-                }
-            }
-        }, [this](PlatformCaptureInfo info) {
-            if (this->_shouldBeAdaptedToReceiverAspectRate != info.shouldBeAdaptedToReceiverAspectRate) {
-                this->_shouldBeAdaptedToReceiverAspectRate = info.shouldBeAdaptedToReceiverAspectRate;
-            }
-            if (this->_rotationUpdated) {
-                this->_rotationUpdated(info.rotation);
-            }
-            this->updateAspectRateAdaptation();
-        }, _platformContext, _videoCapturerResolution);
+//		_videoCapturer = PlatformInterface::SharedInstance()->makeVideoCapturer(_videoSource, deviceId, [this](VideoState state) {
+//			if (this->_stateUpdated) {
+//				this->_stateUpdated(state);
+//			}
+//            if (this->_onIsActiveUpdated) {
+//                switch (state) {
+//                    case VideoState::Active: {
+//                        this->_onIsActiveUpdated(true);
+//                        break;
+//                    }
+//                    default: {
+//                        this->_onIsActiveUpdated(false);
+//                        break;
+//                    }
+//                }
+//            }
+//        }, [this](PlatformCaptureInfo info) {
+//            if (this->_shouldBeAdaptedToReceiverAspectRate != info.shouldBeAdaptedToReceiverAspectRate) {
+//                this->_shouldBeAdaptedToReceiverAspectRate = info.shouldBeAdaptedToReceiverAspectRate;
+//            }
+//            if (this->_rotationUpdated) {
+//                this->_rotationUpdated(info.rotation);
+//            }
+//            this->updateAspectRateAdaptation();
+//        }, _platformContext, _videoCapturerResolution);
 	}
 	if (_videoCapturer) {
 		if (_preferredAspectRatio > 0) {

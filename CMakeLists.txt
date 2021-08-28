@@ -21,7 +21,7 @@ project(tgcalls
     LANGUAGES C CXX
     DESCRIPTION "Python binding for tgcalls"
     HOMEPAGE_URL "https://github.com/MarshalX/tgcalls"
-    VERSION "3.0.0.1"
+    VERSION "3.0.0.2"
 )
 
 get_filename_component(third_party_loc "tgcalls/third_party" REALPATH)
@@ -41,8 +41,5 @@ add_subdirectory(cmake/external/jpeg)
 add_subdirectory(cmake/external/openssl)
 add_subdirectory(cmake/external/opus)
 add_subdirectory(cmake/external/webrtc)
-
-find_package( OpenCV REQUIRED )
-include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 add_subdirectory(tgcalls)
