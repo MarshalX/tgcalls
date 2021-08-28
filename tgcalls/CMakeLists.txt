@@ -20,6 +20,10 @@ list(APPEND SOURCES
     ${src_loc}/RtcServer.h
     ${src_loc}/RtcServer.cpp
     ${src_loc}/InstanceHolder.h
+    ${src_loc}/video/PythonVideoTrackSource.h
+    ${src_loc}/video/PythonVideoTrackSource.cpp
+    ${src_loc}/video/PythonSource.h
+    ${src_loc}/video/PythonSource.cpp
 )
 
 pybind11_add_module(tgcalls ${SOURCES})

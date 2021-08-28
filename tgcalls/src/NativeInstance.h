@@ -4,11 +4,15 @@
 
 #include <modules/audio_device/include/audio_device.h>
 #include <tgcalls/ThreadLocalObject.h>
+#include <tgcalls/VideoCaptureInterface.h>
 
 #include "config.h"
 #include "InstanceHolder.h"
 #include "RtcServer.h"
 #include "WrappedAudioDeviceModuleImpl.h"
+
+#include "video/PythonSource.h"
+#include "video/PythonVideoTrackSource.h"
 
 namespace py = pybind11;
 
@@ -28,6 +32,7 @@ public:
 
     std::shared_ptr<FileAudioDeviceDescriptor> _fileAudioDeviceDescriptor;
     std::shared_ptr<RawAudioDeviceDescriptor> _rawAudioDeviceDescriptor;
+    std::shared_ptr<tgcalls::VideoCaptureInterface> _videoCapture;
 
     NativeInstance(bool, string);
     ~NativeInstance();
@@ -62,6 +67,8 @@ public:
 
     void setAudioOutputDevice(std::string id) const;
     void setAudioInputDevice(std::string id) const;
+
+    void setVideoCapture(std::function<std::string()>, int, int, int);
 
     void receiveSignalingData(std::vector<uint8_t> &data) const;
     void setJoinResponsePayload(std::string const &) const;

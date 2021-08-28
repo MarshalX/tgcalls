@@ -1,4 +1,5 @@
 #include <iostream>
+#include <utility>
 
 #include <rtc_base/ssl_adapter.h>
 
@@ -33,6 +34,17 @@ void NativeInstance::setupGroupCall(
   _outgoingAudioBitrateKbit = outgoingAudioBitrateKbit;
 }
 
+class PytgcallsRequestMediaChannelDescriptionTask final : public tgcalls::RequestMediaChannelDescriptionTask {
+public:
+  PytgcallsRequestMediaChannelDescriptionTask();
+
+  void cancel() {};
+};
+
+PytgcallsRequestMediaChannelDescriptionTask::PytgcallsRequestMediaChannelDescriptionTask() {
+  std::cout << "PytgcallsRequestMediaChannelDescriptionTask";
+}
+
 void NativeInstance::createInstanceHolder(
     std::function<rtc::scoped_refptr<webrtc::AudioDeviceModule>(webrtc::TaskQueueFactory *)> createAudioDeviceModule,
     std::string initialInputDeviceId = "",
@@ -47,13 +59,19 @@ void NativeInstance::createInstanceHolder(
       [=](tgcalls::GroupNetworkState groupNetworkState) {
         _networkStateUpdated(groupNetworkState.isConnected);
       },
-      .audioLevelsUpdated =
-      [=](tgcalls::GroupLevelsUpdate const &update) {}, // its necessary for audio analyzing (VAD)
+      .audioLevelsUpdated = [=](tgcalls::GroupLevelsUpdate const &update) {}, // its necessary for audio analyzing (VAD)
       .initialInputDeviceId = std::move(initialInputDeviceId),
       .initialOutputDeviceId = std::move(initialOutputDeviceId),
       .createAudioDeviceModule = std::move(createAudioDeviceModule),
-      .outgoingAudioBitrateKbit=_outgoingAudioBitrateKbit,
-      .disableOutgoingAudioProcessing=true,
+      .outgoingAudioBitrateKbit = _outgoingAudioBitrateKbit,
+      .disableOutgoingAudioProcessing = true,
+      .videoContentType = tgcalls::VideoContentType::Generic,
+      .requestMediaChannelDescriptions = [=](
+          std::vector<uint32_t> const & ssrcs,
+          std::function<void(std::vector<tgcalls::MediaChannelDescription> &&)> done) {
+        auto result = std::make_shared<PytgcallsRequestMediaChannelDescriptionTask>();
+        return result;
+      },
       // deprecated
 //      .participantDescriptionsRequired =
 //      [=](std::vector<uint32_t> const &ssrcs) {
@@ -218,6 +236,17 @@ void NativeInstance::setAudioOutputDevice(std::string id) const {
 
 void NativeInstance::setAudioInputDevice(std::string id) const {
   instanceHolder->groupNativeInstance->setAudioInputDevice(std::move(id));
+}
+
+void NativeInstance::setVideoCapture(std::function<std::string()> getNextFrameBuffer, int fps, int width, int height) {
+  _videoCapture = tgcalls::VideoCaptureInterface::Create(
+      tgcalls::StaticThreads::getThreads(),
+      PythonVideoTrackSource::createPtr(
+          std::make_unique<PythonSource>(std::move(getNextFrameBuffer), fps, width, height),fps),
+      "python_video_track_source"
+  );
+
+  instanceHolder->groupNativeInstance->setVideoCapture(std::move(_videoCapture));
 }
 
 void NativeInstance::startCall(vector<RtcServer> servers,

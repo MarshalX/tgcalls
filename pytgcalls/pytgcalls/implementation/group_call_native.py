@@ -119,6 +119,11 @@ class GroupCallNative:
         self.__native_instance.startAudioDeviceModule()
 
     @if_native_instance_created
+    def _set_video_capture(self, source_path: str, fps: int, width: int, height: int):
+        logger.debug('Set video capture.')
+        self.__native_instance.setVideoCapture(source_path, fps, width, height)
+
+    @if_native_instance_created
     def get_playout_devices(self) -> List['tgcalls.AudioDevice']:
         """Get available playout audio devices in the system.
 

@@ -101,7 +101,7 @@ webrtc::VideoFrame FrameSource::next_frame() {
 }
 
 class FakeVideoSource : public rtc::VideoSourceInterface<webrtc::VideoFrame> {
- public:
+public:
   FakeVideoSource(std::unique_ptr<FrameSource> source) {
     data_ = std::make_shared<Data>();
     std::thread([data = data_, source = std::move(source)] {

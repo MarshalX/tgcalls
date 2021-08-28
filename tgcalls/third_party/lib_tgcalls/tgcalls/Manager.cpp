@@ -313,6 +313,12 @@ void Manager::setVideoCapture(std::shared_ptr<VideoCaptureInterface> videoCaptur
     });
 }
 
+void Manager::sendVideoDeviceUpdated() {
+    _mediaManager->perform(RTC_FROM_HERE, [](MediaManager *mediaManager) {
+        mediaManager->sendVideoDeviceUpdated();
+    });
+}
+
 void Manager::setRequestedVideoAspect(float aspect) {
     _mediaManager->perform(RTC_FROM_HERE, [aspect](MediaManager *mediaManager) {
         mediaManager->setRequestedVideoAspect(aspect);
@@ -448,6 +454,12 @@ void Manager::setOutputVolume(float level) {
 	_mediaManager->perform(RTC_FROM_HERE, [level](MediaManager *mediaManager) {
 		mediaManager->setOutputVolume(level);
 	});
+}
+
+void Manager::addExternalAudioSamples(std::vector<uint8_t> &&samples) {
+    _mediaManager->perform(RTC_FROM_HERE, [samples = std::move(samples)](MediaManager *mediaManager) mutable {
+        mediaManager->addExternalAudioSamples(std::move(samples));
+    });
 }
 
 } // namespace tgcalls

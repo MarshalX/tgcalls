@@ -135,6 +135,7 @@ PYBIND11_MODULE(tgcalls, m) {
             .def("setAudioInputDevice", &NativeInstance::setAudioInputDevice)
             .def("setJoinResponsePayload", &NativeInstance::setJoinResponsePayload)
             .def("setConnectionMode", &NativeInstance::setConnectionMode)
+            .def("setVideoCapture", &NativeInstance::setVideoCapture)
             .def("emitJoinPayload", &NativeInstance::emitJoinPayload)
             .def("receiveSignalingData", &NativeInstance::receiveSignalingData)
             .def("setSignalingDataEmittedCallback", &NativeInstance::setSignalingDataEmittedCallback);
