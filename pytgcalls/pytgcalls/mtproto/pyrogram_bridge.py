@@ -74,11 +74,10 @@ class PyrogramBridge(MTProtoBridgeBase):
         await self.group_call_participants_update_callback(wrapped_update)
 
     async def _process_group_call_update(self, update):
-        if isinstance(update.call, PyrogramGroupCallDiscarded):
-            call = GroupCallDiscardedWrapper()  # no info needed
-        else:
-            call = GroupCallWrapper(update.call.id, update.call.params)
+        if not isinstance(update.call, PyrogramGroupCallDiscarded):
+            return
 
+        call = GroupCallDiscardedWrapper()  # no info needed
         wrapped_update = UpdateGroupCallWrapper(update.chat_id, call)
 
         await self.group_call_update_callback(wrapped_update)
