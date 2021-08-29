@@ -35,18 +35,25 @@ FRAME_PLACEHOLDER_FILENAME = 'frame_placeholder'
 FRAME_PLACEHOLDER_PATH = path.join(base_path, FRAME_PLACEHOLDER_FILENAME)
 
 
-class VideoStream:
-    def __init__(self, source=None, queue_size=QUEUE_SIZE):
-        # TODO detect fps, h, w
+class VideoInfo:
+    def __init__(self, width: int, height: int, fps: int):
+        self.width = width
+        self.height = height
+        self.fps = fps
 
+
+class VideoStream:
+    __DEFAULT_VIDEO_INFO = VideoInfo(1280, 720, 30)
+
+    def __init__(self, source=None, queue_size=QUEUE_SIZE):
         self.video_capture = None
         if source is not None:
             self.video_capture = cv2.VideoCapture(source)
 
         self.queue_size = queue_size
-        self.queue = self.create_queue()
+        self.__queue = self.create_queue()
 
-        self.thread = Thread(target=self.update, args=())
+        self.thread = Thread(target=self.__update, args=())
         self.thread.daemon = True
 
         self.is_running = False
@@ -67,8 +74,18 @@ class VideoStream:
         self.thread.start()
         return self
 
+    def get_video_info(self) -> VideoInfo:
+        if self.video_capture and self.video_capture.isOpened():
+            return VideoInfo(
+                round(self.video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                round(self.video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+                round(self.video_capture.get(cv2.CAP_PROP_FPS)),
+            )
+
+        return self.__DEFAULT_VIDEO_INFO
+
     def read(self):
-        return self.queue.get()
+        return self.__queue.get()
 
     def stop(self):
         self.is_running = False
@@ -76,26 +93,26 @@ class VideoStream:
         if self.video_capture:
             self.video_capture.release()
 
-        self.queue = self.create_queue()
+        self.__queue = self.create_queue()
 
     def __add_placeholder_frame(self):
-        self.queue.put_nowait(self.__frame_placeholder)
+        self.__queue.put_nowait(self.__frame_placeholder)
 
-    def update(self):
+    def __update(self):
         while True:
             if not self.is_running:
                 return
 
             # when video file hasn't been passed
-            if not self.queue.full() and not self.video_capture:
+            if not self.__queue.full() and not self.video_capture:
                 self.__add_placeholder_frame()
                 continue
 
-            if not self.queue.full() and self.video_capture and self.video_capture.isOpened():
+            if not self.__queue.full() and self.video_capture and self.video_capture.isOpened():
                 grabbed, frame = self.video_capture.read()
                 if not grabbed or frame is None:
                     self.__add_placeholder_frame()
                     continue
 
                 rgba = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
-                self.queue.put_nowait(rgba.tobytes())
+                self.__queue.put_nowait(rgba.tobytes())

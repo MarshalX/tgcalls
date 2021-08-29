@@ -335,7 +335,7 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         else:
             logger.debug('Completely left the current group call.')
 
-    async def set_video_capture(self, source=None, width=1280, height=720, fps=30):
+    async def set_video_capture(self, source=None, width=None, height=None, fps=None):
         """Enable video playing for current group call.
 
         Note:
@@ -351,15 +351,22 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
             fps (`int`): FPS of video.
         """
 
-        self.__is_video_stopped = False
-
         self.__video_stream = VideoStream(source).start()
+
+        video_info = self.__video_stream.get_video_info()
+        if not width:
+            width = video_info.width
+        if not height:
+            height = video_info.height
+        if not fps:
+            fps = video_info.fps
 
         def get_next_frame_buffer():
             return self.__video_stream.read()
 
         self._set_video_capture(get_next_frame_buffer, width, height, fps)
 
+        self.__is_video_stopped = False
         if self.is_connected:
             await self.edit_group_call(video_stopped=False)
 
