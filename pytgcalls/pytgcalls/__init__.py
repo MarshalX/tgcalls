@@ -82,7 +82,7 @@ __all__ = [
     'GroupCallDevice',
     'GroupCallRaw',
 ]
-__version__ = '3.0.0.dev5'
+__version__ = '3.0.0.dev8'
 __pdoc__ = {
     # files
     'utils': False,

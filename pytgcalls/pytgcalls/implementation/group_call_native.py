@@ -119,7 +119,7 @@ class GroupCallNative:
         self.__native_instance.startAudioDeviceModule()
 
     @if_native_instance_created
-    def _set_video_capture(self, source_path: str, fps: int, width: int, height: int):
+    def _set_video_capture(self, source_path: str, width: int, height: int, fps: int):
         logger.debug('Set video capture.')
         self.__native_instance.setVideoCapture(source_path, fps, width, height)
 

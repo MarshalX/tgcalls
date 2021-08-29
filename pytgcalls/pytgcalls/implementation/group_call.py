@@ -115,6 +115,8 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         self.__is_muted = True
         self.__is_video_stopped = True
 
+        self.__video_stream = None
+
     async def _group_call_participants_update_callback(self, update: UpdateGroupCallParticipantsWrapper):
         logger.debug('Group call participants update...')
         logger.debug(update)
@@ -300,6 +302,9 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         else:
             await post_disconnect()
 
+        if self.__video_stream:
+            self.__video_stream.stop()
+
         logger.debug('GroupCall stopped properly.')
 
     async def reconnect(self):
@@ -330,29 +335,30 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         else:
             logger.debug('Completely left the current group call.')
 
-    async def set_video_capture(self, source, fps=30, width=1280, height=720):
+    async def set_video_capture(self, source=None, width=1280, height=720, fps=30):
         """Enable video playing for current group call.
 
         Note:
             Source is video file or image file sequence or a
             capturing device or a IP video stream for video capturing.
 
+            To use device camera you need to pass device index as int to the `source` arg.
+
         Args:
-            source (`str`): Path to filename of URL with some protocol. For example RTCP..
-            fps (`int`): FPS of vide.
+            source (`str`): Path to filename or device index or URL with some protocol. For example RTCP.
             width (`int`): width of video.
             height (`int`): height of video.
+            fps (`int`): FPS of video.
         """
 
         self.__is_video_stopped = False
 
-        # TODO need to store and properly stop
-        stream = VideoStream(source).start()
+        self.__video_stream = VideoStream(source).start()
 
         def get_next_frame_buffer():
-            return stream.read()
+            return self.__video_stream.read()
 
-        self._set_video_capture(get_next_frame_buffer, fps, width, height)
+        self._set_video_capture(get_next_frame_buffer, width, height, fps)
 
         if self.is_connected:
             await self.edit_group_call(video_stopped=False)
