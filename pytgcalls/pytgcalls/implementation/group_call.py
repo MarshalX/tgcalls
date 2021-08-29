@@ -115,6 +115,8 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         self.__is_muted = True
         self.__is_video_stopped = True
 
+        self.__video_stream = None
+
     async def _group_call_participants_update_callback(self, update: UpdateGroupCallParticipantsWrapper):
         logger.debug('Group call participants update...')
         logger.debug(update)
@@ -300,6 +302,9 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         else:
             await post_disconnect()
 
+        if self.__video_stream:
+            self.__video_stream.stop()
+
         logger.debug('GroupCall stopped properly.')
 
     async def reconnect(self):
@@ -338,7 +343,7 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
             capturing device or a IP video stream for video capturing.
 
         Args:
-            source (`str`): Path to filename of URL with some protocol. For example RTCP..
+            source (`str`): Path to filename of URL with some protocol. For example RTCP.
             fps (`int`): FPS of vide.
             width (`int`): width of video.
             height (`int`): height of video.
@@ -346,11 +351,10 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
 
         self.__is_video_stopped = False
 
-        # TODO need to store and properly stop
-        stream = VideoStream(source).start()
+        self.__video_stream = VideoStream(source).start()
 
         def get_next_frame_buffer():
-            return stream.read()
+            return self.__video_stream.read()
 
         self._set_video_capture(get_next_frame_buffer, fps, width, height)
 
