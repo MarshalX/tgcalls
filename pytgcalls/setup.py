@@ -49,8 +49,8 @@ setup(
         'opencv-python == 4.5.3.56'
     ],
     extras_require={
-        # 'pyrogram': ['pyrogram >= 1.2.0'],
-        'pyrogram': ['pyrogram @ git+https://github.com/pyrogram/pyrogram@master'],
+        'pyrogram': ['pyrogram >= 1.2.9'],
+        # 'pyrogram': ['pyrogram @ git+https://github.com/pyrogram/pyrogram@master'],
         'telethon': ['telethon >= 1.23.0'],
     },
     python_requires="~=3.6",
