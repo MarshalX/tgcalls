@@ -17,31 +17,52 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
+from os import path
 from queue import Queue
 from threading import Thread
 
 import cv2
 
 
+base_path = path.abspath(path.dirname(__file__))
+
 uint_ssrc = lambda ssrc: ssrc if ssrc >= 0 else ssrc + 2 ** 32
 int_ssrc = lambda ssrc: ssrc if ssrc < 2 ** 31 else ssrc - 2 ** 32
 
 # increasing this value will increase memory usage
 QUEUE_SIZE = 64
+FRAME_PLACEHOLDER_FILENAME = 'frame_placeholder'
+FRAME_PLACEHOLDER_PATH = path.join(base_path, FRAME_PLACEHOLDER_FILENAME)
 
 
 class VideoStream:
-    def __init__(self, source, queue_size=QUEUE_SIZE):
+    def __init__(self, source=None, queue_size=QUEUE_SIZE):
         # TODO detect fps, h, w
-        self.video_capture = cv2.VideoCapture(source)
-        self.queue = Queue(maxsize=queue_size)
+
+        self.video_capture = None
+        if source is not None:
+            self.video_capture = cv2.VideoCapture(source)
+
+        self.queue_size = queue_size
+        self.queue = self.create_queue()
 
         self.thread = Thread(target=self.update, args=())
         self.thread.daemon = True
 
         self.is_running = False
 
+        self.__frame_placeholder = None
+
+    def create_queue(self, queue_size=None):
+        if not queue_size:
+            queue_size = self.queue_size
+
+        return Queue(maxsize=queue_size)
+
     def start(self):
+        with open(FRAME_PLACEHOLDER_PATH, 'rb') as f:
+            self.__frame_placeholder = f.read()
+
         self.is_running = True
         self.thread.start()
         return self
@@ -52,16 +73,29 @@ class VideoStream:
     def stop(self):
         self.is_running = False
 
+        if self.video_capture:
+            self.video_capture.release()
+
+        self.queue = self.create_queue()
+
+    def __add_placeholder_frame(self):
+        self.queue.put_nowait(self.__frame_placeholder)
+
     def update(self):
         while True:
             if not self.is_running:
                 return
 
-            if not self.queue.full():
+            # when video file hasn't been passed
+            if not self.queue.full() and not self.video_capture:
+                self.__add_placeholder_frame()
+                continue
+
+            if not self.queue.full() and self.video_capture and self.video_capture.isOpened():
                 grabbed, frame = self.video_capture.read()
-                if not grabbed:
-                    self.stop()
-                    return
+                if not grabbed or frame is None:
+                    self.__add_placeholder_frame()
+                    continue
 
                 rgba = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
-                self.queue.put(rgba.tobytes())
+                self.queue.put_nowait(rgba.tobytes())
