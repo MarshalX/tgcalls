@@ -335,7 +335,7 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
         else:
             logger.debug('Completely left the current group call.')
 
-    async def set_video_capture(self, source=None, width=None, height=None, fps=None):
+    async def set_video_capture(self, source=None, repeat=True, width=None, height=None, fps=None):
         """Enable video playing for current group call.
 
         Note:
@@ -346,12 +346,13 @@ class GroupCall(ABC, GroupCallDispatcherMixin, GroupCallNative):
 
         Args:
             source (`str`): Path to filename or device index or URL with some protocol. For example RTCP.
+            repeat (`bool`): rewind video when end of file.
             width (`int`): width of video.
             height (`int`): height of video.
             fps (`int`): FPS of video.
         """
 
-        self.__video_stream = VideoStream(source).start()
+        self.__video_stream = VideoStream(source, repeat).start()
 
         video_info = self.__video_stream.get_video_info()
         if not width:

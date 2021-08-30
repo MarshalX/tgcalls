@@ -45,10 +45,12 @@ class VideoInfo:
 class VideoStream:
     __DEFAULT_VIDEO_INFO = VideoInfo(1280, 720, 30)
 
-    def __init__(self, source=None, queue_size=QUEUE_SIZE):
+    def __init__(self, source, repeat, queue_size=QUEUE_SIZE):
         self.video_capture = None
         if source is not None:
             self.video_capture = cv2.VideoCapture(source)
+
+        self.repeat = repeat
 
         self.queue_size = queue_size
         self.__queue = self.create_queue()
@@ -111,7 +113,10 @@ class VideoStream:
             if not self.__queue.full() and self.video_capture and self.video_capture.isOpened():
                 grabbed, frame = self.video_capture.read()
                 if not grabbed or frame is None:
-                    self.__add_placeholder_frame()
+                    if self.repeat:
+                        self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 1)
+                    else:
+                        self.__add_placeholder_frame()
                     continue
 
                 rgba = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
