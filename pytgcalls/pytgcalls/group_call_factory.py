@@ -23,6 +23,7 @@ from typing import Callable, Optional, Union
 
 from pytgcalls.exceptions import PytgcallsBaseException, PytgcallsError
 from pytgcalls.group_call_type import GroupCallType
+from pytgcalls.implementation.group_call import GroupCall
 from pytgcalls.mtproto_client_type import MTProtoClientType
 from pytgcalls.implementation.group_call_file import GroupCallFile
 from pytgcalls.implementation.group_call_device import GroupCallDevice
@@ -86,6 +87,14 @@ class GroupCallFactory:
             path_to_log_file=self.path_to_log_file,
             outgoing_audio_bitrate_kbit=self.outgoing_audio_bitrate_kbit,
             **kwargs,
+        )
+
+    def get_group_call(self) -> GroupCall:
+        return GroupCall(
+            self.get_mtproto_bridge(),
+            self.enable_logs_to_console,
+            self.path_to_log_file,
+            self.outgoing_audio_bitrate_kbit,
         )
 
     def get_file_group_call(

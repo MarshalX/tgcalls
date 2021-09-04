@@ -60,7 +60,7 @@ class DispatcherMixin:
 
         Args:
             action (`str`): Action.
-            instance (`GroupCallNative`): Instance of GroupCall.
+            instance (`GroupCallNative`): Instance of GroupCallBase.
             *args (`list`, optional): Arbitrary callback arguments.
             **kwargs (`dict`, optional): Arbitrary callback arguments.
         """

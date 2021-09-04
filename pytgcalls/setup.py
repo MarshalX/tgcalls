@@ -46,6 +46,7 @@ setup(
     packages=packages,
     install_requires=[
         'tgcalls == 3.0.0.dev2',
+        'av == 8.0.3',
         'opencv-python-headless == 4.5.3.56'
     ],
     extras_require={
