@@ -36,8 +36,12 @@ FRAME_PLACEHOLDER_FILENAME = 'frame_placeholder'
 FRAME_PLACEHOLDER_PATH = path.join(base_path, FRAME_PLACEHOLDER_FILENAME)
 
 DEFAULT_REQUESTED_AUDIO_BYTES_LENGTH = 1920
-BYTES_PER_AUDIO_SAMPLE = 4
-SAMPLES_TO_STORE_MULTIPLIER = 2
+
+DEFAULT_AUDIO_SAMPLE_RATE = 48000
+REVERSED_AUDIO_SAMPLE_RATE = {
+    48000: 44100,
+    44100: 48000,
+}
 
 
 class VideoInfo:
@@ -134,15 +138,17 @@ class VideoStream:
 
 class AudioStream:
     __REQUESTED_AUDIO_BYTES_LENGTH = DEFAULT_REQUESTED_AUDIO_BYTES_LENGTH
-    __SAMPLES_TO_STORE = __REQUESTED_AUDIO_BYTES_LENGTH // BYTES_PER_AUDIO_SAMPLE * SAMPLES_TO_STORE_MULTIPLIER
 
     def __init__(self, source: str, repeat: bool, queue_size=QUEUE_SIZE):
         self.__input_container = av.open(source)
         if not len(self.__input_container.streams.audio):
             raise RuntimeError('Cant find audio stream')
 
-        self.__audio_resampler = av.AudioResampler(format='s16', layout='stereo', rate=48000)
-        self.__audio_stream_iter = self.__get_decoded_iter()
+        audio_rate = self.__input_container.streams.audio[0].codec_context.sample_rate
+        rate = REVERSED_AUDIO_SAMPLE_RATE.get(audio_rate, DEFAULT_AUDIO_SAMPLE_RATE)
+
+        self.__audio_resampler = av.AudioResampler(format='s16', layout='stereo', rate=rate)
+        self.__audio_stream_iter = iter(self.__input_container.decode(audio=0))
 
         self.repeat = repeat
 
@@ -160,24 +166,17 @@ class AudioStream:
 
         return Queue(maxsize=queue_size)
 
-    def __get_decoded_iter(self):
-        self.__input_container.seek(0)
-        return iter(self.__input_container.decode(audio=0))
-
     def start(self):
         self.is_running = True
         self.thread.start()
         return self
 
     def stop(self):
+        self.__input_container.close()
         self.is_running = False
 
     def read(self, length: int):
-        if not self.__REQUESTED_AUDIO_BYTES_LENGTH:
-            self.__REQUESTED_AUDIO_BYTES_LENGTH = length
-            self.__SAMPLES_TO_STORE = (
-                self.__REQUESTED_AUDIO_BYTES_LENGTH // BYTES_PER_AUDIO_SAMPLE * SAMPLES_TO_STORE_MULTIPLIER
-            )
+        self.__REQUESTED_AUDIO_BYTES_LENGTH = length
 
         try:
             return self.__queue.get_nowait()
@@ -196,7 +195,8 @@ class AudioStream:
                 frame.pts = None
             except StopIteration:
                 if self.repeat:
-                    self.__audio_stream_iter = self.__get_decoded_iter()
+                    self.__input_container.seek(0)
+                    self.__audio_stream_iter = iter(self.__input_container.decode(audio=0))
                     continue
                 else:
                     self.stop()

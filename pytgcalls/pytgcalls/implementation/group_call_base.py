@@ -305,10 +305,8 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
 
         if self._video_stream:
             self._video_stream.stop()
-            self._video_stream = None
         if self._audio_stream:
             self._audio_stream.stop()
-            self._audio_stream = None
 
         logger.debug('GroupCallBase stopped properly.')
 

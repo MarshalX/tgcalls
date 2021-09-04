@@ -73,7 +73,6 @@ class GroupCall(GroupCallRaw):
 
         if self._video_stream:
             self._video_stream.stop()
-            self._video_stream = None
 
         self._video_stream = VideoStream(source, repeat)
         video_info = self._video_stream.get_video_info()
@@ -102,7 +101,6 @@ class GroupCall(GroupCallRaw):
 
         if self._audio_stream:
             self._audio_stream.stop()
-            self._audio_stream = None
 
         self._audio_stream = AudioStream(source, repeat).start()
 
