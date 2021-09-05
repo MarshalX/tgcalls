@@ -51,25 +51,15 @@ class VideoInfo:
         self.fps = fps
 
 
-class VideoStream:
-    __DEFAULT_VIDEO_INFO = VideoInfo(1280, 720, 30)
-
-    def __init__(self, source, repeat, queue_size=QUEUE_SIZE):
-        self.video_capture = None
-        if source is not None:
-            self.video_capture = cv2.VideoCapture(source)
-
-        self.repeat = repeat
-
+class QueueStream:
+    def __init__(self, queue_size=QUEUE_SIZE):
         self.queue_size = queue_size
         self.__queue = self.create_queue()
 
-        self.thread = Thread(target=self.__update, args=())
+        self.thread = Thread(target=self._update, args=())
         self.thread.daemon = True
 
         self.is_running = False
-
-        self.__frame_placeholder = None
 
     def create_queue(self, queue_size=None):
         if not queue_size:
@@ -78,12 +68,44 @@ class VideoStream:
         return Queue(maxsize=queue_size)
 
     def start(self):
-        with open(FRAME_PLACEHOLDER_PATH, 'rb') as f:
-            self.__frame_placeholder = f.read()
-
         self.is_running = True
         self.thread.start()
         return self
+
+    def stop(self):
+        self.is_running = False
+        self.__queue = self.create_queue()
+
+    def read(self):
+        return self.__queue.get_nowait()
+
+    def put(self, item, block=True):
+        self.__queue.put(item, block)
+
+    def _update(self):
+        raise NotImplementedError
+
+
+class VideoStream(QueueStream):
+    __DEFAULT_VIDEO_INFO = VideoInfo(1280, 720, 30)
+
+    def __init__(self, source, repeat, queue_size=QUEUE_SIZE):
+        super().__init__(queue_size)
+
+        self.video_capture = None
+        if source is not None:
+            self.video_capture = cv2.VideoCapture(source)
+
+        self.repeat = repeat
+
+        self.__frame_placeholder = None
+        self.__last_frame = None
+
+    def start(self):
+        with open(FRAME_PLACEHOLDER_PATH, 'rb') as f:
+            self.__frame_placeholder = f.read()
+
+        return super().start()
 
     def get_video_info(self) -> VideoInfo:
         if self.video_capture and self.video_capture.isOpened():
@@ -97,23 +119,24 @@ class VideoStream:
 
     def read(self):
         try:
-            return self.__queue.get_nowait()
+            return super().read()
         except Empty:
+            if self.__last_frame:
+                return self.__last_frame
             # if thread wasn't started
+            # TODO need to scale
             return self.__frame_placeholder
 
     def stop(self):
-        self.is_running = False
+        super().stop()
 
         if self.video_capture:
             self.video_capture.release()
 
-        self.__queue = self.create_queue()
-
     def __add_placeholder_frame(self):
-        self.__queue.put(self.__frame_placeholder)
+        self.put(self.__frame_placeholder)
 
-    def __update(self):
+    def _update(self):
         while True:
             if not self.is_running:
                 return
@@ -133,13 +156,18 @@ class VideoStream:
                     continue
 
                 rgba = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
-                self.__queue.put(rgba.tobytes())
+                rgba_bytes = rgba.tobytes()
+
+                self.__last_frame = rgba_bytes
+                self.put(rgba_bytes)
 
 
-class AudioStream:
+class AudioStream(QueueStream):
     __REQUESTED_AUDIO_BYTES_LENGTH = DEFAULT_REQUESTED_AUDIO_BYTES_LENGTH
 
     def __init__(self, source: str, repeat: bool, queue_size=QUEUE_SIZE):
+        super().__init__(queue_size)
+
         self.__input_container = av.open(source)
         if not len(self.__input_container.streams.audio):
             raise RuntimeError('Cant find audio stream')
@@ -152,38 +180,19 @@ class AudioStream:
 
         self.repeat = repeat
 
-        self.queue_size = queue_size
-        self.__queue = self.create_queue()
-
-        self.thread = Thread(target=self.__update, args=())
-        self.thread.daemon = True
-
-        self.is_running = False
-
-    def create_queue(self, queue_size=None):
-        if not queue_size:
-            queue_size = self.queue_size
-
-        return Queue(maxsize=queue_size)
-
-    def start(self):
-        self.is_running = True
-        self.thread.start()
-        return self
-
     def stop(self):
+        super().stop()
         self.__input_container.close()
-        self.is_running = False
 
     def read(self, length: int):
         self.__REQUESTED_AUDIO_BYTES_LENGTH = length
 
         try:
-            return self.__queue.get_nowait()
+            return super().read()
         except Empty:
             pass
 
-    def __update(self):
+    def _update(self):
         tail = b''
 
         while True:
@@ -215,6 +224,6 @@ class AudioStream:
 
             for frame in cut_frames:
                 if len(frame) == self.__REQUESTED_AUDIO_BYTES_LENGTH:
-                    self.__queue.put(frame)
+                    self.put(frame)
                 else:
                     tail = frame
