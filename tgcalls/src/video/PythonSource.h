@@ -21,4 +21,7 @@ private:
   int _fps;
   int _width;
   int _height;
+
+  int _required_width = 1280;
+  int _required_height = 720;
 };

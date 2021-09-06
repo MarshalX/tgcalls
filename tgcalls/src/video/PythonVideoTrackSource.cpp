@@ -19,7 +19,9 @@ public:
         frame.set_id(static_cast<std::uint16_t>(step));
         frame.set_timestamp_us(rtc::TimeMicros());
 
-        data->broadcaster.OnFrame(frame);
+        if (data->is_running) {
+          data->broadcaster.OnFrame(frame);
+        }
       }
     }).detach();
   }
@@ -37,6 +39,7 @@ public:
   // RemoveSink must guarantee that at the time the method returns,
   // there is no current and no future calls to VideoSinkInterface::OnFrame.
   void RemoveSink(rtc::VideoSinkInterface<VideoFrameT> *sink) {
+    _data->is_running = false;
     _data->broadcaster.RemoveSink(sink);
   }
 

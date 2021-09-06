@@ -31,7 +31,7 @@ uint_ssrc = lambda ssrc: ssrc if ssrc >= 0 else ssrc + 2 ** 32
 int_ssrc = lambda ssrc: ssrc if ssrc < 2 ** 31 else ssrc - 2 ** 32
 
 # increasing this value will increase memory usage
-QUEUE_SIZE = 64
+QUEUE_SIZE = 10
 FRAME_PLACEHOLDER_FILENAME = 'frame_placeholder'
 FRAME_PLACEHOLDER_PATH = path.join(base_path, FRAME_PLACEHOLDER_FILENAME)
 
@@ -95,6 +95,7 @@ class VideoStream(QueueStream):
         self.video_capture = None
         if source is not None:
             self.video_capture = cv2.VideoCapture(source)
+            self.video_capture.set(cv2.CAP_PROP_BUFFERSIZE, 2)
 
         self.repeat = repeat
 
@@ -172,7 +173,13 @@ class AudioStream(QueueStream):
         if not len(self.__input_container.streams.audio):
             raise RuntimeError('Cant find audio stream')
 
-        audio_rate = self.__input_container.streams.audio[0].codec_context.sample_rate
+        codec_context = self.__input_container.streams.audio[0].codec_context
+
+        self.__input_container.no_buffer = True
+        self.__input_container.flush_packets = True
+        codec_context.low_delay = True
+
+        audio_rate = codec_context.sample_rate
         rate = REVERSED_AUDIO_SAMPLE_RATE.get(audio_rate, DEFAULT_AUDIO_SAMPLE_RATE)
 
         self.__audio_resampler = av.AudioResampler(format='s16', layout='stereo', rate=rate)
