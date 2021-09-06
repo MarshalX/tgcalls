@@ -45,12 +45,13 @@ setup(
     long_description_content_type='text/markdown',
     packages=packages,
     install_requires=[
-        'tgcalls == 3.0.0.dev2',
-        'opencv-python == 4.5.3.56'
+        'tgcalls == 3.0.0.dev3',
+        'av == 8.0.3',
+        'opencv-python-headless == 4.5.3.56'
     ],
     extras_require={
-        # 'pyrogram': ['pyrogram >= 1.2.0'],
-        'pyrogram': ['pyrogram @ git+https://github.com/pyrogram/pyrogram@master'],
+        'pyrogram': ['pyrogram >= 1.2.9'],
+        # 'pyrogram': ['pyrogram @ git+https://github.com/pyrogram/pyrogram@master'],
         'telethon': ['telethon >= 1.23.0'],
     },
     python_requires="~=3.6",

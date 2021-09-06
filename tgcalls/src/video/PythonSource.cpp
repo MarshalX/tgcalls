@@ -8,11 +8,10 @@ PythonSource::PythonSource(std::function<std::string()> getNextFrameBuffer, int 
 
 webrtc::VideoFrame PythonSource::next_frame() {
   auto *frame = new std::string{_getNextFrameBuffer()};
-  auto pythonBuffer = (uint8_t *) frame->data();
 
   rtc::scoped_refptr<webrtc::I420Buffer> buffer = webrtc::I420Buffer::Create(_width, _height);
 
-  libyuv::ABGRToI420(pythonBuffer, _width * 4,
+  libyuv::ABGRToI420((uint8_t *) frame->data(), _width * 4,
                      buffer->MutableDataY(), buffer->StrideY(),
                      buffer->MutableDataU(), buffer->StrideU(),
                      buffer->MutableDataV(), buffer->StrideV(),
@@ -20,5 +19,7 @@ webrtc::VideoFrame PythonSource::next_frame() {
 
   delete frame;
 
-  return webrtc::VideoFrame::Builder().set_video_frame_buffer(buffer).build();
+  return webrtc::VideoFrame::Builder()
+  .set_video_frame_buffer(buffer->Scale(_required_width, _required_height))
+  .build();
 }

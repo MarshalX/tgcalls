@@ -18,8 +18,7 @@
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
 import logging
-import warnings
-from typing import Optional, List
+from typing import Callable, Optional, List
 
 import tgcalls
 from pytgcalls.exceptions import CallBeforeStartError
@@ -119,7 +118,7 @@ class GroupCallNative:
         self.__native_instance.startAudioDeviceModule()
 
     @if_native_instance_created
-    def _set_video_capture(self, source_path: str, fps: int, width: int, height: int):
+    def _set_video_capture(self, source_path: Callable, width: int, height: int, fps: int):
         logger.debug('Set video capture.')
         self.__native_instance.setVideoCapture(source_path, fps, width, height)
 
@@ -196,29 +195,3 @@ class GroupCallNative:
 
         logger.debug(f'Restart native audio output device.')
         self.__native_instance.restartAudioOutputDevice()
-
-    # legacy below
-
-    def print_available_playout_devices(self):
-        """Print name and guid of available playout audio devices in system. Just helper method
-
-        Note:
-            You should use this method after calling .start()!
-        """
-
-        warnings.warn("It's a deprecated method. Use .get_recording_devices() instead", DeprecationWarning, 2)
-
-        for device in self.get_playout_devices():
-            print(f'Playout device \n name: {device.name} \n guid: {device.guid}')
-
-    def print_available_recording_devices(self):
-        """Print name and guid of available recording audio devices in system. Just helper method
-
-        Note:
-            You should use this method after calling .start()!
-        """
-
-        warnings.warn("It's a deprecated method. Use .get_playout_devices() instead", DeprecationWarning, 2)
-
-        for device in self.get_recording_devices():
-            print(f'Recording device \n name: {device.name} \n guid: {device.guid}')

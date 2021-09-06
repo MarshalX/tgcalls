@@ -20,16 +20,16 @@
 from typing import Callable
 
 import tgcalls
-from pytgcalls.implementation import GroupCall, GroupCallAction, GroupCallDispatcherMixin
+from pytgcalls.implementation import GroupCallBase, GroupCallBaseAction, GroupCallBaseDispatcherMixin
 from pytgcalls.dispatcher import Action
 
 
-class GroupCallFileAction(GroupCallAction):
+class GroupCallFileAction(GroupCallBaseAction):
     PLAYOUT_ENDED = Action()
     '''When a input file is ended.'''
 
 
-class GroupCallFileDispatcherMixin(GroupCallDispatcherMixin):
+class GroupCallFileDispatcherMixin(GroupCallBaseDispatcherMixin):
     def on_playout_ended(self, func: Callable) -> Callable:
         """When a input file is ended.
 
@@ -43,7 +43,7 @@ class GroupCallFileDispatcherMixin(GroupCallDispatcherMixin):
         return self.add_handler(func, GroupCallFileAction.PLAYOUT_ENDED)
 
 
-class GroupCallFile(GroupCall, GroupCallFileDispatcherMixin):
+class GroupCallFile(GroupCallBase, GroupCallFileDispatcherMixin):
     def __init__(
         self,
         mtproto_bridge,
