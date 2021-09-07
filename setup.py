@@ -70,6 +70,7 @@ class CMakeBuild(build_ext):
             extdir += os.path.sep
 
         cfg = 'Debug' if self.debug else 'Release'
+        cfg = 'Debug'
 
         # CMake lets you override the generator - we need to check this.
         # Can be set with Conda-Build, for example.
