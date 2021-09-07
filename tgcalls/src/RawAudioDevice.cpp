@@ -12,9 +12,9 @@
 
 // TODO set from Python
 const int kRecordingFixedSampleRate = 48000;
-const size_t kRecordingNumChannels = 2;
+const size_t kRecordingNumChannels = 1;
 const int kPlayoutFixedSampleRate = 48000;
-const size_t kPlayoutNumChannels = 2;
+const size_t kPlayoutNumChannels = 1;
 const size_t kPlayoutBufferSize =
     kPlayoutFixedSampleRate / 100 * kPlayoutNumChannels * 2;
 const size_t kRecordingBufferSize =

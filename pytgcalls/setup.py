@@ -45,7 +45,7 @@ setup(
     long_description_content_type='text/markdown',
     packages=packages,
     install_requires=[
-        'tgcalls == 3.0.0.dev3',
+        'tgcalls == 3.0.0.dev4',
         'av == 8.0.3',
         'opencv-python-headless == 4.5.3.56'
     ],

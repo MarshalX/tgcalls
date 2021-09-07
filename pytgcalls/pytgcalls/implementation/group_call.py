@@ -53,7 +53,7 @@ class GroupCall(GroupCallRaw):
     async def join(self, group, join_as=None, invite_hash: Optional[str] = None, enable_action=True):
         return await self.start(group, join_as, invite_hash, enable_action)
 
-    async def start_video(self, source: str, with_audio=True, repeat=True):
+    async def start_video(self, source: str, with_audio=True, repeat=True, enable_experimental_lip_sync=False):
         """Enable video playing for current group call.
 
         Note:
@@ -66,10 +66,8 @@ class GroupCall(GroupCallRaw):
             source (`str`): Path to filename or device index or URL with some protocol. For example RTCP.
             with_audio (`bool`): Get and play audio stream from video source.
             repeat (`bool`): rewind video when end of file.
+            enable_experimental_lip_sync (`bool`): enable experimental lip sync feature.
         """
-
-        if with_audio:
-            await self.start_audio(source, repeat)
 
         if self._video_stream:
             self._video_stream.stop()
@@ -82,13 +80,15 @@ class GroupCall(GroupCallRaw):
 
         self._set_video_capture(get_next_frame_buffer, video_info.width, video_info.height, video_info.fps)
 
+        if with_audio:
+            await self.start_audio(source, repeat, self._video_stream if enable_experimental_lip_sync else None)
         self._video_stream.start()
 
         self._is_video_stopped = False
         if self.is_connected:
             await self.edit_group_call(video_stopped=False)
 
-    async def start_audio(self, source: str, repeat=True):
+    async def start_audio(self, source: str, repeat=True, video_stream: Optional[VideoStream] = None):
         """Enable audio playing for current group call.
 
         Note:
@@ -97,12 +97,13 @@ class GroupCall(GroupCallRaw):
         Args:
             source (`str`): Path to filename or URL to audio file or URL to live stream.
             repeat (`bool`): rewind audio when end of file.
+            video_stream (`VideoStream`): stream to sync.
         """
 
         if self._audio_stream:
             self._audio_stream.stop()
 
-        self._audio_stream = AudioStream(source, repeat).start()
+        self._audio_stream = AudioStream(source, repeat, video_stream=video_stream).start()
 
     async def start_audio_record(self, path):
         # TODO
