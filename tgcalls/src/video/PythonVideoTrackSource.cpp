@@ -1,3 +1,5 @@
+#include <system_wrappers/include/sleep.h>
+
 #include "PythonVideoTrackSource.h"
 
 
@@ -13,7 +15,7 @@ public:
       while (data->is_running) {
         step++;
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000 / fps));
+        int64_t current_time = rtc::TimeMillis();
         auto frame = source->next_frame();
 
         frame.set_id(static_cast<std::uint16_t>(step));
@@ -21,6 +23,11 @@ public:
 
         if (data->is_running) {
           data->broadcaster.OnFrame(frame);
+        }
+
+        int64_t delta_time_millis = rtc::TimeMillis() - current_time;
+        if (delta_time_millis < 1000 / fps) {
+          webrtc::SleepMs(1000 / fps - delta_time_millis);
         }
       }
     }).detach();
@@ -53,11 +60,11 @@ private:
 
 class PythonVideoSourceImpl : public webrtc::VideoTrackSource {
 public:
-  static rtc::scoped_refptr<PythonVideoSourceImpl> Create(std::unique_ptr<PythonSource> source, int fps) {
+  static rtc::scoped_refptr<PythonVideoSourceImpl> Create(std::unique_ptr<PythonSource> source, float fps) {
     return rtc::scoped_refptr<PythonVideoSourceImpl>(new rtc::RefCountedObject<PythonVideoSourceImpl>(std::move(source), fps));
   }
 
-  explicit PythonVideoSourceImpl(std::unique_ptr<PythonSource> source, int fps) :
+  explicit PythonVideoSourceImpl(std::unique_ptr<PythonSource> source, float fps) :
     VideoTrackSource(false), source_(std::move(source), fps) {
   }
 
@@ -68,13 +75,13 @@ protected:
   }
 };
 
-std::function<webrtc::VideoTrackSourceInterface*()> PythonVideoTrackSource::create(std::unique_ptr<PythonSource> frame_source, int fps) {
+std::function<webrtc::VideoTrackSourceInterface*()> PythonVideoTrackSource::create(std::unique_ptr<PythonSource> frame_source, float fps) {
   auto source = PythonVideoSourceImpl::Create(std::move(frame_source), fps);
   return [source] {
     return source.get();
   };
 }
 
-rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> PythonVideoTrackSource::createPtr(std::unique_ptr<PythonSource> frame_source, int fps) {
+rtc::scoped_refptr<webrtc::VideoTrackSourceInterface> PythonVideoTrackSource::createPtr(std::unique_ptr<PythonSource> frame_source, float fps) {
   return PythonVideoSourceImpl::Create(std::move(frame_source), fps);
 }

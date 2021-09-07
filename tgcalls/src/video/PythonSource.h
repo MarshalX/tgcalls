@@ -11,14 +11,14 @@
 
 class PythonSource {
 public:
-  PythonSource(std::function<std::string()>, int, int, int);
+  PythonSource(std::function<std::string()>, float, int, int);
   ~PythonSource() = default;
 
   webrtc::VideoFrame next_frame();
 
 private:
   std::function<std::string()> _getNextFrameBuffer = nullptr;
-  int _fps;
+  float _fps;
   int _width;
   int _height;
 

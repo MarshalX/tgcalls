@@ -458,7 +458,7 @@ async def start(client1, client2, make_out, make_inc):
 
 import logging
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 for name, logger in logging.root.manager.loggerDict.items():
     if name.startswith('pyrogram'):
@@ -502,17 +502,19 @@ async def main(client1, client2, telethon1, make_out, make_inc):
     # group_call = group_call_factory.get_file_group_call('plugins/gand.raw')
     group_call = group_call_factory.get_group_call()
     await group_call.join('@marshalch')
-    await group_call.start_video(video_source, with_audio=True)
+    await group_call.start_video(video_source, enable_experimental_lip_sync=True)
+    # await group_call.start_video('test2.mp4', with_audio=True)
+    # await group_call.start_video('pep.mp4', with_audio=True)
     # await group_call.start_audio('pep.mp4')
     # await group_call.start_video('test360.mp4', with_audio=True, repeat=True)
     # await group_call.start_video('http://50.7.161.82:8278/streams/d/Hbo/playlist.m3u8', with_audio=True)
     # await group_call.start_video('https://feed.play.mv/live/10005200/7EsSDh7aX6/master.m3u8', with_audio=True)
     # await group_call.start_video('http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', with_audio=True)
-
-
-    await asyncio.sleep(20)
-    await group_call.stop()
-    print('ok')
+    #
+    #
+    # await asyncio.sleep(20)
+    # await group_call.stop()
+    # print('ok')
 
     # @group_call.on_network_status_changed
     async def on_network_changed(gc, is_connected: bool):

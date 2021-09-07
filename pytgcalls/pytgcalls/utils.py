@@ -17,29 +17,34 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
-from os import path
+import os
+from logging import getLogger
 from queue import Empty, Queue
-from threading import Thread
+from threading import Lock, Thread
+from typing import List, Optional
 
 import cv2
 import av
 
 
-base_path = path.abspath(path.dirname(__file__))
+logger = getLogger(__name__)
 
 uint_ssrc = lambda ssrc: ssrc if ssrc >= 0 else ssrc + 2 ** 32
 int_ssrc = lambda ssrc: ssrc if ssrc < 2 ** 31 else ssrc - 2 ** 32
 
 # increasing this value will increase memory usage
-QUEUE_SIZE = 10
+VIDEO_QUEUE_SIZE = 1  # 1 frame depends on FPS
+AUDIO_QUEUE_SIZE = 1  # 1 frame is 10 ms
 
 DEFAULT_COLOR_DEPTH = 4
-DEFAULT_REQUESTED_AUDIO_BYTES_LENGTH = 1920
+DEFAULT_REQUESTED_AUDIO_BYTES_LENGTH = 960
 DEFAULT_AUDIO_SAMPLE_RATE = 48000
 REVERSED_AUDIO_SAMPLE_RATE = {
     48000: 44100,
     44100: 48000,
 }
+
+MILLIS_IN_SEC = 1000
 
 
 class VideoInfo:
@@ -50,7 +55,7 @@ class VideoInfo:
 
 
 class QueueStream:
-    def __init__(self, queue_size=QUEUE_SIZE):
+    def __init__(self, queue_size):
         self.queue_size = queue_size
         self.__queue = self.create_queue()
 
@@ -87,17 +92,19 @@ class QueueStream:
 class VideoStream(QueueStream):
     __DEFAULT_VIDEO_INFO = VideoInfo(1280, 720, 30)
 
-    def __init__(self, source, repeat, queue_size=QUEUE_SIZE):
+    def __init__(self, source, repeat, queue_size=VIDEO_QUEUE_SIZE):
         super().__init__(queue_size)
 
         self.video_capture = None
         if source is not None:
             self.video_capture = cv2.VideoCapture(source)
-            self.video_capture.set(cv2.CAP_PROP_BUFFERSIZE, 2)
+            self.video_capture.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
         self.repeat = repeat
 
+        self.__pts = 0
         self.__last_frame = None
+        self.__lock = Lock()
 
     def start(self):
         return super().start()
@@ -107,7 +114,7 @@ class VideoStream(QueueStream):
             return VideoInfo(
                 round(self.video_capture.get(cv2.CAP_PROP_FRAME_WIDTH)),
                 round(self.video_capture.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-                round(self.video_capture.get(cv2.CAP_PROP_FPS)),
+                self.video_capture.get(cv2.CAP_PROP_FPS),
             )
 
         return self.__DEFAULT_VIDEO_INFO
@@ -128,40 +135,66 @@ class VideoStream(QueueStream):
             self.video_capture.release()
 
     # may be need to move in group call raw class. like audio
-    def __generate_empty_frame(self):
+    def __generate_empty_frame(self) -> bytes:
         frame_size = self.get_video_info().width * self.get_video_info().width * DEFAULT_COLOR_DEPTH
         return b''.ljust(frame_size, b'\0')
+
+    def get_pts(self):
+        return self.__pts
+
+    def skip_next_frame(self):
+        self.__lock.acquire(True)
+
+    def get_next_frame(self) -> Optional[bytes]:
+        # when video file hasn't been passed
+        if not self.video_capture:
+            return self.__generate_empty_frame()
+
+        if self.video_capture and self.video_capture.isOpened():
+            grabbed, frame = self.video_capture.read()
+            if not grabbed or frame is None:
+                if self.repeat:
+                    self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 1)
+                    return
+                else:
+                    return self.__generate_empty_frame()
+
+            self.__pts = self.video_capture.get(cv2.CAP_PROP_POS_MSEC)
+
+            if self.__lock.locked():
+                self.__lock.release()
+                return
+
+            rgba = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
+            rgba_bytes = rgba.tobytes()
+
+            return rgba_bytes
 
     def _update(self):
         while True:
             if not self.is_running:
                 return
 
-            # when video file hasn't been passed
-            if not self.video_capture:
-                self.put(self.__generate_empty_frame())
+            frame = self.get_next_frame()
+            # if it was rewind
+            if frame is None:
                 continue
 
-            if self.video_capture and self.video_capture.isOpened():
-                grabbed, frame = self.video_capture.read()
-                if not grabbed or frame is None:
-                    if self.repeat:
-                        self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 1)
-                    else:
-                        self.put(self.__generate_empty_frame())
-                    continue
-
-                rgba = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
-                rgba_bytes = rgba.tobytes()
-
-                self.__last_frame = rgba_bytes
-                self.put(rgba_bytes)
+            self.__last_frame = frame
+            # its necessary for thread blocking
+            self.put(frame)
 
 
 class AudioStream(QueueStream):
     __REQUESTED_AUDIO_BYTES_LENGTH = DEFAULT_REQUESTED_AUDIO_BYTES_LENGTH
 
-    def __init__(self, source: str, repeat: bool, queue_size=QUEUE_SIZE):
+    def __init__(
+        self,
+        source: str,
+        repeat: bool,
+        queue_size=AUDIO_QUEUE_SIZE,
+        video_stream: Optional[VideoStream] = None,
+    ):
         super().__init__(queue_size)
 
         self.__input_container = av.open(source)
@@ -174,13 +207,21 @@ class AudioStream(QueueStream):
         self.__input_container.flush_packets = True
         codec_context.low_delay = True
 
+        # TODO so strange dirty fix
         audio_rate = codec_context.sample_rate
         rate = REVERSED_AUDIO_SAMPLE_RATE.get(audio_rate, DEFAULT_AUDIO_SAMPLE_RATE)
 
-        self.__audio_resampler = av.AudioResampler(format='s16', layout='stereo', rate=rate)
+        self.__audio_resampler = av.AudioResampler(format='s16', layout='mono', rate=rate)
         self.__audio_stream_iter = iter(self.__input_container.decode(audio=0))
 
+        self.__video_stream = video_stream
+
         self.repeat = repeat
+
+        self.__pts = 0
+        self.__pts_offset = None
+
+        self.__frame_tail = b''
 
     def stop(self):
         super().stop()
@@ -194,38 +235,76 @@ class AudioStream(QueueStream):
         except Empty:
             pass
 
-    def _update(self):
-        tail = b''
+    def get_pts(self):
+        return self.__pts - self.__pts_offset
 
+    def get_next_frame(self) -> Optional[List[bytes]]:
+        try:
+            frame = next(self.__audio_stream_iter)
+
+            if self.__pts_offset is None:
+                self.__pts_offset = frame.time * MILLIS_IN_SEC
+            self.__pts = frame.time * MILLIS_IN_SEC
+
+            if self.__video_stream:
+                pts_diff = self.__video_stream.get_pts() - self.get_pts()
+                if os.environ.get('DEBUG'):
+                    if pts_diff < 0:
+                        logger.debug(f'Video behind the audio {-pts_diff}')
+                    if pts_diff > 0:
+                        logger.debug(f'Audio behind the video {pts_diff}')
+
+                # welcome to my magic values
+                if pts_diff > 100:
+                    n = 1
+
+                    logger.debug(f'Skip {n} audio frame(s)')
+                    for _ in range(n):
+                        frame = next(self.__audio_stream_iter)
+                if pts_diff < -100:
+                    logger.debug('Skip 1 video frame')
+                    self.__video_stream.skip_next_frame()
+
+            frame.pts = None
+        except StopIteration:
+            if self.repeat:
+                # TODO it doesnt work with live streams and will crash on the end of stream
+                self.__input_container.seek(0)
+                self.__audio_stream_iter = iter(self.__input_container.decode(audio=0))
+                self.__frame_tail = b''
+                return
+            else:
+                self.stop()
+                return
+
+        resampled_frame = self.__audio_resampler.resample(frame)
+
+        frame_bytes = self.__frame_tail
+        if resampled_frame:
+            frame_bytes += resampled_frame.to_ndarray().tobytes()
+
+        cut_frames = [
+            frame_bytes[i : i + self.__REQUESTED_AUDIO_BYTES_LENGTH]
+            for i in range(0, len(frame_bytes), self.__REQUESTED_AUDIO_BYTES_LENGTH)
+        ]
+
+        frames_to_return = []
+        for frame in cut_frames:
+            if len(frame) == self.__REQUESTED_AUDIO_BYTES_LENGTH:
+                frames_to_return.append(frame)
+            else:
+                self.__frame_tail = frame
+
+        return frames_to_return
+
+    def _update(self):
         while True:
             if not self.is_running:
                 return
 
-            try:
-                frame = next(self.__audio_stream_iter)
-                frame.pts = None
-            except StopIteration:
-                if self.repeat:
-                    self.__input_container.seek(0)
-                    self.__audio_stream_iter = iter(self.__input_container.decode(audio=0))
-                    continue
-                else:
-                    self.stop()
-                    continue
+            frame_list = self.get_next_frame()
+            if frame_list is None:
+                continue
 
-            resampled_frame = self.__audio_resampler.resample(frame)
-
-            frame_bytes = tail
-            if resampled_frame:
-                frame_bytes += resampled_frame.to_ndarray().tobytes()
-
-            cut_frames = [
-                frame_bytes[i : i + self.__REQUESTED_AUDIO_BYTES_LENGTH]
-                for i in range(0, len(frame_bytes), self.__REQUESTED_AUDIO_BYTES_LENGTH)
-            ]
-
-            for frame in cut_frames:
-                if len(frame) == self.__REQUESTED_AUDIO_BYTES_LENGTH:
-                    self.put(frame)
-                else:
-                    tail = frame
+            for frame in frame_list:
+                self.put(frame)
