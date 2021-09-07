@@ -32,11 +32,9 @@ int_ssrc = lambda ssrc: ssrc if ssrc < 2 ** 31 else ssrc - 2 ** 32
 
 # increasing this value will increase memory usage
 QUEUE_SIZE = 10
-FRAME_PLACEHOLDER_FILENAME = 'frame_placeholder'
-FRAME_PLACEHOLDER_PATH = path.join(base_path, FRAME_PLACEHOLDER_FILENAME)
 
+DEFAULT_COLOR_DEPTH = 4
 DEFAULT_REQUESTED_AUDIO_BYTES_LENGTH = 1920
-
 DEFAULT_AUDIO_SAMPLE_RATE = 48000
 REVERSED_AUDIO_SAMPLE_RATE = {
     48000: 44100,
@@ -99,13 +97,9 @@ class VideoStream(QueueStream):
 
         self.repeat = repeat
 
-        self.__frame_placeholder = None
         self.__last_frame = None
 
     def start(self):
-        with open(FRAME_PLACEHOLDER_PATH, 'rb') as f:
-            self.__frame_placeholder = f.read()
-
         return super().start()
 
     def get_video_info(self) -> VideoInfo:
@@ -125,8 +119,7 @@ class VideoStream(QueueStream):
             if self.__last_frame:
                 return self.__last_frame
             # if thread wasn't started
-            # TODO need to scale
-            return self.__frame_placeholder
+            return self.__generate_empty_frame()
 
     def stop(self):
         super().stop()
@@ -134,8 +127,10 @@ class VideoStream(QueueStream):
         if self.video_capture:
             self.video_capture.release()
 
-    def __add_placeholder_frame(self):
-        self.put(self.__frame_placeholder)
+    # may be need to move in group call raw class. like audio
+    def __generate_empty_frame(self):
+        frame_size = self.get_video_info().width * self.get_video_info().width * DEFAULT_COLOR_DEPTH
+        return b''.ljust(frame_size, b'\0')
 
     def _update(self):
         while True:
@@ -144,7 +139,7 @@ class VideoStream(QueueStream):
 
             # when video file hasn't been passed
             if not self.video_capture:
-                self.__add_placeholder_frame()
+                self.put(self.__generate_empty_frame())
                 continue
 
             if self.video_capture and self.video_capture.isOpened():
@@ -153,7 +148,7 @@ class VideoStream(QueueStream):
                     if self.repeat:
                         self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 1)
                     else:
-                        self.__add_placeholder_frame()
+                        self.put(self.__generate_empty_frame())
                     continue
 
                 rgba = cv2.cvtColor(frame, cv2.COLOR_BGR2RGBA)
