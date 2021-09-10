@@ -127,7 +127,9 @@ class MTProtoBridgeBase(ABC):
         """
         raise NotImplementedError
 
-    async def join_group_call(self, invite_hash: str, params: dict, muted: bool, pre_update_processing: Callable):
+    async def join_group_call(
+        self, invite_hash: str, params: dict, muted: bool, video_stopped: bool, pre_update_processing: Callable
+    ):
         """
         call phone.JoinGroupCall with group_call, join_as, invite hash, muted and params
 

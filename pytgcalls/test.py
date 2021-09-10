@@ -480,7 +480,7 @@ async def main(client1, client2, telethon1, make_out, make_inc):
 
     # group_call = group_call_factory.get_device_group_call()
     # group_call = group_call_factory.get_file_group_call('imput.raw')
-    # group_call = group_call_factory.get_raw_group_call(on_recorded_data=on_recorded_data, on_played_data=on_played_data)
+    # group_call = group_call_factory.get_raw_group_call(on_audio_recorded_data=on_audio_recorded_data, on_audio_played_data=on_audio_played_data)
 
     video = pafy.new('https://www.youtube.com/watch?v=7tNtU5XFwrU')
     video_source = video.getbest().url
@@ -498,14 +498,28 @@ async def main(client1, client2, telethon1, make_out, make_inc):
     #         video_source = stream.url
 
     group_call_factory = GroupCallFactory(telethon1, GroupCallFactory.MTPROTO_CLIENT_TYPE.TELETHON)
-    # group_call = group_call_factory.get_raw_group_call(on_recorded_data=on_recorded_data, on_played_data=on_played_data)
+    # group_call = group_call_factory.get_raw_group_call(on_audio_recorded_data=on_audio_recorded_data, on_audio_played_data=on_audio_played_data)
     # group_call = group_call_factory.get_file_group_call('plugins/gand.raw')
     group_call = group_call_factory.get_group_call()
     await group_call.join('@marshalch')
-    await group_call.start_video(video_source, enable_experimental_lip_sync=True)
+    # await group_call.start_video(video_source, enable_experimental_lip_sync=True)
     # await group_call.start_video('test2.mp4', with_audio=True)
     # await group_call.start_video('pep.mp4', with_audio=True)
     # await group_call.start_audio('pep.mp4')
+    # await group_call.start_video('preview.png', with_audio=False)
+    # await group_call.start_video('', with_audio=False)
+    # await group_call.start_video('preview.png', with_audio=False)
+
+    await group_call.start_video('pep.mp4', with_audio=True)
+    # await asyncio.sleep(10)
+    # await group_call.set_pause(True)
+    # await asyncio.sleep(5)
+    # await group_call.set_pause(False)
+    # await asyncio.sleep(5)
+    # await group_call.stop_video()
+    # await asyncio.sleep(5)
+    # await group_call.stop_media()
+
     # await group_call.start_video('test360.mp4', with_audio=True, repeat=True)
     # await group_call.start_video('http://50.7.161.82:8278/streams/d/Hbo/playlist.m3u8', with_audio=True)
     # await group_call.start_video('https://feed.play.mv/live/10005200/7EsSDh7aX6/master.m3u8', with_audio=True)
@@ -525,6 +539,18 @@ async def main(client1, client2, telethon1, make_out, make_inc):
     # @group_call.on_participant_list_updated
     async def participants_are_updated(gc, participants):
         print(f'Updated participant list: {participants}')
+
+    @group_call.on_audio_playout_ended
+    async def audio_ended(_, source):
+        print(f'audio ended: {source}')
+
+    @group_call.on_video_playout_ended
+    async def video_ended(_, source):
+        print(f'video ended: {source}')
+
+    @group_call.on_playout_ended
+    async def media_ended(_, source, media_type):
+        print(f'{media_type} ended: {source}')
 
     await pyrogram.idle()
 
