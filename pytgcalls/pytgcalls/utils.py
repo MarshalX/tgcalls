@@ -138,12 +138,6 @@ class VideoStream(QueueStream):
             if self.__last_frame:
                 return self.__last_frame
 
-    def stop(self):
-        super().stop()
-
-        if self.video_capture:
-            self.video_capture.release()
-
     def get_pts(self):
         return self.__pts
 
@@ -179,7 +173,7 @@ class VideoStream(QueueStream):
     def _update(self):
         while True:
             if not self.is_running:
-                return
+                break
 
             frame = self.get_next_frame()
             # if it was rewind
@@ -189,6 +183,9 @@ class VideoStream(QueueStream):
             self.__last_frame = frame
             # its necessary for thread blocking
             self.put(frame)
+
+        if self.video_capture:
+            self.video_capture.release()
 
 
 class AudioStream(QueueStream):
@@ -230,10 +227,6 @@ class AudioStream(QueueStream):
         self.__pts_offset = None
 
         self.__frame_tail = b''
-
-    def stop(self):
-        super().stop()
-        self.__input_container.close()
 
     def read(self, length: int):
         self.__REQUESTED_AUDIO_BYTES_LENGTH = length
@@ -309,7 +302,7 @@ class AudioStream(QueueStream):
     def _update(self):
         while True:
             if not self.is_running:
-                return
+                break
 
             frame_list = self.get_next_frame()
             if frame_list is None:
@@ -317,3 +310,5 @@ class AudioStream(QueueStream):
 
             for frame in frame_list:
                 self.put(frame)
+
+        self.__input_container.close()
