@@ -157,6 +157,7 @@ class VideoStream(QueueStream):
                     self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 1)
                     return
                 else:
+                    self.stop()
                     return
 
             self.__pts = self.video_capture.get(cv2.CAP_PROP_POS_MSEC)
