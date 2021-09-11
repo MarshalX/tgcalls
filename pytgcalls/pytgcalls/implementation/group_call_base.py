@@ -418,6 +418,11 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
         await self.edit_group_call(volume)
         self._set_volume(uint_ssrc(self.mtproto.my_ssrc), volume / 100)
 
+    async def get_my_volume(self):
+        volume = await self.mtproto.get_my_volume()
+        logger.debug(f"Current Volume is {volume}")
+        return volume
+
     # shortcuts for easy access in callbacks of events
 
     @property
