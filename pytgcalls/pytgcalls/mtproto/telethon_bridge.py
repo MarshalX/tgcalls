@@ -108,6 +108,22 @@ class TelethonBridge(MTProtoBridgeBase):
 
         return int_ssrc(self.my_ssrc) in ssrcs_in_group_call
 
+    async def get_my_volume(self):
+        if not self.full_chat or not self.full_chat.call or not self.my_ssrc:
+            return
+
+        response = await self.client(
+            functions.phone.GetGroupParticipantsRequest(
+                call=self.full_chat.call,
+                ids=["me"],
+                sources=[int_ssrc(self.my_ssrc)],
+                offset="",
+                limit=1
+            )
+        )
+        if response.participants:
+            return response.participants[0].volume
+
     async def leave_current_group_call(self):
         if not self.full_chat or not self.full_chat.call or not self.my_ssrc:
             return
