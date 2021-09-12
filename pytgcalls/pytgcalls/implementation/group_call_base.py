@@ -418,8 +418,14 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
         await self.edit_group_call(volume)
         self._set_volume(uint_ssrc(self.mtproto.my_ssrc), volume / 100)
 
+    get_group_call_members = self.mtproto.get_group_particiants
+
     async def get_my_volume(self):
-        volume = await self.mtproto.get_my_volume()
+        if not self.my_ssrc or not self.my_peer:
+            return
+
+        member = await self.get_group_call_members(participants=[self.my_peer], sources=[self.my_peer], limit=1)
+        volume = member[0].volume
         logger.debug(f"Current Volume is {volume}")
         return volume
 
