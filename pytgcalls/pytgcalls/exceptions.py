@@ -36,3 +36,7 @@ class NotConnectedError(PytgcallsBaseException):
 
 class GroupCallNotFoundError(PytgcallsBaseException):
     ...
+
+
+class VolumeNoneError(Exception):
+    ...

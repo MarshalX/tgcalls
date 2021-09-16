@@ -116,6 +116,7 @@ class TelethonBridge(MTProtoBridgeBase):
                 call=self.full_chat.call, ids=participants, sources=sources, offset=offset, limit=limit
             )
         )
+        participants = [GroupCallParticipantWrapper.create(p) for p in response.participants]
         return response.participants
 
     async def leave_current_group_call(self):

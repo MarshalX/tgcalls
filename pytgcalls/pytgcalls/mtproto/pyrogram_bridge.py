@@ -106,7 +106,7 @@ class PyrogramBridge(MTProtoBridgeBase):
         return in_group_call
 
     async def get_group_participants(
-        self, participants: list = [], sources: list = [], offset: str = "", limit: int = 1
+        self, participants=[], sources=[], offset: str = "", limit: int = 1
     ):
         if not self.full_chat or not self.full_chat.call:
             return
@@ -119,7 +119,8 @@ class PyrogramBridge(MTProtoBridgeBase):
                 limit=limit,
             )
         )
-        return response.participants
+        participants = [GroupCallParticipantWrapper.create(p) for p in response.participants]
+        return participants
 
     async def leave_current_group_call(self):
         if not self.full_chat or not self.full_chat.call or not self.my_ssrc:

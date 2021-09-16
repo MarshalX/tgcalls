@@ -25,7 +25,7 @@ from typing import Callable, Optional
 import tgcalls
 
 from pytgcalls.dispatcher import Action, DispatcherMixin
-from pytgcalls.exceptions import GroupCallNotFoundError, NotConnectedError
+from pytgcalls.exceptions import GroupCallNotFoundError, NotConnectedError, VolumeNoneError
 from pytgcalls.implementation import GroupCallNative
 from pytgcalls.mtproto.data import GroupCallDiscardedWrapper
 from pytgcalls.mtproto.data.update import UpdateGroupCallParticipantsWrapper, UpdateGroupCallWrapper
@@ -418,15 +418,31 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
         await self.edit_group_call(volume)
         self._set_volume(uint_ssrc(self.mtproto.my_ssrc), volume / 100)
 
-    get_group_call_members = self.mtproto.get_group_particiants
+    async def get_group_call_members(self. *args, **kwargs):
+        """Get Group Call members of Current Chat.
+
+        Args:
+            volume (`int`): Volume.
+            muted (`bool`): Is muted.
+            video_stopped (`bool`): Is video stopped.
+            video_paused (`bool`): Is video paused.
+        """
+        logger.debug("Calling Get Group Call Members Request..")
+        return await self.mtproto.get_group_particiants(*args, **kwargs)
 
     async def get_my_volume(self):
+        """Get own volume of current call.
+        """
         if not self.my_ssrc or not self.my_peer:
-            return
+            raise NotConnectedError("You are not Connected to Voice Chat.")
 
-        member = await self.get_group_call_members(participants=[self.my_peer], sources=[self.my_peer], limit=1)
+        member = await self.mtproto.get_group_call_members(participants=[self.my_peer], sources=[self.my_ssrc], limit=1)
         volume = member[0].volume
-        logger.debug(f"Current Volume is {volume}")
+        logger.debug(f"Current Volume is '{volume}'")
+
+        if volume == None:
+          raise VolumeNoneError("Volume is not a Valid INTEGER and is 'None'.")
+
         return volume
 
     # shortcuts for easy access in callbacks of events
