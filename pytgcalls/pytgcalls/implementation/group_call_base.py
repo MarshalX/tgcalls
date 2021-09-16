@@ -418,14 +418,13 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
         await self.edit_group_call(volume)
         self._set_volume(uint_ssrc(self.mtproto.my_ssrc), volume / 100)
 
-    async def get_group_call_members(self. *args, **kwargs):
+    async def get_group_call_members(self, *args, **kwargs):
         """Get Group Call members of Current Chat.
 
         Args:
-            volume (`int`): Volume.
-            muted (`bool`): Is muted.
-            video_stopped (`bool`): Is video stopped.
-            video_paused (`bool`): Is video paused.
+            participants (`list`, optional): list of Peers.
+            sources (`list`, optional): list of sources.
+            limit (`int`): Limit of participants to get.
         """
         logger.debug("Calling Get Group Call Members Request..")
         return await self.mtproto.get_group_particiants(*args, **kwargs)
