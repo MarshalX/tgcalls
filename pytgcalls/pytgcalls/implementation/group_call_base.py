@@ -438,7 +438,7 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
         if not self.my_ssrc:
             raise NotConnectedError("You are not Connected to Voice Chat.")
 
-        member = await self.mtproto.get_group_call_members(participants=[self.my_peer], sources=[self.my_ssrc], limit=1)
+        member = await self.get_group_call_members(participants=[self.my_peer], sources=[self.my_ssrc], limit=1)
         volume = member[0].volume
         logger.debug(f"Current Volume is '{volume}'")
 
