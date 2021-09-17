@@ -432,7 +432,10 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
     async def get_my_volume(self):
         """Get own volume of current call.
         """
-        if not self.my_ssrc or not self.my_peer:
+        if not self.my_peer:
+            await self.mtproto.get_and_set_self_peer()
+
+        if not self.my_ssrc:
             raise NotConnectedError("You are not Connected to Voice Chat.")
 
         member = await self.mtproto.get_group_call_members(participants=[self.my_peer], sources=[self.my_ssrc], limit=1)
