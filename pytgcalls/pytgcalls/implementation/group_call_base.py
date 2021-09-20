@@ -427,7 +427,7 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
             limit (`int`): Limit of participants to get.
         """
         logger.debug("Calling Get Group Call Members Request..")
-        return await self.mtproto.get_group_particiants(*args, **kwargs)
+        return await self.mtproto.get_group_participants(*args, **kwargs)
 
     async def get_my_volume(self):
         """Get own volume of current call.
