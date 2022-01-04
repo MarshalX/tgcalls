@@ -47,7 +47,7 @@ setup(
     install_requires=[
         'tgcalls == 3.0.0.dev5',
         'av == 8.1.0',
-        'opencv-python-headless == 4.5.3.56'
+        'opencv-python-headless == 4.5.5.62'
     ],
     extras_require={
         'pyrogram': ['pyrogram >= 1.2.11'],
