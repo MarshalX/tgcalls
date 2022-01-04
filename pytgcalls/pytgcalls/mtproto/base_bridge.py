@@ -98,7 +98,7 @@ class MTProtoBridgeBase(ABC):
 
         in this method be set chat_peer, full_chat and group_call class fields
 
-        i think group_call dont need to wrap cuz it will used in phone.JoinGroupCall
+        I think group_call don't need to wrap cuz it will be used in phone.JoinGroupCall
         """
         raise NotImplementedError
 
@@ -127,19 +127,15 @@ class MTProtoBridgeBase(ABC):
         """
         raise NotImplementedError
 
-    async def join_group_call(self, invite_hash: str, params: dict, muted: bool, pre_update_processing: Callable):
+    async def join_group_call(
+        self, invite_hash: str, params: dict, muted: bool, video_stopped: bool, pre_update_processing: Callable
+    ):
         """
         call phone.JoinGroupCall with group_call, join_as, invite hash, muted and params
 
         handle updates from response!
 
         reraise wrapped GroupcallSsrcDuplicateMuch!
-        """
-        raise NotImplementedError
-
-    def get_event_loop(self) -> AbstractEventLoop:
-        """
-        return MTProto client loop
         """
         raise NotImplementedError
 

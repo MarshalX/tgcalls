@@ -17,6 +17,7 @@
 #  You should have received a copy of the GNU Lesser General Public License v3
 #  along with tgcalls. If not, see <http://www.gnu.org/licenses/>.
 
+import asyncio
 import logging
 from typing import Callable, Optional, List
 
@@ -66,6 +67,11 @@ class GroupCallNative:
         )
 
         logger.debug('Native instance created.')
+
+        self.__loop = asyncio.get_event_loop()
+
+    def get_event_loop(self):
+        return self.__loop
 
     def is_group_call_native_created(self):
         return self.__native_instance.isGroupCallNativeCreated()

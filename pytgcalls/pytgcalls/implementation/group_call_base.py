@@ -112,8 +112,9 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
         self.__is_stop_requested = False
         self.__emit_join_payload_event = None
 
-        self.__is_muted = True
+        self._is_muted = True
         self._is_video_stopped = True
+        self._is_video_paused = False
 
         self._video_stream = None
         self._audio_stream = None
@@ -130,7 +131,7 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
             # maybe (if needed) set unmute status on server side after allowing to speak by admin
             # also mb there is need a some delay after getting update cuz server sometimes cant handle editing properly
             if participant.is_self and participant.can_self_unmute:
-                if not self.__is_muted:
+                if not self._is_muted:
                     await self.edit_group_call(muted=False)
 
             if participant.peer == self.mtproto.join_as and ssrc != self.mtproto.my_ssrc:
@@ -177,7 +178,11 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
                     self.mtproto.set_my_ssrc(payload.audioSsrc)
 
                 await self.mtproto.join_group_call(
-                    self.invite_hash, payload.json, muted=True, pre_update_processing=pre_update_processing
+                    self.invite_hash,
+                    payload.json,
+                    muted=True,
+                    video_stopped=self._is_video_stopped,
+                    pre_update_processing=pre_update_processing,
                 )
 
                 if self.__emit_join_payload_event:
@@ -192,7 +197,7 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
                 logger.debug('Duplicate SSRC.')
                 await self.reconnect()
 
-        asyncio.ensure_future(_(), loop=self.mtproto.get_event_loop())
+        self.get_event_loop().create_task(_())
 
     def __network_state_updated_callback(self, state: bool):
         logger.debug('Network state updated...')
@@ -203,7 +208,7 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
 
         self.is_connected = state
         if self.is_connected:
-            asyncio.ensure_future(self.set_is_mute(False), loop=self.mtproto.get_event_loop())
+            self.get_event_loop().create_task(self.set_is_mute(False))
             if self.enable_action:
                 self.__start_status_worker()
 
@@ -218,7 +223,7 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
                 await self.mtproto.send_speaking_group_call_action()
                 await asyncio.sleep(self.SEND_ACTION_UPDATE_EACH)
 
-        asyncio.ensure_future(worker(), loop=self.mtproto.get_event_loop())
+        self.get_event_loop().create_task(worker())
 
     async def start(self, group, join_as=None, invite_hash: Optional[str] = None, enable_action=True):
         """Start voice chat (join and play/record from initial values).
@@ -303,9 +308,9 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
         else:
             await post_disconnect()
 
-        if self._video_stream:
+        if self._video_stream and self._video_stream.is_running:
             self._video_stream.stop()
-        if self._audio_stream:
+        if self._audio_stream and self._audio_stream.is_running:
             self._audio_stream.stop()
 
         logger.debug('GroupCallBase stopped properly.')
@@ -338,7 +343,7 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
         else:
             logger.debug('Completely left the current group call.')
 
-    async def edit_group_call(self, volume: int = None, muted=None, video_stopped=None):
+    async def edit_group_call(self, volume: int = None, muted=None, video_stopped=None, video_paused=None):
         """Edit own settings of group call.
 
         Note:
@@ -347,18 +352,26 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
         Args:
             volume (`int`): Volume.
             muted (`bool`): Is muted.
-            video_stopped (`bool`): Is video stopped AKA muted.
+            video_stopped (`bool`): Is video stopped.
+            video_paused (`bool`): Is video paused.
         """
 
         if not muted:
-            muted = self.__is_muted
+            muted = self._is_muted
 
-        if not video_stopped:
+        if video_stopped is None:
             video_stopped = self._is_video_stopped
+        else:
+            self._is_video_stopped = video_stopped
 
-        await self.edit_group_call_member(self.mtproto.join_as, volume, muted, video_stopped)
+        if video_paused is None:
+            video_paused = self._is_video_paused
+        else:
+            self._is_video_paused = video_paused
 
-    async def edit_group_call_member(self, peer, volume: int = None, muted=None, video_stopped=None):
+        await self.edit_group_call_member(self.mtproto.join_as, volume, muted, video_stopped, video_paused)
+
+    async def edit_group_call_member(self, peer, volume: int = None, muted=None, video_stopped=None, video_paused=None):
         """Edit setting of user in voice chat (required voice chat management permission).
 
         Note:
@@ -368,11 +381,12 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
             peer (`InputPeer`): Participant of voice chat.
             volume (`int`): Volume.
             muted (`bool`): Is muted.
-            video_stopped (`bool`): Is video stopped AKA muted.
+            video_stopped (`bool`): Is video stopped.
+            video_paused (`bool`): Is video paused.
         """
 
         volume = max(1, volume * 100) if volume is not None else None
-        await self.mtproto.edit_group_call_member(peer, volume, muted, video_stopped)
+        await self.mtproto.edit_group_call_member(peer, volume, muted, video_stopped, video_paused)
 
     async def set_is_mute(self, is_muted: bool):
         """Set is mute.
@@ -381,7 +395,7 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
             is_muted (`bool`): Is muted.
         """
 
-        self.__is_muted = is_muted
+        self._is_muted = is_muted
         self._set_is_mute(is_muted)
 
         logger.debug(f'Set is muted on server side. New value: {is_muted}.')

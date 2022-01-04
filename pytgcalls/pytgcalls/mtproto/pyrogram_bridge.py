@@ -114,10 +114,17 @@ class PyrogramBridge(MTProtoBridgeBase):
         )
         await self.client.handle_updates(response)
 
-    async def edit_group_call_member(self, peer, volume: int = None, muted=False, video_stopped=True):
+    async def edit_group_call_member(
+        self, peer, volume: int = None, muted=False, video_stopped=True, video_paused=False
+    ):
         response = await self.client.send(
             functions.phone.EditGroupCallParticipant(
-                call=self.full_chat.call, participant=peer, muted=muted, volume=volume, video_stopped=video_stopped
+                call=self.full_chat.call,
+                participant=peer,
+                muted=muted,
+                volume=volume,
+                video_stopped=video_stopped,
+                video_paused=video_paused,
             )
         )
         await self.client.handle_updates(response)
@@ -189,7 +196,9 @@ class PyrogramBridge(MTProtoBridgeBase):
             functions.messages.SetTyping(peer=self.chat_peer, action=types.SpeakingInGroupCallAction())
         )
 
-    async def join_group_call(self, invite_hash: str, params: str, muted: bool, pre_update_processing: Callable):
+    async def join_group_call(
+        self, invite_hash: str, params: str, muted: bool, video_stopped: bool, pre_update_processing: Callable
+    ):
         try:
             response = await self.client.send(
                 functions.phone.JoinGroupCall(
@@ -198,6 +207,7 @@ class PyrogramBridge(MTProtoBridgeBase):
                     invite_hash=invite_hash,
                     params=types.DataJSON(data=params),
                     muted=muted,
+                    video_stopped=video_stopped,
                 )
             )
 
@@ -211,6 +221,3 @@ class PyrogramBridge(MTProtoBridgeBase):
             await self.client.handle_updates(response)
         except PyrogramGroupcallSsrcDuplicateMuch as e:
             raise GroupcallSsrcDuplicateMuch(e.x)
-
-    def get_event_loop(self) -> AbstractEventLoop:
-        return self.client.loop

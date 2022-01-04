@@ -118,10 +118,17 @@ class TelethonBridge(MTProtoBridgeBase):
 
         self.client._handle_update(response)
 
-    async def edit_group_call_member(self, peer, volume: int = None, muted=False, video_stopped=True):
+    async def edit_group_call_member(
+        self, peer, volume: int = None, muted=False, video_stopped=True, video_paused=False
+    ):
         response = await self.client(
             functions.phone.EditGroupCallParticipantRequest(
-                call=self.full_chat.call, participant=peer, muted=muted, volume=volume, video_stopped=video_stopped
+                call=self.full_chat.call,
+                participant=peer,
+                muted=muted,
+                volume=volume,
+                video_stopped=video_stopped,
+                video_paused=video_paused,
             )
         )
 
@@ -167,7 +174,9 @@ class TelethonBridge(MTProtoBridgeBase):
     async def send_speaking_group_call_action(self):
         await self.client(functions.messages.SetTypingRequest(peer=self.chat_peer, action=SpeakingInGroupCallAction()))
 
-    async def join_group_call(self, invite_hash: str, params: str, muted: bool, pre_update_processing: Callable):
+    async def join_group_call(
+        self, invite_hash: str, params: str, muted: bool, video_stopped: bool, pre_update_processing: Callable
+    ):
         try:
             response = await self.client(
                 functions.phone.JoinGroupCallRequest(
@@ -176,6 +185,7 @@ class TelethonBridge(MTProtoBridgeBase):
                     invite_hash=invite_hash,
                     params=DataJSON(data=params),
                     muted=muted,
+                    video_stopped=video_stopped,
                 )
             )
 
@@ -189,6 +199,3 @@ class TelethonBridge(MTProtoBridgeBase):
             self.client._handle_update(response)
         except TelethonGroupcallSsrcDuplicateMuchError as e:
             raise GroupcallSsrcDuplicateMuch(e)
-
-    def get_event_loop(self) -> AbstractEventLoop:
-        return self._loop

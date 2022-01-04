@@ -53,9 +53,13 @@ class VideoInfo:
         self.height = height
         self.fps = fps
 
+    @classmethod
+    def default(cls):
+        return cls(1820, 720, 30)
+
 
 class QueueStream:
-    def __init__(self, queue_size):
+    def __init__(self, on_end_callback, queue_size):
         self.queue_size = queue_size
         self.__queue = self.create_queue()
 
@@ -63,6 +67,12 @@ class QueueStream:
         self.thread.daemon = True
 
         self.is_running = False
+        self.is_paused = False
+
+        self._on_end_callback = on_end_callback
+
+    def set_pause(self, pause: bool):
+        self.is_paused = pause
 
     def create_queue(self, queue_size=None):
         if not queue_size:
@@ -90,13 +100,12 @@ class QueueStream:
 
 
 class VideoStream(QueueStream):
-    __DEFAULT_VIDEO_INFO = VideoInfo(1280, 720, 30)
+    def __init__(self, source, repeat, on_end_callback, queue_size=VIDEO_QUEUE_SIZE):
+        super().__init__(on_end_callback, queue_size)
 
-    def __init__(self, source, repeat, queue_size=VIDEO_QUEUE_SIZE):
-        super().__init__(queue_size)
-
+        self.source = source
         self.video_capture = None
-        if source is not None:
+        if source:
             self.video_capture = cv2.VideoCapture(source)
             self.video_capture.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
@@ -117,27 +126,17 @@ class VideoStream(QueueStream):
                 self.video_capture.get(cv2.CAP_PROP_FPS),
             )
 
-        return self.__DEFAULT_VIDEO_INFO
+        return VideoInfo.default()
 
     def read(self):
         try:
+            if self.is_paused:
+                raise Empty
+
             return super().read()
         except Empty:
             if self.__last_frame:
                 return self.__last_frame
-            # if thread wasn't started
-            return self.__generate_empty_frame()
-
-    def stop(self):
-        super().stop()
-
-        if self.video_capture:
-            self.video_capture.release()
-
-    # may be need to move in group call raw class. like audio
-    def __generate_empty_frame(self) -> bytes:
-        frame_size = self.get_video_info().width * self.get_video_info().width * DEFAULT_COLOR_DEPTH
-        return b''.ljust(frame_size, b'\0')
 
     def get_pts(self):
         return self.__pts
@@ -148,16 +147,18 @@ class VideoStream(QueueStream):
     def get_next_frame(self) -> Optional[bytes]:
         # when video file hasn't been passed
         if not self.video_capture:
-            return self.__generate_empty_frame()
+            return
 
         if self.video_capture and self.video_capture.isOpened():
             grabbed, frame = self.video_capture.read()
             if not grabbed or frame is None:
+                self._on_end_callback(self.source)
                 if self.repeat:
                     self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 1)
                     return
                 else:
-                    return self.__generate_empty_frame()
+                    self.stop()
+                    return
 
             self.__pts = self.video_capture.get(cv2.CAP_PROP_POS_MSEC)
 
@@ -173,7 +174,7 @@ class VideoStream(QueueStream):
     def _update(self):
         while True:
             if not self.is_running:
-                return
+                break
 
             frame = self.get_next_frame()
             # if it was rewind
@@ -184,6 +185,9 @@ class VideoStream(QueueStream):
             # its necessary for thread blocking
             self.put(frame)
 
+        if self.video_capture:
+            self.video_capture.release()
+
 
 class AudioStream(QueueStream):
     __REQUESTED_AUDIO_BYTES_LENGTH = DEFAULT_REQUESTED_AUDIO_BYTES_LENGTH
@@ -192,11 +196,13 @@ class AudioStream(QueueStream):
         self,
         source: str,
         repeat: bool,
+        on_end_callback,
         queue_size=AUDIO_QUEUE_SIZE,
         video_stream: Optional[VideoStream] = None,
     ):
-        super().__init__(queue_size)
+        super().__init__(on_end_callback, queue_size)
 
+        self.source = source
         self.__input_container = av.open(source)
         if not len(self.__input_container.streams.audio):
             raise RuntimeError('Cant find audio stream')
@@ -223,14 +229,13 @@ class AudioStream(QueueStream):
 
         self.__frame_tail = b''
 
-    def stop(self):
-        super().stop()
-        self.__input_container.close()
-
     def read(self, length: int):
         self.__REQUESTED_AUDIO_BYTES_LENGTH = length
 
         try:
+            if self.is_paused:
+                raise Empty
+
             return super().read()
         except Empty:
             pass
@@ -256,17 +261,15 @@ class AudioStream(QueueStream):
 
                 # welcome to my magic values
                 if pts_diff > 100:
-                    n = 1
-
-                    logger.debug(f'Skip {n} audio frame(s)')
-                    for _ in range(n):
-                        frame = next(self.__audio_stream_iter)
+                    logger.debug(f'Skip 1 audio frame')
+                    frame = next(self.__audio_stream_iter)
                 if pts_diff < -100:
                     logger.debug('Skip 1 video frame')
                     self.__video_stream.skip_next_frame()
 
             frame.pts = None
         except StopIteration:
+            self._on_end_callback(self.source)
             if self.repeat:
                 # TODO it doesnt work with live streams and will crash on the end of stream
                 self.__input_container.seek(0)
@@ -300,7 +303,7 @@ class AudioStream(QueueStream):
     def _update(self):
         while True:
             if not self.is_running:
-                return
+                break
 
             frame_list = self.get_next_frame()
             if frame_list is None:
@@ -308,3 +311,5 @@ class AudioStream(QueueStream):
 
             for frame in frame_list:
                 self.put(frame)
+
+        self.__input_container.close()
