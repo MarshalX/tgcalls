@@ -221,6 +221,3 @@ class PyrogramBridge(MTProtoBridgeBase):
             await self.client.handle_updates(response)
         except PyrogramGroupcallSsrcDuplicateMuch as e:
             raise GroupcallSsrcDuplicateMuch(e.x)
-
-    def get_event_loop(self) -> AbstractEventLoop:
-        return self.client.loop

@@ -342,8 +342,9 @@ jobs:
         if: matrix.arch == 'arm64' && env.BUILD_WHEELS == 'true'
         env:
           CIBW_ARCHS_MACOS: "arm64"
-          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
           CIBW_BUILD: cp3*-*
+          CIBW_SKIP: cp35-* cp36-*
           CIBW_ENVIRONMENT: "ROOT_PATH=$(pwd)"
           CIBW_TEST_COMMAND: python -c "import tgcalls; tgcalls.ping()"
         run: |
@@ -353,9 +354,9 @@ jobs:
       - name: Build wheels.
         if: matrix.arch == 'x86_64' && env.BUILD_WHEELS == 'true'
         env:
-          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
           CIBW_BUILD: cp3*-*
-          CIBW_SKIP: cp35-*
+          CIBW_SKIP: cp35-* cp36-*
           CIBW_ENVIRONMENT: "ROOT_PATH=$(pwd)"
           CIBW_TEST_COMMAND: python -c "import tgcalls; tgcalls.ping()"
         run: |

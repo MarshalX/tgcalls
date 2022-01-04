@@ -199,6 +199,3 @@ class TelethonBridge(MTProtoBridgeBase):
             self.client._handle_update(response)
         except TelethonGroupcallSsrcDuplicateMuchError as e:
             raise GroupcallSsrcDuplicateMuch(e)
-
-    def get_event_loop(self) -> AbstractEventLoop:
-        return self._loop
