@@ -45,16 +45,15 @@ setup(
     long_description_content_type='text/markdown',
     packages=packages,
     install_requires=[
-        'tgcalls == 3.0.0.dev4',
-        'av == 8.0.3',
+        'tgcalls == 3.0.0.dev5',
+        'av == 8.1.0',
         'opencv-python-headless == 4.5.3.56'
     ],
     extras_require={
-        'pyrogram': ['pyrogram >= 1.2.9'],
-        # 'pyrogram': ['pyrogram @ git+https://github.com/pyrogram/pyrogram@master'],
-        'telethon': ['telethon >= 1.23.0'],
+        'pyrogram': ['pyrogram >= 1.2.11'],
+        'telethon': ['telethon >= 1.24.0'],
     },
-    python_requires="~=3.6",
+    python_requires="~=3.7",
     include_package_data=True,
     classifiers=[
         'Development Status :: 5 - Production/Stable',
@@ -78,10 +77,10 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3 :: Only',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         "Programming Language :: Python :: Implementation",
         "Programming Language :: Python :: Implementation :: CPython",
     ],

@@ -199,10 +199,10 @@ jobs:
         if: env.BUILD_WHEELS == 'true'
         working-directory: ${{ github.workspace }}
         env:
-          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.6"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.7"
           CIBW_ARCHS: "auto64"
           CIBW_BUILD: cp3*-*
-          CIBW_SKIP: cp35-*
+          CIBW_SKIP: cp35-* cp36-*
           CIBW_ENVIRONMENT: 'ROOT_PATH="$GITHUB_WORKSPACE"'
           CIBW_TEST_COMMAND: 'python -c "import tgcalls;tgcalls.ping()"'
         run: |

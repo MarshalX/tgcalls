@@ -107,7 +107,7 @@ Note: All audio data is transmitted in PCM 16 bit, 48k.
 
 ### Requirements
 
-- Python 3.6 or higher.
+- Python 3.7 or higher.
 - A [Telegram API key](https://docs.pyrogram.org/intro/setup#api-keys).
 
 ### TODO list

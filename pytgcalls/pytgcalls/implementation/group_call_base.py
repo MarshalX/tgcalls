@@ -197,7 +197,7 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
                 logger.debug('Duplicate SSRC.')
                 await self.reconnect()
 
-        asyncio.ensure_future(_(), loop=self.mtproto.get_event_loop())
+        self.get_event_loop().create_task(_())
 
     def __network_state_updated_callback(self, state: bool):
         logger.debug('Network state updated...')
@@ -208,7 +208,7 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
 
         self.is_connected = state
         if self.is_connected:
-            asyncio.ensure_future(self.set_is_mute(False), loop=self.mtproto.get_event_loop())
+            self.get_event_loop().create_task(self.set_is_mute(False))
             if self.enable_action:
                 self.__start_status_worker()
 
@@ -223,7 +223,7 @@ class GroupCallBase(ABC, GroupCallBaseDispatcherMixin, GroupCallNative):
                 await self.mtproto.send_speaking_group_call_action()
                 await asyncio.sleep(self.SEND_ACTION_UPDATE_EACH)
 
-        asyncio.ensure_future(worker(), loop=self.mtproto.get_event_loop())
+        self.get_event_loop().create_task(worker())
 
     async def start(self, group, join_as=None, invite_hash: Optional[str] = None, enable_action=True):
         """Start voice chat (join and play/record from initial values).
