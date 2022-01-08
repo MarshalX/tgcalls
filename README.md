@@ -161,7 +161,7 @@ the playback/recording of a file or a virtual system device.
 
 Short answer for Linux:
 ```bash
-git clone https://github.com//MarshalX/tgcalls.git --recursive
+git clone https://github.com/MarshalX/tgcalls.git --recursive
 cd tgcalls
 ```
 For x86_64:
