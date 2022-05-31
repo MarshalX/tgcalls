@@ -123,7 +123,7 @@ class Call:
         )
 
     async def get_dhc(self):
-        self.dhc = DH(await self.client.send(functions.messages.GetDhConfig(version=0, random_length=256)))
+        self.dhc = DH(await self.client.invoke(functions.messages.GetDhConfig(version=0, random_length=256)))
         return self.dhc
 
     def check_g(self, g_x: int, p: int) -> None:
@@ -162,7 +162,7 @@ class Call:
             self.call_ended()
 
     async def received_call(self):
-        r = await self.client.send(
+        r = await self.client.invoke(
             functions.phone.ReceivedCall(peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash))
         )
         print(r)
@@ -171,7 +171,7 @@ class Call:
         if not reason:
             reason = types.PhoneCallDiscardReasonDisconnect()
         try:
-            r = await self.client.send(
+            r = await self.client.invoke(
                 functions.phone.DiscardCall(
                     peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash),
                     duration=0,  # TODO
@@ -187,7 +187,7 @@ class Call:
 
     def signalling_data_emitted_callback(self, data):
         async def _():
-            await self.client.send(
+            await self.client.invoke(
                 functions.phone.SendSignalingData(
                     # peer=self.call_peer,
                     peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash),
@@ -198,7 +198,7 @@ class Call:
         asyncio.ensure_future(_(), loop=self.client.loop)
 
     async def _initiate_encrypted_call(self) -> None:
-        await self.client.send(functions.help.GetConfig())
+        await self.client.invoke(functions.help.GetConfig())
 
         self.update_state('ESTABLISHED')
         self.auth_key_visualization = generate_visualization(self.auth_key, self.g_a)
@@ -229,7 +229,7 @@ class OutgoingCall(Call):
         self.g_a_hash = hashlib.sha256(i2b(self.g_a)).digest()
 
         self.call = (
-            await self.client.send(
+            await self.client.invoke(
                 functions.phone.RequestCall(
                     user_id=self.peer,
                     random_id=randint(0, 0x7FFFFFFF - 1),
@@ -260,7 +260,7 @@ class OutgoingCall(Call):
         self.key_fingerprint = calc_fingerprint(self.auth_key_bytes)
 
         self.call = (
-            await self.client.send(
+            await self.client.invoke(
                 functions.phone.ConfirmCall(
                     key_fingerprint=self.key_fingerprint,
                     # peer=self.call_peer,
@@ -314,7 +314,7 @@ class IncomingCall(Call):
 
         try:
             self.call = (
-                await self.client.send(
+                await self.client.invoke(
                     functions.phone.AcceptCall(
                         peer=types.InputPhoneCall(id=self.call_id, access_hash=self.call_access_hash),
                         g_b=i2b(self.g_b),
