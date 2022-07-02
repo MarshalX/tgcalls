@@ -238,7 +238,7 @@ class OutgoingCall(Call):
                 )
             )
         ).phone_call
-
+        self.call_access_hash = self.call.access_hash
         self.update_state('WAITING')
 
     async def process_update(self, _, update, users, chats) -> None:
