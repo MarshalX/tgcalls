@@ -14,7 +14,7 @@ jobs:
 
   build_wheels_for_win:
     name: Build and publish wheels for Windows x32
-    runs-on: windows-latest
+    runs-on: windows-2019
 
     env:
       BUILD_WHEELS: "true"
