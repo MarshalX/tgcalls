@@ -49,6 +49,10 @@ class PyrogramBridge(MTProtoBridgeBase):
     def __init__(self, client: Client):
         super().__init__(client)
 
+        # compatibility with pyro > 2.0
+        if getattr(client, 'send', None) is None:
+            setattr(client, 'send', getattr(client, 'invoke'))
+
         self._update_to_handler = {
             types.UpdateGroupCallParticipants: self._process_group_call_participants_update,
             types.UpdateGroupCall: self._process_group_call_update,
@@ -98,6 +102,10 @@ class PyrogramBridge(MTProtoBridgeBase):
                 self.client.send(functions.phone.CheckGroupCall(call=self.group_call, source=int_ssrc(self.my_ssrc)))
             )
         except PyrogramBadRequest as e:
+            # compatibility with pyro > 2.0
+            if getattr(e, 'x', None) is None:
+                setattr(e, 'x', getattr(e, 'value'))
+
             if e.x != '[400 GROUPCALL_JOIN_MISSING]':
                 raise BadRequest(e.x)
 
@@ -220,4 +228,8 @@ class PyrogramBridge(MTProtoBridgeBase):
 
             await self.client.handle_updates(response)
         except PyrogramGroupcallSsrcDuplicateMuch as e:
+            # compatibility with pyro > 2.0
+            if getattr(e, 'x', None) is None:
+                setattr(e, 'x', getattr(e, 'value'))
+
             raise GroupcallSsrcDuplicateMuch(e.x)

@@ -29,7 +29,7 @@ __all__ = [
     'GroupCallFileAction',
     'GroupCallBaseAction',
 ]
-__version__ = '3.0.0.dev20'
+__version__ = '3.0.0.dev22'
 __pdoc__ = {
     # files
     'utils': False,

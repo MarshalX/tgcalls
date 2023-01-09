@@ -25,7 +25,7 @@ jobs:
             --workdir=/github/workspace \
             -e GITHUB_WORKSPACE=/github/workspace \
             ghcr.io/marshalx/tgcalls/manylinux2014_x86_64-webrtc-entrypoint:latest \
-            "cp37-cp37m cp38-cp38 cp39-cp39 cp310-cp310" \
+            "cp37-cp37m cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311" \
             "manylinux2014_x86_64" \
             ${{ secrets.PYPI_USERNAME }} \
             ${{ secrets.PYPI_PASSWORD }}
@@ -51,7 +51,7 @@ jobs:
               --workdir $GITHUB_WORKSPACE \
               --platform "linux/arm64" \
               ghcr.io/marshalx/tgcalls/manylinux2014_aarch64-webrtc-entrypoint:latest \
-              "cp37-cp37m cp38-cp38 cp39-cp39 cp310-cp310" \
+              "cp37-cp37m cp38-cp38 cp39-cp39 cp310-cp310 cp311-cp311" \
               "manylinux2014_aarch64" \
               ${{ secrets.PYPI_USERNAME }} \
               ${{ secrets.PYPI_PASSWORD }}
