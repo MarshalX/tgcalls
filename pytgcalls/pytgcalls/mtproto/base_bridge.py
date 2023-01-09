@@ -141,3 +141,6 @@ class MTProtoBridgeBase(ABC):
 
     def set_my_ssrc(self, ssrc):
         self.my_ssrc = ssrc
+
+    def handle_updates(self, updates):
+        raise NotImplementedError

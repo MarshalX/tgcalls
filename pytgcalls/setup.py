@@ -34,7 +34,7 @@ with open(path.join(base_path, '../README.md'), 'r', encoding='utf-8') as f:
 setup(
     name='pytgcalls',
     version=version,
-    author='Il`ya Semyonov',
+    author='Ilya (Marshal)',
     author_email='ilya@marshal.dev',
     license='LGPLv3',
     url='https://github.com/MarshalX/tgcalls',
@@ -46,8 +46,8 @@ setup(
     packages=packages,
     install_requires=[
         'tgcalls == 3.0.0.dev5',
-        'av == 8.1.0',
-        'opencv-python-headless == 4.5.5.62'
+        'av~=8.0',
+        'opencv-python-headless~=4.5'
     ],
     extras_require={
         'pyrogram': ['pyrogram >= 1.2.11'],

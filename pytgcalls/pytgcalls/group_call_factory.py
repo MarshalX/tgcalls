@@ -126,11 +126,13 @@ class GroupCallFactory:
         self,
         on_played_data: Callable[['GroupCallRaw', int], bytes] = None,
         on_recorded_data: Callable[['GroupCallRaw', bytes, int], None] = None,
+        on_video_played_data: Callable[['GroupCallRaw'], bytes] = None,
     ) -> GroupCallRaw:
         return GroupCallRaw(
             self.get_mtproto_bridge(),
             on_played_data,
             on_recorded_data,
+            on_video_played_data,
             self.enable_logs_to_console,
             self.path_to_log_file,
             self.outgoing_audio_bitrate_kbit,

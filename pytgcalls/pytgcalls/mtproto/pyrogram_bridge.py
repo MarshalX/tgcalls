@@ -120,7 +120,7 @@ class PyrogramBridge(MTProtoBridgeBase):
         response = await self.client.send(
             functions.phone.LeaveGroupCall(call=self.full_chat.call, source=int_ssrc(self.my_ssrc))
         )
-        await self.client.handle_updates(response)
+        await self.handle_updates(response)
 
     async def edit_group_call_member(
         self, peer, volume: int = None, muted=False, video_stopped=True, video_paused=False
@@ -135,7 +135,7 @@ class PyrogramBridge(MTProtoBridgeBase):
                 video_paused=video_paused,
             )
         )
-        await self.client.handle_updates(response)
+        await self.handle_updates(response)
 
     async def get_and_set_self_peer(self):
         self.my_peer = await self.client.resolve_peer(await self.client.storage.user_id())
@@ -226,10 +226,13 @@ class PyrogramBridge(MTProtoBridgeBase):
                 if isinstance(update, UpdateGroupCallConnection):
                     await self._process_group_call_connection(update)
 
-            await self.client.handle_updates(response)
+            await self.handle_updates(response)
         except PyrogramGroupcallSsrcDuplicateMuch as e:
             # compatibility with pyro > 2.0
             if getattr(e, 'x', None) is None:
                 setattr(e, 'x', getattr(e, 'value'))
 
             raise GroupcallSsrcDuplicateMuch(e.x)
+
+    async def handle_updates(self, updates):
+        await self.client.handle_updates(updates)

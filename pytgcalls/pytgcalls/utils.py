@@ -284,7 +284,12 @@ class AudioStream(QueueStream):
 
         frame_bytes = self.__frame_tail
         if resampled_frame:
-            frame_bytes += resampled_frame.to_ndarray().tobytes()
+            if isinstance(resampled_frame, list):
+                # for av 9.0+
+                frame_bytes += resampled_frame[0].to_ndarray().tobytes()
+            else:
+                # for av 8
+                frame_bytes += resampled_frame.to_ndarray().tobytes()
 
         cut_frames = [
             frame_bytes[i : i + self.__REQUESTED_AUDIO_BYTES_LENGTH]
