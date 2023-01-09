@@ -9,6 +9,7 @@ on:
       - 'build/manylinux/Dockerfile'
       - 'build/manylinux/webrtc/Dockerfile'
       - 'tgcalls/third_party/webrtc/**'
+      - 'setup.py'
 jobs:
   build_push_to_registry:
     name: Push Docker image to GitHub Packages
