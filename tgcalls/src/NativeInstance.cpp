@@ -14,7 +14,7 @@ NativeInstance::NativeInstance(bool logToStdErr, string logPath)
   if (!noticeDisplayed) {
     auto ver = std::string(PROJECT_VER);
     auto dev = std::count(ver.begin(), ver.end(), '.') == 3 ? " DEV" : "";
-    py::print("tgcalls v" + ver + dev + ", Copyright (C) 2020-2021 Il`ya (Marshal) <https://github.com/MarshalX>");
+    py::print("tgcalls v" + ver + dev + ", Copyright (C) 2020-2023 Ilya (Marshal) <https://github.com/MarshalX>");
     py::print("Licensed under the terms of the GNU Lesser General Public License v3 (LGPLv3) \n\n");
 
     noticeDisplayed = true;

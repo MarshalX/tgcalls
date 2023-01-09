@@ -169,24 +169,27 @@ class GroupCall(GroupCallRaw, GroupCallDispatcherMixin):
         if self.is_connected:
             await self.edit_group_call(video_stopped=False)
 
-    async def start_audio(self, source: str, repeat=True, video_stream: Optional[VideoStream] = None):
+    async def start_audio(self, source: Optional[str] = None, repeat=True, video_stream: Optional[VideoStream] = None):
         """Enable audio playing for current group call.
 
         Note:
-            Source is audio file or direct URL to file or audio live stream..
+            Source is audio file or direct URL to file or audio live stream.
+
+            If the source is None then empty bytes will be sent.
 
         Args:
-            source (`str`): Path to filename or URL to audio file or URL to live stream.
-            repeat (`bool`): rewind audio when end of file.
-            video_stream (`VideoStream`): stream to sync.
+            source (`str`, optional): Path to filename or URL to audio file or URL to live stream.
+            repeat (`bool`, optional): rewind audio when end of file.
+            video_stream (`VideoStream`, optional): stream to sync.
         """
 
         if self._audio_stream and self._audio_stream.is_running:
             self._audio_stream.stop()
 
-        self._audio_stream = AudioStream(
-            source, repeat, self.__combined_audio_trigger, video_stream=video_stream
-        ).start()
+        if source is not None:
+            self._audio_stream = AudioStream(
+                source, repeat, self.__combined_audio_trigger, video_stream=video_stream
+            ).start()
 
         if self.is_connected:
             await self.edit_group_call(muted=False)
